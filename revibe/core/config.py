@@ -514,6 +514,15 @@ class VibeConfig(BaseSettings):
         return self
 
     @model_validator(mode="after")
+    def _merge_default_models(self) -> VibeConfig:
+        from revibe.core.model_config import DEFAULT_MODELS
+        existing_keys = {(m.provider, m.name) for m in self.models}
+        for m in DEFAULT_MODELS:
+            if (m.provider, m.name) not in existing_keys:
+                self.models.append(m)
+        return self
+
+    @model_validator(mode="after")
     def _check_system_prompt(self) -> VibeConfig:
         _ = self.system_prompt
         return self

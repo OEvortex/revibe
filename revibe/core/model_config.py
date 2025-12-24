@@ -9,8 +9,10 @@ class ModelConfig(BaseModel):
     provider: str
     alias: str
     temperature: float = 0.2
-    input_price: float = 0.0  # Price per million input tokens
-    output_price: float = 0.0  # Price per million output tokens
+    input_price: float = 0.0
+    output_price: float = 0.0
+    context: int = 128000
+    max_output: int = 32000
 
     @model_validator(mode="before")
     @classmethod
@@ -59,49 +61,93 @@ DEFAULT_MODELS = [
         input_price=15.0,
         output_price=60.0,
     ),
-    # Anthropic models
+    ### Groq models
     ModelConfig(
-        name="claude-sonnet-4-20250514",
-        provider="anthropic",
-        alias="claude-sonnet-4",
-        input_price=3.0,
-        output_price=15.0,
+        name="moonshotai/kimi-k2-instruct-0905",
+        provider="groq",
+        alias="kimi-k2",
+        input_price=1,
+        output_price=3,
+        context=262144,
+        max_output=16384,
     ),
     ModelConfig(
-        name="claude-3-5-haiku-20241022",
-        provider="anthropic",
-        alias="claude-haiku",
-        input_price=0.8,
-        output_price=4.0,
+        name="openai/gpt-oss-120b",
+        provider="groq",
+        alias="gpt-oss-120b",
+        input_price=0.15,
+        output_price=0.60,
+        context=131072,
+        max_output=65536,
     ),
-    # Groq models
+    ModelConfig(
+        name="qwen/qwen3-32b",
+        provider="groq",
+        alias="qwen3-32b",
+        input_price=0.29,
+        output_price=0.59,
+        context=131072,
+        max_output=40960,
+    ),
     ModelConfig(
         name="llama-3.3-70b-versatile",
         provider="groq",
-        alias="llama-70b",
+        alias="llama-3.3-70b",
         input_price=0.59,
         output_price=0.79,
+        context=131072,
+        max_output=32768,
     ),
     ModelConfig(
-        name="llama-3.1-8b-instant",
+        name="meta-llama/llama-4-maverick-17b-128e-instruct",
         provider="groq",
-        alias="llama-8b",
+        alias="llama-4-maverick",
+        input_price=0.1,
+        output_price=0.1,
+        context=131072,
+        max_output=8192,
+    ),
+    ModelConfig(
+        name="meta-llama/llama-4-scout-17b-16e-instruct",
+        provider="groq",
+        alias="llama-4-scout",
+        input_price=0.1,
+        output_price=0.1,
+        context=131072,
+        max_output=8192,
+    ),
+    ModelConfig(
+        name="groq/compound",
+        provider="groq",
+        alias="groq-compound",
+        input_price=0.1,
+        output_price=0.1,
+        context=131072,
+        max_output=8192,
+    ),
+    ModelConfig(
+        name="groq/compound-mini",
+        provider="groq",
+        alias="groq-compound-mini",
         input_price=0.05,
-        output_price=0.08,
+        output_price=0.05,
+        context=131072,
+        max_output=8192,
     ),
-    # Local models
+    ### Hugging Face models
     ModelConfig(
-        name="devstral",
-        provider="llamacpp",
-        alias="local",
-        input_price=0.0,
-        output_price=0.0,
+        name="baidu/ERNIE-4.5-VL-424B-A47B-Base-PT",
+        provider="huggingface",
+        alias="ernie-4.5",
     ),
     ModelConfig(
-        name="codellama",
-        provider="ollama",
-        alias="ollama-codellama",
-        input_price=0.0,
-        output_price=0.0,
+        name="deepseek-ai/DeepSeek-R1-Distill-Qwen-7B",
+        provider="huggingface",
+        alias="deepseek-r1-qwen-7b",
+    ),
+    ModelConfig(
+        name="zai-org/GLM-4.7-FP8",
+        provider="huggingface",
+        alias="glm-4.7",
     ),
 ]

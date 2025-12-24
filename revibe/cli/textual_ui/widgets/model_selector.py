@@ -10,7 +10,7 @@ from textual.message import Message
 from textual.widgets import Static, OptionList, Input
 from textual.widgets.option_list import Option
 
-from revibe.core.config import ModelConfig, ProviderConfig
+from revibe.core.config import Backend, ModelConfig, ProviderConfig
 
 if TYPE_CHECKING:
     from revibe.core.config import VibeConfig
@@ -98,15 +98,20 @@ class ModelSelector(Container):
             for model in self._filtered_models:
                 option_list.add_option(Option(f"{model.alias} ({model.provider})"))
 
-            # Highlight active model if it's in the list
+            # Highlight active model if it's in the list, otherwise highlight first
+            found_active = False
             for i, m in enumerate(self._filtered_models):
                 if m.alias == self.config.active_model:
                     option_list.highlighted = i
+                    found_active = True
                     break
 
+            if not found_active and self._filtered_models:
+                option_list.highlighted = 0
+
     async def _fetch_dynamic_models(self) -> None:
-        """Fetch models from provider backends. If provider_filter is set, only fetch for that provider,
-        otherwise attempt to fetch models for all known providers (defaults + configured).
+        """Fetch models from provider backends. Only fetches dynamically for ollama and llamacpp,
+        other providers use hardcoded DEFAULT_MODELS.
         """
         self._missing_api_key_message = None
         self.loading = True
@@ -130,6 +135,13 @@ class ModelSelector(Container):
             if self.provider_filter:
                 provider = providers_map.get(self.provider_filter)
                 if provider:
+                    # Only fetch dynamic models for ollama and llamacpp
+                    if provider.backend not in (Backend.OLLAMA, Backend.LLAMACPP):
+                        # Use hardcoded models for other providers
+                        self.loading = False
+                        self._update_list(self.query_one("#model-selector-filter", Input).value)
+                        return
+
                     # If provider requires an API key and none is set, show a helpful message
                     if provider.api_key_env_var and not os.getenv(provider.api_key_env_var):
                         self._missing_api_key_message = (
@@ -142,9 +154,11 @@ class ModelSelector(Container):
                         return
                     providers_to_query.append(provider)
             else:
-                # Query all providers (better UX for model browsing)
+                # Query only ollama and llamacpp providers for dynamic models
                 # Skip providers that require API keys but don't have one set
                 for p in providers_map.values():
+                    if p.backend not in (Backend.OLLAMA, Backend.LLAMACPP):
+                        continue
                     if p.api_key_env_var and not os.getenv(p.api_key_env_var):
                         continue
                     providers_to_query.append(p)
@@ -180,7 +194,31 @@ class ModelSelector(Container):
 
     @on(Input.Submitted, "#model-selector-filter")
     def on_filter_submitted(self, event: Input.Submitted) -> None:
-        self.query_one("#model-selector-list").focus()
+        option_list = self.query_one("#model-selector-list", OptionList)
+        if option_list.highlighted is not None and 0 <= option_list.highlighted < len(self._filtered_models):
+            model = self._filtered_models[option_list.highlighted]
+            self.post_message(
+                self.ModelSelected(
+                    model_alias=model.alias,
+                    model_name=model.name,
+                    provider=model.provider,
+                )
+            )
+
+    def on_key(self, event: events.Key) -> None:
+        if self.query_one("#model-selector-filter").has_focus:
+            if event.key in ("up", "down", "pageup", "pagedown"):
+                option_list = self.query_one("#model-selector-list", OptionList)
+                if event.key == "up":
+                    option_list.action_cursor_up()
+                elif event.key == "down":
+                    option_list.action_cursor_down()
+                elif event.key == "pageup":
+                    option_list.action_page_up()
+                elif event.key == "pagedown":
+                    option_list.action_page_down()
+                event.stop()
+                event.prevent_default()
 
     @on(OptionList.OptionSelected)
     def on_option_selected(self, event: OptionList.OptionSelected) -> None:

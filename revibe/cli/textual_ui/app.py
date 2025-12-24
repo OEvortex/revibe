@@ -1437,6 +1437,9 @@ class VibeApp(App):
 
     async def _mount_and_scroll(self, widget: Widget) -> None:
         messages_area = self.query_one("#messages")
+        # Check if messages_area is attached before attempting to mount
+        if not messages_area.is_attached:
+            return
         chat = self.query_one("#chat", VerticalScroll)
         was_at_bottom = self._is_scrolled_to_bottom(chat)
 
