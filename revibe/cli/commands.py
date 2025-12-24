@@ -21,8 +21,18 @@ class CommandRegistry:
                 description="Show help message",
                 handler="_show_help",
             ),
+            "provider": Command(
+                aliases=frozenset(["/provider"]),
+                description="Switch between providers",
+                handler="_show_provider",
+            ),
+            "model": Command(
+                aliases=frozenset(["/model"]),
+                description="Select a model",
+                handler="_show_model",
+            ),
             "config": Command(
-                aliases=frozenset(["/config", "/theme", "/model"]),
+                aliases=frozenset(["/config", "/theme"]),
                 description="Edit config settings",
                 handler="_show_config",
             ),

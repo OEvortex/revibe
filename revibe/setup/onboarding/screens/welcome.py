@@ -11,7 +11,7 @@ from textual.widgets import Static
 from revibe.setup.onboarding.base import OnboardingScreen
 
 WELCOME_PREFIX = "Welcome to "
-WELCOME_HIGHLIGHT = "Mistral Vibe"
+WELCOME_HIGHLIGHT = "ReVibe"
 WELCOME_SUFFIX = " - Let's get you started!"
 WELCOME_TEXT = WELCOME_PREFIX + WELCOME_HIGHLIGHT + WELCOME_SUFFIX
 

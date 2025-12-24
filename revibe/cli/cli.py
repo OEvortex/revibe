@@ -79,7 +79,7 @@ def bootstrap_config_files() -> None:
     if not HISTORY_FILE.path.exists():
         try:
             HISTORY_FILE.path.parent.mkdir(parents=True, exist_ok=True)
-            HISTORY_FILE.path.write_text("Hello Vibe!\n", "utf-8")
+            HISTORY_FILE.path.write_text("Hello ReVibe!\n", "utf-8")
         except Exception as e:
             rprint(f"[yellow]Could not create history file: {e}[/]")
 

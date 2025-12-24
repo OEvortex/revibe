@@ -1,18 +1,18 @@
 # ACP Setup
 
-REVIBE can be used in text editors and IDEs that support [Agent Client Protocol](https://agentclientprotocol.com/overview/clients). REVIBE includes the `revibe-acp` tool.
+ReVibe can be used in text editors and IDEs that support [Agent Client Protocol](https://agentclientprotocol.com/overview/clients). ReVibe includes the `revibe-acp` tool.
 Once you have set up `revibe` with the API keys, you are ready to use `revibe-acp` in your editor. Below are the setup instructions for some editors that support ACP.
 
 ## Zed
 
-For usage in Zed, we recommend using the [REVIBE Zed's extension](https://zed.dev/extensions/revibe). Alternatively, you can set up a local install as follows:
+For usage in Zed, we recommend using the [ReVibe Zed extension](https://zed.dev/extensions/revibe). Alternatively, you can set up a local install as follows:
 
-1. Go to `~/.config/zed/settings.json` and, under the `agent_servers` JSON object, add the following key-value pair to invoke the `vibe-acp` command. Here is the snippet:
+1. Go to `~/.config/zed/settings.json` and, under the `agent_servers` JSON object, add the following key-value pair:
 
 ```json
 {
    "agent_servers": {
-      "REVIBE": {
+      "ReVibe": {
          "type": "custom",
          "command": "revibe-acp",
          "args": [],
@@ -22,7 +22,7 @@ For usage in Zed, we recommend using the [REVIBE Zed's extension](https://zed.de
 }
 ```
 
-2. In the `New Thread` pane on the right, select the `vibe` agent and start the conversation.
+2. In the `New Thread` pane on the right, select the `ReVibe` agent and start the conversation.
 
 ## JetBrains IDEs
 
@@ -31,26 +31,26 @@ For usage in Zed, we recommend using the [REVIBE Zed's extension](https://zed.de
 ```json
 {
   "agent_servers": {
-    "REVIBE": {
-      "command": "vibe-acp",
+    "ReVibe": {
+      "command": "revibe-acp"
     }
   }
 }
 ```
 
-2. In the AI Chat agent selector, select the new REVIBE agent and start the conversation.
+2. In the AI Chat agent selector, select the ReVibe agent and start the conversation.
 
 ## Neovim (using avante.nvim)
 
-Add REVIBE in the acp_providers section of your configuration
+Add ReVibe in the acp_providers section of your configuration:
 
 ```lua
 {
   acp_providers = {
     ["revibe"] = {
-      command = "vibe-acp",
+      command = "revibe-acp",
       env = {
-         REVIBE_API_KEY = os.getenv("REVIBE_API_KEY"), -- necessary if you setup REVIBE manually
+         -- Add API keys as needed
       },
     }
   }

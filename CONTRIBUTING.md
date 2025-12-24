@@ -1,20 +1,10 @@
-# Contributing to REVIBE
+# Contributing to ReVibe
 
-Thank you for your interest in REVIBE! We appreciate your enthusiasm and support.
-
-**🔄 REVIBE is a fork of Mistral Vibe by Oevortex**
-
-This project builds upon the excellent foundation of [Mistral Vibe](https://github.com/mistralai/mistral-vibe) while adding new features and provider support.
+Thank you for your interest in ReVibe! We appreciate your enthusiasm and support.
 
 ## Current Status
 
-**REVIBE is in active development** — our team is iterating quickly and making lots of changes under the hood. Because of this pace, we may be slower than usual when reviewing PRs and issues.
-
-### 📋 Fork Information
-
-- **Original Project**: [Mistral Vibe](https://github.com/mistralai/mistral-vibe)
-- **Fork Maintainer**: Oevortex
-- **Key Differences**: Multi-provider support, enhanced architecture, additional backends
+**ReVibe is in active development** — we're iterating quickly and making lots of changes. Because of this pace, we may be slower than usual when reviewing PRs and issues.
 
 **We especially encourage**:
 
@@ -35,7 +25,7 @@ If you encounter a bug, please open an issue with the following information:
 5. **Environment**:
    - Python version
    - Operating system
-   - Vibe version
+   - ReVibe version
 6. **Error Messages**: Any error messages or stack traces
 7. **Configuration**: Relevant parts of your `config.toml` (redact any sensitive information)
 
@@ -173,6 +163,6 @@ While we're not accepting code contributions at the moment, we may open up contr
 
 ## Questions?
 
-If you have questions about using REVIBE, please check the [README](README.md) first. For other inquiries, feel free to open a discussion or issue.
+If you have questions about using ReVibe, please check the [README](README.md) first. For other inquiries, feel free to open a discussion or issue.
 
-Thank you for helping make REVIBE better! 🙏
+Thank you for helping make ReVibe better! 🙏

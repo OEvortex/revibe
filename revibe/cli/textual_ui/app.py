@@ -27,6 +27,8 @@ from revibe.cli.textual_ui.widgets.approval_app import ApprovalApp
 from revibe.cli.textual_ui.widgets.chat_input import ChatInputContainer
 from revibe.cli.textual_ui.widgets.compact import CompactMessage
 from revibe.cli.textual_ui.widgets.config_app import ConfigApp
+from revibe.cli.textual_ui.widgets.model_selector import ModelSelector
+from revibe.cli.textual_ui.widgets.provider_selector import ProviderSelector
 from revibe.cli.textual_ui.widgets.context_progress import ContextProgress, TokenState
 from revibe.cli.textual_ui.widgets.loading import LoadingWidget
 from revibe.cli.textual_ui.widgets.messages import (
@@ -72,6 +74,8 @@ class BottomApp(StrEnum):
     Approval = auto()
     Config = auto()
     Input = auto()
+    Provider = auto()
+    Model = auto()
 
 
 class VibeApp(App):
@@ -314,6 +318,45 @@ class VibeApp(App):
                 UserCommandMessage("Configuration closed (no changes saved).")
             )
 
+        await self._switch_to_input_app()
+
+    async def on_provider_selector_provider_selected(
+        self, message: ProviderSelector.ProviderSelected
+    ) -> None:
+        provider_name = message.provider_name
+        await self._mount_and_scroll(
+            UserCommandMessage(f"Provider selected: {provider_name}")
+        )
+        await self._switch_to_input_app()
+        # Show models for this provider
+        await self._switch_to_model_selector(provider_filter=provider_name)
+
+    async def on_provider_selector_selector_closed(
+        self, message: ProviderSelector.SelectorClosed
+    ) -> None:
+        await self._mount_and_scroll(
+            UserCommandMessage("Provider selection cancelled.")
+        )
+        await self._switch_to_input_app()
+
+    async def on_model_selector_model_selected(
+        self, message: ModelSelector.ModelSelected
+    ) -> None:
+        model_alias = message.model_alias
+        # Save the model selection
+        VibeConfig.save_updates({"active_model": model_alias})
+        await self._mount_and_scroll(
+            UserCommandMessage(f"Model switched to: {model_alias}")
+        )
+        await self._reload_config()
+        await self._switch_to_input_app()
+
+    async def on_model_selector_selector_closed(
+        self, message: ModelSelector.SelectorClosed
+    ) -> None:
+        await self._mount_and_scroll(
+            UserCommandMessage("Model selection cancelled.")
+        )
         await self._switch_to_input_app()
 
     def _set_tool_permission_always(
@@ -698,6 +741,18 @@ class VibeApp(App):
             return
         await self._switch_to_config_app()
 
+    async def _show_provider(self) -> None:
+        """Switch to the provider selector in the bottom panel."""
+        if self._current_bottom_app == BottomApp.Provider:
+            return
+        await self._switch_to_provider_selector()
+
+    async def _show_model(self) -> None:
+        """Switch to the model selector in the bottom panel."""
+        if self._current_bottom_app == BottomApp.Model:
+            return
+        await self._switch_to_model_selector()
+
     async def _reload_config(self) -> None:
         try:
             new_config = VibeConfig.load(**self._current_agent_mode.config_overrides)
@@ -923,6 +978,52 @@ class VibeApp(App):
 
         self.call_after_refresh(config_app.focus)
 
+    async def _switch_to_provider_selector(self) -> None:
+        if self._current_bottom_app == BottomApp.Provider:
+            return
+
+        bottom_container = self.query_one("#bottom-app-container")
+        await self._mount_and_scroll(UserCommandMessage("Select a provider..."))
+
+        try:
+            chat_input_container = self.query_one(ChatInputContainer)
+            await chat_input_container.remove()
+        except Exception:
+            pass
+
+        if self._mode_indicator:
+            self._mode_indicator.display = False
+
+        provider_selector = ProviderSelector(self.config)
+        await bottom_container.mount(provider_selector)
+        self._current_bottom_app = BottomApp.Provider
+
+        self.call_after_refresh(provider_selector.focus)
+
+    async def _switch_to_model_selector(
+        self, provider_filter: str | None = None
+    ) -> None:
+        if self._current_bottom_app == BottomApp.Model:
+            return
+
+        bottom_container = self.query_one("#bottom-app-container")
+        await self._mount_and_scroll(UserCommandMessage("Select a model..."))
+
+        try:
+            chat_input_container = self.query_one(ChatInputContainer)
+            await chat_input_container.remove()
+        except Exception:
+            pass
+
+        if self._mode_indicator:
+            self._mode_indicator.display = False
+
+        model_selector = ModelSelector(self.config, provider_filter=provider_filter)
+        await bottom_container.mount(model_selector)
+        self._current_bottom_app = BottomApp.Model
+
+        self.call_after_refresh(model_selector.focus)
+
     async def _switch_to_approval_app(
         self, tool_name: str, tool_args: BaseModel
     ) -> None:
@@ -964,6 +1065,18 @@ class VibeApp(App):
         except Exception:
             pass
 
+        try:
+            provider_selector = self.query_one("#provider-selector")
+            await provider_selector.remove()
+        except Exception:
+            pass
+
+        try:
+            model_selector = self.query_one("#model-selector")
+            await model_selector.remove()
+        except Exception:
+            pass
+
         if self._mode_indicator:
             self._mode_indicator.display = True
 
@@ -998,8 +1111,10 @@ class VibeApp(App):
                     self.query_one(ConfigApp).focus()
                 case BottomApp.Approval:
                     self.query_one(ApprovalApp).focus()
-                case app:
-                    assert_never(app)
+                case BottomApp.Provider:
+                    self.query_one(ProviderSelector).focus()
+                case BottomApp.Model:
+                    self.query_one(ModelSelector).focus()
         except Exception:
             pass
 

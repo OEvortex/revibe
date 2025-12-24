@@ -18,24 +18,9 @@ ReVibe is a command-line coding assistant powered by multiple language model pro
 > [!NOTE]
 > ReVibe works on Windows, macOS, and Linux.
 
-### One-line install (recommended)
+## Installation
 
-**Linux and macOS**
-
-```bash
-curl -LsSf https://mistral.ai/vibe/install.sh | bash
-```
-
-**Windows**
-
-First, install uv
-```bash
-powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-Then, use uv command below.
-
-### Using uv
+### Using uv (recommended)
 
 ```bash
 uv tool install revibe
@@ -47,138 +32,102 @@ uv tool install revibe
 pip install revibe
 ```
 
-## Features
-
-- **Interactive Chat**: A conversational AI agent that understands your requests and breaks down complex tasks.
-- **Powerful Toolset**: A suite of tools for file manipulation, code searching, version control, and command execution, right from the chat prompt.
-  - Read, write, and patch files (`read_file`, `write_file`, `search_replace`).
-  - Execute shell commands in a stateful terminal (`bash`).
-  - Recursively search code with `grep` (with `ripgrep` support).
-  - Manage a `todo` list to track the agent's work.
-- **Project-Aware Context**: Vibe automatically scans your project's file structure and Git status to provide relevant context to the agent, improving its understanding of your codebase.
-- **Advanced CLI Experience**: Built with modern libraries for a smooth and efficient workflow.
-  - Autocompletion for slash commands (`/`) and file paths (`@`).
-  - Persistent command history.
-  - Beautiful Themes.
-- **Highly Configurable**: Customize models, providers, tool permissions, and UI preferences through a simple `config.toml` file.
-- **Safety First**: Features tool execution approval.
-
 ## Quick Start
 
-1. Navigate to your project's root directory:
+1. Navigate to your project directory:
 
    ```bash
    cd /path/to/your/project
    ```
 
-2. Run Vibe:
+2. Run ReVibe:
 
    ```bash
-   vibe
+   revibe
    ```
 
-3. If this is your first time running Vibe, it will:
+3. On first run, ReVibe will:
+   - Create a default configuration at `~/.vibe/config.toml`
+   - Prompt you to enter your API key
+   - Save your API key to `~/.vibe/.env`
 
-   - Create a default configuration file at `~/.vibe/config.toml`
-   - Prompt you to enter your API key if it's not already configured
-   - Save your API key to `~/.vibe/.env` for future use
+4. Start coding with natural language!
 
-4. Start interacting with the agent!
+## Features
 
-   ```
-   > Can you find all instances of the word "TODO" in the project?
-
-   🤖 The user wants to find all instances of "TODO". The `grep` tool is perfect for this. I will use it to search the current directory.
-
-   > grep(pattern="TODO", path=".")
-
-   ... (grep tool output) ...
-
-   🤖 I found the following "TODO" comments in your project.
-   ```
+- **Interactive Chat**: Conversational AI that understands your requests and breaks down complex tasks
+- **Powerful Toolset**: File manipulation, code search, version control, and command execution
+- **Project-Aware Context**: Automatic project structure and Git status scanning
+- **Runtime Provider/Model Switching**: Use `/provider` and `/model` commands
+- **Highly Configurable**: Customize via `config.toml`
+- **Safety First**: Tool execution approval system
 
 ## Usage
 
 ### Interactive Mode
 
-Simply run `vibe` to enter the interactive chat loop.
+Run `revibe` to start the interactive session.
 
-- **Multi-line Input**: Press `Ctrl+J` or `Shift+Enter` for select terminals to insert a newline.
-- **File Paths**: Reference files in your prompt using the `@` symbol for smart autocompletion (e.g., `> Read the file @src/agent.py`).
-- **Shell Commands**: Prefix any command with `!` to execute it directly in your shell, bypassing the agent (e.g., `> !ls -l`).
-
-You can start Vibe with a prompt with the following command:
+- **Multi-line Input**: `Ctrl+J` or `Shift+Enter`
+- **File Paths**: Use `@` for autocompletion (e.g., `@src/main.py`)
+- **Shell Commands**: Prefix with `!` (e.g., `!ls -l`)
+- **Provider Switching**: Use `/provider` to switch providers
+- **Model Selection**: Use `/model` to select models
 
 ```bash
-vibe "Refactor the main function in cli/main.py to be more modular."
+revibe "Refactor the main function to be more modular."
 ```
-
-**Note**: The `--auto-approve` flag automatically approves all tool executions without prompting. In interactive mode, you can also toggle auto-approve on/off using `Shift+Tab`.
 
 ### Programmatic Mode
 
-You can run Vibe non-interactively by piping input or using the `--prompt` flag. This is useful for scripting.
+Run non-interactively with `--prompt`:
 
 ```bash
-vibe --prompt "Refactor the main function in cli/main.py to be more modular."
+revibe --prompt "Refactor the main function to be more modular."
 ```
-
-by default it will use `auto-approve` mode.
 
 ### Slash Commands
 
-Use slash commands for meta-actions and configuration changes during a session.
+Use slash commands for configuration and control:
+
+- `/provider` - Switch between providers
+- `/model` - Select a model
+- `/config` - Edit settings
+- `/help` - Show help
+- `/clear` - Clear history
+- `/status` - Show agent statistics
 
 ## Configuration
 
-Vibe is configured via a `config.toml` file. It looks for this file first in `./.vibe/config.toml` and then falls back to `~/.vibe/config.toml`.
+ReVibe is configured via `config.toml`. It looks for this file first in `./.vibe/config.toml` and then falls back to `~/.vibe/config.toml`.
 
 ### API Key Configuration
 
-Vibe supports multiple ways to configure your API keys:
+ReVibe supports multiple ways to configure API keys:
 
-1. **Interactive Setup (Recommended for first-time users)**: When you run Vibe for the first time or if your API key is missing, Vibe will prompt you to enter it. The key will be securely saved to `~/.vibe/.env` for future sessions.
+1. **Interactive Setup**: On first run, ReVibe will prompt for API keys
 
-2. **Environment Variables**: Set your API key as an environment variable:
-
+2. **Environment Variables**:
    ```bash
-   export MISTRAL_API_KEY="your_mistral_api_key"
+   export OPENAI_API_KEY="your_key"
+   export ANTHROPIC_API_KEY="your_key"
+   export MISTRAL_API_KEY="your_key"
+   export GROQ_API_KEY="your_key"
    ```
 
-3. **`.env` File**: Create a `.env` file in `~/.vibe/` and add your API keys:
-
+3. **`.env` File** in `~/.vibe/`:
    ```bash
-   MISTRAL_API_KEY=your_mistral_api_key
+   OPENAI_API_KEY=your_key
+   ANTHROPIC_API_KEY=your_key
    ```
-
-   Vibe automatically loads API keys from `~/.vibe/.env` on startup. Environment variables take precedence over the `.env` file if both are set.
-
-**Note**: The `.env` file is specifically for API keys and other provider credentials. General Vibe configuration should be done in `config.toml`.
-
-### Custom System Prompts
-
-You can create custom system prompts to replace the default one (`prompts/cli.md`). Create a markdown file in the `~/.vibe/prompts/` directory with your custom prompt content.
-
-To use a custom system prompt, set the `system_prompt_id` in your configuration to match the filename (without the `.md` extension):
-
-```toml
-# Use a custom system prompt
-system_prompt_id = "my_custom_prompt"
-```
-
-This will load the prompt from `~/.vibe/prompts/my_custom_prompt.md`.
 
 ### Custom Agent Configurations
 
-You can create custom agent configurations for specific use cases (e.g., red-teaming, specialized tasks) by adding agent-specific TOML files in the `~/.vibe/agents/` directory.
-
-To use a custom agent, run Vibe with the `--agent` flag:
+Create agent configurations in `~/.vibe/agents/`:
 
 ```bash
-vibe --agent my_custom_agent
+revibe --agent my_custom_agent
 ```
-
-Vibe will look for a file named `my_custom_agent.toml` in the agents directory and apply its configuration.
 
 Example custom agent configuration (`~/.vibe/agents/redteam.toml`):
 
@@ -202,7 +151,7 @@ Note: this implies that you have setup a redteam prompt names `~/.vibe/prompts/r
 
 ### MCP Server Configuration
 
-You can configure MCP (Model Context Protocol) servers to extend Vibe's capabilities. Add MCP server configurations under the `mcp_servers` section:
+You can configure MCP (Model Context Protocol) servers to extend ReVibe's capabilities:
 
 ```toml
 # Example MCP server configurations
@@ -281,43 +230,23 @@ Notes:
 - MCP tool names use underscores, e.g., `serena_list` not `serena.list`.
 - Regex patterns are matched against the full tool name using fullmatch.
 
-### Custom Vibe Home Directory
+### Custom Home Directory
 
-By default, Vibe stores its configuration in `~/.vibe/`. You can override this by setting the `VIBE_HOME` environment variable:
+By default, ReVibe stores configuration in `~/.vibe/`. Override with `VIBE_HOME`:
 
 ```bash
-export VIBE_HOME="/path/to/custom/vibe/home"
+export VIBE_HOME="/path/to/custom/home"
 ```
-
-This affects where Vibe looks for:
-
-- `config.toml` - Main configuration
-- `.env` - API keys
-- `agents/` - Custom agent configurations
-- `prompts/` - Custom system prompts
-- `tools/` - Custom tools
-- `logs/` - Session logsRetryTo run code, enable code execution and file creation in Settings > Capabilities.
 
 ## Editors/IDEs
 
-REVIBE can be used in text editors and IDEs that support [Agent Client Protocol](https://agentclientprotocol.com/overview/clients). See the [ACP Setup documentation](docs/acp-setup.md) for setup instructions for various editors and IDEs.
+ReVibe can be used in editors supporting [Agent Client Protocol](https://agentclientprotocol.com/overview/clients). See [ACP Setup](docs/acp-setup.md) for details.
 
 ## Resources
 
-- [CHANGELOG](CHANGELOG.md) - See what's new in each version
-- [CONTRIBUTING](CONTRIBUTING.md) - Guidelines for feedback and bug reports
+- [CHANGELOG](CHANGELOG.md)
+- [CONTRIBUTING](CONTRIBUTING.md)
 
 ## License
 
-Copyright 2025 Mistral AI
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the [LICENSE](LICENSE) file for the full license text.
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
