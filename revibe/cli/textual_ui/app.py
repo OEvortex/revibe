@@ -378,13 +378,35 @@ class VibeApp(App):
         self, message: ModelSelector.ModelSelected
     ) -> None:
         model_alias = message.model_alias
-        # Save the model selection
-        VibeConfig.save_updates({"active_model": model_alias})
-        await self._mount_and_scroll(
-            UserCommandMessage(f"Model switched to: {model_alias}")
-        )
-        await self._reload_config()
-        await self._switch_to_input_app()
+        model_name = message.model_name
+        provider = message.provider
+
+        # Persist the model if it's not already present in configuration
+        try:
+            existing_aliases = {m.alias for m in self.config.models}
+            if model_alias not in existing_aliases:
+                from revibe.core.config import ModelConfig
+
+                models_list = [
+                    m.model_dump(mode="json", exclude_none=True) for m in self.config.models
+                ]
+                new_model = ModelConfig(name=model_name, provider=provider, alias=model_alias)
+                models_list.append(new_model.model_dump(mode="json", exclude_none=True))
+
+                VibeConfig.save_updates({"models": models_list, "active_model": model_alias})
+            else:
+                VibeConfig.save_updates({"active_model": model_alias})
+
+            await self._mount_and_scroll(
+                UserCommandMessage(f"Model switched to: {model_alias}")
+            )
+            await self._reload_config()
+        except Exception as e:
+            await self._mount_and_scroll(
+                ErrorMessage(f"Failed to persist model selection: {e}")
+            )
+        finally:
+            await self._switch_to_input_app()
 
     async def on_model_selector_selector_closed(
         self, message: ModelSelector.SelectorClosed

@@ -256,7 +256,8 @@ DEFAULT_PROVIDERS = [
     ),
     ProviderConfig(
         name="huggingface",
-        api_base="https://api-inference.huggingface.co",
+        # Use the Hugging Face router base URL for inference and model listing
+        api_base="https://router.huggingface.co/v1",
         api_key_env_var="HUGGINGFACE_API_KEY",
         backend=Backend.HUGGINGFACE,
     ),

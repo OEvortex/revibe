@@ -4,7 +4,7 @@ from tests.backend.data import Chunk, JsonResponse, ResultData, Url
 
 SIMPLE_CONVERSATION_PARAMS: list[tuple[Url, JsonResponse, ResultData]] = [
     (
-        "https://api-inference.huggingface.co",
+        "https://router.huggingface.co/v1",
         {
             "id": "hf-cmpl-123456789",
             "object": "chat.completion",
@@ -38,7 +38,7 @@ SIMPLE_CONVERSATION_PARAMS: list[tuple[Url, JsonResponse, ResultData]] = [
 
 TOOL_CONVERSATION_PARAMS: list[tuple[Url, JsonResponse, ResultData]] = [
     (
-        "https://api-inference.huggingface.co",
+        "https://router.huggingface.co/v1",
         {
             "id": "hf-cmpl-123456789",
             "object": "chat.completion",
@@ -89,7 +89,7 @@ TOOL_CONVERSATION_PARAMS: list[tuple[Url, JsonResponse, ResultData]] = [
 
 STREAMED_SIMPLE_CONVERSATION_PARAMS: list[tuple[Url, list[Chunk], list[ResultData]]] = [
     (
-        "https://api-inference.huggingface.co",
+        "https://router.huggingface.co/v1",
         [
             b'data: {"id":"hf-cmpl-123456789","object":"chat.completion.chunk","created":1234567890,"model":"mistralai/Mistral-7B-Instruct-v0.2","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}',
             b'data: {"id":"hf-cmpl-123456789","object":"chat.completion.chunk","created":1234567890,"model":"mistralai/Mistral-7B-Instruct-v0.2","choices":[{"index":0,"delta":{"content":"Bonjour"},"finish_reason":null}]}',
@@ -122,7 +122,7 @@ STREAMED_SIMPLE_CONVERSATION_PARAMS: list[tuple[Url, list[Chunk], list[ResultDat
 
 STREAMED_TOOL_CONVERSATION_PARAMS: list[tuple[Url, list[Chunk], list[ResultData]]] = [
     (
-        "https://api-inference.huggingface.co",
+        "https://router.huggingface.co/v1",
         [
             b'data: {"id":"hf-cmpl-123456789","object":"chat.completion.chunk","created":1234567890,"model":"mistralai/Mistral-7B-Instruct-v0.2","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}',
             b'data: {"id":"hf-cmpl-123456789","object":"chat.completion.chunk","created":1234567890,"model":"mistralai/Mistral-7B-Instruct-v0.2","choices":[{"index":0,"delta":{"content":"Let"},"finish_reason":null}]}',

@@ -9,7 +9,7 @@ from textual.containers import Container, Vertical
 from textual.message import Message
 from textual.widgets import Static
 
-from revibe.core.config import ModelConfig
+from revibe.core.config import ModelConfig, ProviderConfig
 
 if TYPE_CHECKING:
     from revibe.core.config import VibeConfig
@@ -29,9 +29,11 @@ class ModelSelector(Container):
     ]
 
     class ModelSelected(Message):
-        def __init__(self, model_alias: str) -> None:
+        def __init__(self, model_alias: str, model_name: str, provider: str) -> None:
             super().__init__()
             self.model_alias = model_alias
+            self.model_name = model_name
+            self.provider = provider
 
     class SelectorClosed(Message):
         pass
@@ -54,6 +56,8 @@ class ModelSelector(Container):
         self.title_widget: Static | None = None
         self.option_widgets: list[Static] = []
         self.help_widget: Static | None = None
+        # When a provider requires an API key but none is set, we show an explanatory message
+        self._missing_api_key_message: str | None = None
 
         # Find current model index
         for i, m in enumerate(self.models):
@@ -89,61 +93,86 @@ class ModelSelector(Container):
             yield self.help_widget
 
     async def on_mount(self) -> None:
-        if self.provider_filter:
-            await self._fetch_dynamic_models()
+        # Always attempt to fetch dynamic models (for the filtered provider or all providers)
+        await self._fetch_dynamic_models()
         self._update_display()
         self.focus()
 
     async def _fetch_dynamic_models(self) -> None:
+        """Fetch models from provider backends. If provider_filter is set, only fetch for that provider,
+        otherwise attempt to fetch models for all known providers (defaults + configured).
+        """
+        self._missing_api_key_message = None
         self.loading = True
         self.refresh(layout=True)
 
         try:
             from revibe.core.llm.backend.factory import BACKEND_FACTORY
+            from revibe.core.config import DEFAULT_PROVIDERS
 
-            # Get provider config
-            provider = None
+            # Build a merged provider map (defaults + user config)
+            providers_map: dict[str, ProviderConfig] = {}
+            for p in DEFAULT_PROVIDERS:
+                providers_map[p.name] = p
             for p in self.config.providers:
-                if p.name == self.provider_filter:
-                    provider = p
-                    break
+                providers_map[p.name] = p
 
-            if not provider:
-                from revibe.core.config import DEFAULT_PROVIDERS
-                for p in DEFAULT_PROVIDERS:
-                    if p.name == self.provider_filter:
-                        provider = p
+            providers_to_query: list[ProviderConfig] = []
+
+            import os
+
+            if self.provider_filter:
+                provider = providers_map.get(self.provider_filter)
+                if provider:
+                    # If provider requires an API key and none is set, show a helpful message
+                    if provider.api_key_env_var and not os.getenv(provider.api_key_env_var):
+                        self._missing_api_key_message = (
+                            f"API key required: set {provider.api_key_env_var} to list models for {provider.name}"
+                        )
+                        # Clear any models we had filtered earlier
+                        self.models = [m for m in self.models if m.provider != provider.name]
+                        self.loading = False
+                        return
+                    providers_to_query.append(provider)
+            else:
+                # Query all providers (better UX for model browsing)
+                # Skip providers that require API keys but don't have one set
+                for p in providers_map.values():
+                    if p.api_key_env_var and not os.getenv(p.api_key_env_var):
+                        continue
+                    providers_to_query.append(p)
+
+            existing_names = {(m.provider, m.name) for m in self.models}
+            added_any = False
+
+            for provider in providers_to_query:
+                try:
+                    backend_cls = BACKEND_FACTORY.get(provider.backend)
+                    if backend_cls:
+                        async with backend_cls(provider=provider) as backend:
+                            model_names = await backend.list_models()
+                            if model_names:
+                                for name in model_names:
+                                    key = (provider.name, name)
+                                    if key not in existing_names:
+                                        self.models.append(
+                                            ModelConfig(name=name, provider=provider.name, alias=name)
+                                        )
+                                        existing_names.add(key)
+                                        added_any = True
+                except Exception:
+                    # Ignore failures per-provider so one bad provider doesn't block others
+                    continue
+
+            if added_any:
+                # Sort models by provider then name for stable display
+                self.models.sort(key=lambda x: (x.provider, x.name))
+
+                # Update selected index if current active_model exists
+                for i, m in enumerate(self.models):
+                    if m.alias == self.config.active_model:
+                        self.selected_index = i
                         break
-
-            if provider:
-                backend_cls = BACKEND_FACTORY.get(provider.backend)
-                if backend_cls:
-                    async with backend_cls(provider=provider) as backend:
-                        model_names = await backend.list_models()
-                        if model_names:
-                            # Create ModelConfig objects for new models
-                            existing_names = {m.name for m in self.models}
-                            new_models = []
-                            for name in model_names:
-                                if name not in existing_names:
-                                    new_models.append(ModelConfig(
-                                        name=name,
-                                        provider=self.provider_filter,
-                                        alias=name
-                                    ))
-
-                            if new_models:
-                                self.models.extend(new_models)
-                                # Sort models
-                                self.models.sort(key=lambda x: x.name)
-
-                                # Update selected index
-                                for i, m in enumerate(self.models):
-                                    if m.alias == self.config.active_model:
-                                        self.selected_index = i
-                                        break
-        except Exception:
-            pass
         finally:
             self.loading = False
             # Re-compose or update widgets
@@ -155,7 +184,8 @@ class ModelSelector(Container):
 
     def _get_dynamic_compose(self) -> list[Static]:
         widgets = []
-        widgets.append(Static(f"Select Model ({self.provider_filter})", classes="settings-title"))
+        title = "Select Model" if not self.provider_filter else f"Select Model ({self.provider_filter})"
+        widgets.append(Static(title, classes="settings-title"))
         widgets.append(Static(""))
 
         for _ in self.models:
@@ -163,7 +193,9 @@ class ModelSelector(Container):
             self.option_widgets.append(widget)
             widgets.append(widget)
 
-        if not self.models:
+        if self._missing_api_key_message:
+            widgets.append(Static(f"  {self._missing_api_key_message}", classes="settings-option"))
+        elif not self.models:
             widgets.append(Static("  No models available", classes="settings-option"))
 
         widgets.append(Static(""))
@@ -206,7 +238,13 @@ class ModelSelector(Container):
     def action_select(self) -> None:
         if self.models:
             model = self.models[self.selected_index]
-            self.post_message(self.ModelSelected(model_alias=model.alias))
+            self.post_message(
+                self.ModelSelected(
+                    model_alias=model.alias,
+                    model_name=model.name,
+                    provider=model.provider,
+                )
+            )
 
     def action_close(self) -> None:
         self.post_message(self.SelectorClosed())
