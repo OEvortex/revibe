@@ -30,11 +30,11 @@ from pydantic import BaseModel
 import pytest
 import tomli_w
 
+from revibe.acp.utils import ToolOption
+from revibe.core.types import FunctionCall, ToolCall
 from tests import TESTS_ROOT
 from tests.conftest import get_base_config
 from tests.mock.utils import get_mocking_env, mock_llm_chunk
-from revibe.acp.utils import ToolOption
-from revibe.core.types import FunctionCall, ToolCall
 
 RESPONSE_TIMEOUT = 2.0
 MOCK_ENTRYPOINT_PATH = "tests/mock/mock_entrypoint.py"

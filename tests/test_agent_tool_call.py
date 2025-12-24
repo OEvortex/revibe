@@ -6,9 +6,6 @@ import json
 from pydantic import BaseModel
 import pytest
 
-from tests.mock.utils import mock_llm_chunk
-from tests.stubs.fake_backend import FakeBackend
-from tests.stubs.fake_tool import FakeTool
 from revibe.core.agent import Agent
 from revibe.core.config import SessionLoggingConfig, VibeConfig
 from revibe.core.modes import AgentMode
@@ -26,6 +23,9 @@ from revibe.core.types import (
     ToolCallEvent,
     ToolResultEvent,
 )
+from tests.mock.utils import mock_llm_chunk
+from tests.stubs.fake_backend import FakeBackend
+from tests.stubs.fake_tool import FakeTool
 
 
 async def act_and_collect_events(agent: Agent, prompt: str) -> list[BaseEvent]:

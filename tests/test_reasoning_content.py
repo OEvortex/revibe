@@ -7,8 +7,6 @@ import mistralai
 import pytest
 import respx
 
-from tests.mock.utils import mock_llm_chunk
-from tests.stubs.fake_backend import FakeBackend
 from revibe.core.agent import Agent
 from revibe.core.config import (
     ModelConfig,
@@ -20,6 +18,8 @@ from revibe.core.llm.backend.generic import GenericBackend
 from revibe.core.llm.backend.mistral import MistralMapper, ParsedContent
 from revibe.core.llm.format import APIToolFormatHandler
 from revibe.core.types import AssistantEvent, LLMMessage, ReasoningEvent, Role
+from tests.mock.utils import mock_llm_chunk
+from tests.stubs.fake_backend import FakeBackend
 
 
 def make_config() -> VibeConfig:

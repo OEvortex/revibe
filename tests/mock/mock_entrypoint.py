@@ -19,9 +19,9 @@ from revibe.core.paths.config_paths import unlock_config_paths
 if __name__ == "__main__":
     unlock_config_paths()
 
+    from revibe.core.types import LLMChunk
     from tests import TESTS_ROOT
     from tests.mock.utils import MOCK_DATA_ENV_VAR
-    from revibe.core.types import LLMChunk
 
     sys.path.insert(0, str(TESTS_ROOT))
 

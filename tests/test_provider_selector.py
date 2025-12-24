@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from revibe.cli.textual_ui.widgets.provider_selector import ProviderSelector
-from revibe.core.config import VibeConfig, ProviderConfig
+from revibe.core.config import ProviderConfig, VibeConfig
 
 
 def test_provider_selector_merges_defaults() -> None:

@@ -2,12 +2,6 @@ from __future__ import annotations
 
 import pytest
 
-from tests.update_notifier.adapters.fake_update_cache_repository import (
-    FakeUpdateCacheRepository,
-)
-from tests.update_notifier.adapters.fake_version_update_gateway import (
-    FakeVersionUpdateGateway,
-)
 from revibe.cli.update_notifier import (
     UpdateCache,
     VersionUpdate,
@@ -17,6 +11,12 @@ from revibe.cli.update_notifier import (
 from revibe.cli.update_notifier.version_update import (
     VersionUpdateError,
     get_update_if_available,
+)
+from tests.update_notifier.adapters.fake_update_cache_repository import (
+    FakeUpdateCacheRepository,
+)
+from tests.update_notifier.adapters.fake_version_update_gateway import (
+    FakeVersionUpdateGateway,
 )
 
 

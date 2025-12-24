@@ -10,7 +10,7 @@ from textual.message import Message
 from textual.widgets import Input, Static
 
 if TYPE_CHECKING:
-    from revibe.core.config import ProviderConfig
+    from revibe.core.config import ProviderConfigUnion
 
 
 class ApiKeyInput(Container):
@@ -20,7 +20,7 @@ class ApiKeyInput(Container):
     can_focus_children = True
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("escape", "cancel", "Cancel", show=False),
+        Binding("escape", "cancel", "Cancel", show=False)
     ]
 
     class ApiKeySubmitted(Message):
@@ -32,7 +32,7 @@ class ApiKeyInput(Container):
     class ApiKeyCancelled(Message):
         pass
 
-    def __init__(self, provider: ProviderConfig) -> None:
+    def __init__(self, provider: ProviderConfigUnion) -> None:
         super().__init__(id="api-key-input")
         self.provider = provider
         self.title_widget: Static | None = None
@@ -52,9 +52,7 @@ class ApiKeyInput(Container):
             )
             yield Static("")
             self.input_widget = Input(
-                placeholder="Enter your API key...",
-                password=True,
-                id="api-key-field",
+                placeholder="Enter your API key...", password=True, id="api-key-field"
             )
             yield self.input_widget
             yield Static("")

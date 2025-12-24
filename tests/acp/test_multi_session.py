@@ -17,13 +17,13 @@ from acp.schema import TextContentBlock
 import pytest
 from pytest import raises
 
-from tests.mock.utils import mock_llm_chunk
-from tests.stubs.fake_backend import FakeBackend
-from tests.stubs.fake_connection import FakeAgentSideConnection
 from revibe.acp.acp_agent import VibeAcpAgent
 from revibe.core.agent import Agent
 from revibe.core.config import ModelConfig, VibeConfig
 from revibe.core.types import Role
+from tests.mock.utils import mock_llm_chunk
+from tests.stubs.fake_backend import FakeBackend
+from tests.stubs.fake_connection import FakeAgentSideConnection
 
 
 @pytest.fixture

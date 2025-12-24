@@ -6,8 +6,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from tests.mock.utils import mock_llm_chunk
-from tests.stubs.fake_backend import FakeBackend
 from revibe.core.agent import Agent
 from revibe.core.config import SessionLoggingConfig, VibeConfig
 from revibe.core.middleware import (
@@ -32,6 +30,8 @@ from revibe.core.types import (
     ToolResultEvent,
 )
 from revibe.core.utils import CancellationReason, get_user_cancellation_message
+from tests.mock.utils import mock_llm_chunk
+from tests.stubs.fake_backend import FakeBackend
 
 
 class InjectBeforeMiddleware:

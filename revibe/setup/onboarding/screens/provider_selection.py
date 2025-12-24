@@ -10,7 +10,6 @@ from textual.widgets import Static
 from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfig, VibeConfig
 from revibe.setup.onboarding.base import OnboardingScreen
 
-
 PROVIDER_DESCRIPTIONS: dict[str, str] = {
     "mistral": "Mistral AI - Devstral models",
     "openai": "OpenAI - GPT-4o, o1 models",

@@ -7,7 +7,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Container, Vertical
 from textual.message import Message
-from textual.widgets import Static, OptionList
+from textual.widgets import OptionList, Static
 from textual.widgets.option_list import Option
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ class ProviderSelector(Container):
     can_focus_children = True
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("escape", "close", "Cancel", show=False),
+        Binding("escape", "close", "Cancel", show=False)
     ]
 
     class ProviderSelected(Message):
@@ -37,9 +37,9 @@ class ProviderSelector(Container):
         self.config = config
         # Merge DEFAULT_PROVIDERS with the loaded configuration so the selector
         # shows all built-in providers even if a user's config omits some entries.
-        from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfig
+        from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfigUnion
 
-        providers_map: dict[str, ProviderConfig] = {}
+        providers_map: dict[str, ProviderConfigUnion] = {}
         for p in DEFAULT_PROVIDERS:
             providers_map[p.name] = p
         for p in config.providers:
@@ -93,4 +93,3 @@ class ProviderSelector(Container):
 
     def action_close(self) -> None:
         self.post_message(self.SelectorClosed())
-

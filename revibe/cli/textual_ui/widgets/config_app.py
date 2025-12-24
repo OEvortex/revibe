@@ -2,13 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar, TypedDict
 
-from textual import events, on
+from textual import on
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Container, Vertical
 from textual.message import Message
 from textual.theme import BUILTIN_THEMES
-from textual.widgets import Static, OptionList
+from textual.widgets import OptionList, Static
 from textual.widgets.option_list import Option
 
 from revibe.cli.textual_ui.terminal_theme import TERMINAL_THEME_NAME
@@ -31,6 +31,7 @@ class SettingDefinition(TypedDict):
 
 class ConfigApp(Container):
     """Configuration widget using OptionList for a better UI."""
+
     can_focus = True
     can_focus_children = True
 

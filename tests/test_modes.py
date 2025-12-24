@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import pytest
 
-from tests.mock.utils import mock_llm_chunk
-from tests.stubs.fake_backend import FakeBackend
 from revibe.core.agent import Agent
 from revibe.core.config import SessionLoggingConfig, VibeConfig
 from revibe.core.llm.format import get_active_tool_classes
@@ -26,6 +24,8 @@ from revibe.core.types import (
     ToolCall,
     ToolResultEvent,
 )
+from tests.mock.utils import mock_llm_chunk
+from tests.stubs.fake_backend import FakeBackend
 
 
 class TestModeSafety:

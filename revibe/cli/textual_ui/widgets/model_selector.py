@@ -7,10 +7,10 @@ from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Container, Vertical
 from textual.message import Message
-from textual.widgets import Static, OptionList, Input
+from textual.widgets import Input, OptionList, Static
 from textual.widgets.option_list import Option
 
-from revibe.core.config import Backend, ModelConfig, ProviderConfig
+from revibe.core.config import Backend, ModelConfig, ProviderConfigUnion
 
 if TYPE_CHECKING:
     from revibe.core.config import VibeConfig
@@ -23,7 +23,7 @@ class ModelSelector(Container):
     can_focus_children = True
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("escape", "close", "Cancel", show=False),
+        Binding("escape", "close", "Cancel", show=False)
     ]
 
     class ModelSelected(Message):
@@ -83,12 +83,15 @@ class ModelSelector(Container):
         filter_text = filter_text.lower()
 
         self._filtered_models = [
-            m for m in self.models
+            m
+            for m in self.models
             if filter_text in m.alias.lower() or filter_text in m.provider.lower()
         ]
 
         if self._missing_api_key_message:
-            option_list.add_option(Option(f"  {self._missing_api_key_message}", disabled=True))
+            option_list.add_option(
+                Option(f"  {self._missing_api_key_message}", disabled=True)
+            )
         elif not self._filtered_models:
             if self.loading:
                 option_list.add_option(Option("  Loading models...", disabled=True))
@@ -118,17 +121,17 @@ class ModelSelector(Container):
         self._update_list(self.query_one("#model-selector-filter", Input).value)
 
         try:
-            from revibe.core.llm.backend.factory import BACKEND_FACTORY
             from revibe.core.config import DEFAULT_PROVIDERS
+            from revibe.core.llm.backend.factory import BACKEND_FACTORY
 
             # Build a merged provider map (defaults + user config)
-            providers_map: dict[str, ProviderConfig] = {}
+            providers_map: dict[str, ProviderConfigUnion] = {}
             for p in DEFAULT_PROVIDERS:
                 providers_map[p.name] = p
             for p in self.config.providers:
                 providers_map[p.name] = p
 
-            providers_to_query: list[ProviderConfig] = []
+            providers_to_query: list[ProviderConfigUnion] = []
 
             import os
 
@@ -139,18 +142,24 @@ class ModelSelector(Container):
                     if provider.backend not in (Backend.OLLAMA, Backend.LLAMACPP):
                         # Use hardcoded models for other providers
                         self.loading = False
-                        self._update_list(self.query_one("#model-selector-filter", Input).value)
+                        self._update_list(
+                            self.query_one("#model-selector-filter", Input).value
+                        )
                         return
 
                     # If provider requires an API key and none is set, show a helpful message
-                    if provider.api_key_env_var and not os.getenv(provider.api_key_env_var):
-                        self._missing_api_key_message = (
-                            f"API key required: set {provider.api_key_env_var} to list models for {provider.name}"
-                        )
+                    if provider.api_key_env_var and not os.getenv(
+                        provider.api_key_env_var
+                    ):
+                        self._missing_api_key_message = f"API key required: set {provider.api_key_env_var} to list models for {provider.name}"
                         # Clear any models we had filtered earlier
-                        self.models = [m for m in self.models if m.provider != provider.name]
+                        self.models = [
+                            m for m in self.models if m.provider != provider.name
+                        ]
                         self.loading = False
-                        self._update_list(self.query_one("#model-selector-filter", Input).value)
+                        self._update_list(
+                            self.query_one("#model-selector-filter", Input).value
+                        )
                         return
                     providers_to_query.append(provider)
             else:
@@ -177,7 +186,11 @@ class ModelSelector(Container):
                                     key = (provider.name, name)
                                     if key not in existing_names:
                                         self.models.append(
-                                            ModelConfig(name=name, provider=provider.name, alias=name)
+                                            ModelConfig(
+                                                name=name,
+                                                provider=provider.name,
+                                                alias=name,
+                                            )
                                         )
                                         existing_names.add(key)
                                         added_any = True
@@ -217,7 +230,10 @@ class ModelSelector(Container):
             event.stop()
             event.prevent_default()
         elif event.key == "enter":
-            if option_list.highlighted is not None and 0 <= option_list.highlighted < len(self._filtered_models):
+            if (
+                option_list.highlighted is not None
+                and 0 <= option_list.highlighted < len(self._filtered_models)
+            ):
                 model = self._filtered_models[option_list.highlighted]
                 self.post_message(
                     self.ModelSelected(
@@ -247,4 +263,3 @@ class ModelSelector(Container):
 
     def action_close(self) -> None:
         self.post_message(self.SelectorClosed())
-

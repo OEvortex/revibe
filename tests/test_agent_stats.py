@@ -4,8 +4,6 @@ from collections.abc import Callable
 
 import pytest
 
-from tests.mock.utils import mock_llm_chunk
-from tests.stubs.fake_backend import FakeBackend
 from revibe.core.agent import Agent
 from revibe.core.config import (
     Backend,
@@ -26,6 +24,8 @@ from revibe.core.types import (
     Role,
     ToolCall,
 )
+from tests.mock.utils import mock_llm_chunk
+from tests.stubs.fake_backend import FakeBackend
 
 
 def make_config(

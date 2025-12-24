@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from textual.pilot import Pilot
 
+from revibe.cli.update_notifier import VersionUpdate
 from tests.snapshots.base_snapshot_test_app import BaseSnapshotTestApp, default_config
 from tests.snapshots.snap_compare import SnapCompare
 from tests.update_notifier.adapters.fake_update_cache_repository import (
@@ -10,7 +11,6 @@ from tests.update_notifier.adapters.fake_update_cache_repository import (
 from tests.update_notifier.adapters.fake_version_update_gateway import (
     FakeVersionUpdateGateway,
 )
-from revibe.cli.update_notifier import VersionUpdate
 
 
 class SnapshotTestAppWithUpdate(BaseSnapshotTestApp):

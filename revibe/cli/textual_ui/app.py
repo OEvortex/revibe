@@ -4,7 +4,7 @@ import asyncio
 from enum import StrEnum, auto
 import subprocess
 import time
-from typing import Any, ClassVar, assert_never
+from typing import Any, ClassVar
 
 from pydantic import BaseModel
 from textual.app import App, ComposeResult
@@ -24,15 +24,11 @@ from revibe.cli.textual_ui.terminal_theme import (
     capture_terminal_theme,
 )
 from revibe.cli.textual_ui.widgets.api_key_input import ApiKeyInput
-from revibe.cli.textual_ui.widgets.api_key_input import ApiKeyInput
 from revibe.cli.textual_ui.widgets.approval_app import ApprovalApp
 from revibe.cli.textual_ui.widgets.chat_input import ChatInputContainer
 from revibe.cli.textual_ui.widgets.compact import CompactMessage
 from revibe.cli.textual_ui.widgets.config_app import ConfigApp
-from revibe.cli.textual_ui.widgets.model_selector import ModelSelector
-from revibe.cli.textual_ui.widgets.provider_selector import ProviderSelector
 from revibe.cli.textual_ui.widgets.context_progress import ContextProgress, TokenState
-from revibe.core.config import ProviderConfig
 from revibe.cli.textual_ui.widgets.loading import LoadingWidget
 from revibe.cli.textual_ui.widgets.messages import (
     AssistantMessage,
@@ -46,21 +42,14 @@ from revibe.cli.textual_ui.widgets.messages import (
     WarningMessage,
 )
 from revibe.cli.textual_ui.widgets.mode_indicator import ModeIndicator
+from revibe.cli.textual_ui.widgets.model_selector import ModelSelector
 from revibe.cli.textual_ui.widgets.path_display import PathDisplay
+from revibe.cli.textual_ui.widgets.provider_selector import ProviderSelector
 from revibe.cli.textual_ui.widgets.tools import ToolCallMessage, ToolResultMessage
 from revibe.cli.textual_ui.widgets.welcome import WelcomeBanner
-from revibe.cli.update_notifier import (
-    FileSystemUpdateCacheRepository,
-    PyPIVersionUpdateGateway,
-    UpdateCacheRepository,
-    VersionUpdateAvailability,
-    VersionUpdateError,
-    VersionUpdateGateway,
-    get_update_if_available,
-)
 from revibe.core.agent import Agent
 from revibe.core.autocompletion.path_prompt_adapter import render_path_prompt
-from revibe.core.config import VibeConfig
+from revibe.core.config import ProviderConfigUnion, VibeConfig
 from revibe.core.modes import AgentMode, next_mode
 from revibe.core.paths.config_paths import HISTORY_FILE
 from revibe.core.tools.base import BaseToolConfig, ToolPermission
@@ -70,6 +59,15 @@ from revibe.core.utils import (
     get_user_cancellation_message,
     is_dangerous_directory,
     logger,
+)
+from revibe.update_notifier import (
+    FileSystemUpdateCacheRepository,
+    PyPIVersionUpdateGateway,
+    UpdateCacheRepository,
+    VersionUpdateAvailability,
+    VersionUpdateError,
+    VersionUpdateGateway,
+    get_update_if_available,
 )
 
 
@@ -329,9 +327,9 @@ class VibeApp(App):
     ) -> None:
         provider_name = message.provider_name
         # Find the provider config - merge defaults with config like the selector does
-        from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfig
+        from revibe.core.config import DEFAULT_PROVIDERS
 
-        providers_map: dict[str, ProviderConfig] = {}
+        providers_map: dict[str, ProviderConfigUnion] = {}
         for p in DEFAULT_PROVIDERS:
             providers_map[p.name] = p
         for p in self.config.providers:
@@ -349,6 +347,7 @@ class VibeApp(App):
         # Check if API key is required and present
         if provider.api_key_env_var:
             import os
+
             if not os.getenv(provider.api_key_env_var):
                 # API key is required but not set - ask user to enter it
                 await self._mount_and_scroll(
@@ -388,12 +387,18 @@ class VibeApp(App):
                 from revibe.core.config import ModelConfig
 
                 models_list = [
-                    m.model_dump(mode="json", exclude_none=True) for m in self.config.models
+                    m.model_dump(mode="json", exclude_none=True)
+                    for m in self.config.models
                 ]
-                new_model = ModelConfig(name=model_name, provider=provider, alias=model_alias)
+                new_model = ModelConfig(
+                    name=model_name, provider=provider, alias=model_alias
+                )
                 models_list.append(new_model.model_dump(mode="json", exclude_none=True))
 
-                VibeConfig.save_updates({"models": models_list, "active_model": model_alias})
+                VibeConfig.save_updates({
+                    "models": models_list,
+                    "active_model": model_alias,
+                })
             else:
                 VibeConfig.save_updates({"active_model": model_alias})
 
@@ -411,9 +416,7 @@ class VibeApp(App):
     async def on_model_selector_selector_closed(
         self, message: ModelSelector.SelectorClosed
     ) -> None:
-        await self._mount_and_scroll(
-            UserCommandMessage("Model selection cancelled.")
-        )
+        await self._mount_and_scroll(UserCommandMessage("Model selection cancelled."))
         await self._switch_to_input_app()
 
     async def on_api_key_input_api_key_submitted(
@@ -423,9 +426,9 @@ class VibeApp(App):
         api_key = message.api_key
 
         # Find the provider to get the env var name - merge defaults with config like the selector does
-        from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfig
+        from revibe.core.config import DEFAULT_PROVIDERS
 
-        providers_map: dict[str, ProviderConfig] = {}
+        providers_map: dict[str, ProviderConfigUnion] = {}
         for p in DEFAULT_PROVIDERS:
             providers_map[p.name] = p
         for p in self.config.providers:
@@ -473,6 +476,7 @@ class VibeApp(App):
 
             # Set the environment variable for the current session
             import os
+
             os.environ[provider.api_key_env_var] = api_key
 
             await self._mount_and_scroll(
@@ -485,17 +489,13 @@ class VibeApp(App):
             # Show models for this provider now that the API key is set
             await self._switch_to_model_selector(provider_filter=provider_name)
         except Exception as e:
-            await self._mount_and_scroll(
-                ErrorMessage(f"Failed to save API key: {e}")
-            )
+            await self._mount_and_scroll(ErrorMessage(f"Failed to save API key: {e}"))
             await self._switch_to_input_app()
 
     async def on_api_key_input_api_key_cancelled(
         self, message: ApiKeyInput.ApiKeyCancelled
     ) -> None:
-        await self._mount_and_scroll(
-            UserCommandMessage("API key entry cancelled.")
-        )
+        await self._mount_and_scroll(UserCommandMessage("API key entry cancelled."))
         await self._switch_to_input_app()
 
     def _set_tool_permission_always(
@@ -1145,7 +1145,7 @@ class VibeApp(App):
 
         self.call_after_refresh(provider_selector.focus)
 
-    async def _switch_to_api_key_input(self, provider: ProviderConfig) -> None:
+    async def _switch_to_api_key_input(self, provider: ProviderConfigUnion) -> None:
         if self._current_bottom_app == BottomApp.ApiKeyInput:
             return
 

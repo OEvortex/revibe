@@ -5,7 +5,10 @@ from pathlib import Path
 from acp import ReadTextFileRequest, ReadTextFileResponse, WriteTextFileRequest
 import pytest
 
-from revibe.acp.tools.builtins.search_replace import AcpSearchReplaceState, SearchReplace
+from revibe.acp.tools.builtins.search_replace import (
+    AcpSearchReplaceState,
+    SearchReplace,
+)
 from revibe.core.tools.base import ToolError
 from revibe.core.tools.builtins.search_replace import (
     SearchReplaceArgs,

@@ -7,12 +7,6 @@ from typing import Protocol
 import pytest
 from textual.app import Notification
 
-from tests.update_notifier.adapters.fake_update_cache_repository import (
-    FakeUpdateCacheRepository,
-)
-from tests.update_notifier.adapters.fake_version_update_gateway import (
-    FakeVersionUpdateGateway,
-)
 from revibe.cli.textual_ui.app import VibeApp
 from revibe.cli.update_notifier import (
     UpdateCache,
@@ -22,6 +16,12 @@ from revibe.cli.update_notifier import (
 )
 from revibe.core.config import SessionLoggingConfig, VibeConfig
 from revibe.core.modes import AgentMode
+from tests.update_notifier.adapters.fake_update_cache_repository import (
+    FakeUpdateCacheRepository,
+)
+from tests.update_notifier.adapters.fake_version_update_gateway import (
+    FakeVersionUpdateGateway,
+)
 
 
 async def _wait_for_notification(
