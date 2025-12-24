@@ -97,7 +97,7 @@ DEFAULT_MODELS = [
         output_price=0.79,
         context=131072,
         max_output=32768,
-    )
+    ),
     ModelConfig(
         name="zai-org/GLM-4.7-FP8",
         provider="huggingface",

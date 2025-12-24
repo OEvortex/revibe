@@ -19,11 +19,16 @@ from pydantic_settings import (
 )
 import tomli_w
 
-from revibe.core.paths.config_paths import AGENT_DIR, CONFIG_DIR, CONFIG_FILE, PROMPT_DIR
+from revibe.core.model_config import DEFAULT_MODELS, ModelConfig
+from revibe.core.paths.config_paths import (
+    AGENT_DIR,
+    CONFIG_DIR,
+    CONFIG_FILE,
+    PROMPT_DIR,
+)
 from revibe.core.paths.global_paths import GLOBAL_ENV_FILE, SESSION_LOG_DIR
 from revibe.core.prompts import SystemPrompt
 from revibe.core.tools.base import BaseToolConfig
-from revibe.core.model_config import ModelConfig, DEFAULT_MODELS
 
 PROJECT_DOC_FILENAMES = ["AGENTS.md", "REVIBE.md", ".revibe.md"]
 
@@ -130,39 +135,38 @@ class Backend(StrEnum):
     LLAMACPP = auto()
 
 
-class ProviderConfig(BaseModel):
+class _ProviderBase(BaseModel):
     name: str
     api_base: str
     api_key_env_var: str = ""
     api_style: str = "openai"
-    backend: Backend = Backend.GENERIC
 
 
-class MistralProviderConfig(ProviderConfig):
+class MistralProviderConfig(_ProviderBase):
     backend: Literal[Backend.MISTRAL] = Backend.MISTRAL
 
 
-class OpenAIProviderConfig(ProviderConfig):
+class OpenAIProviderConfig(_ProviderBase):
     backend: Literal[Backend.OPENAI] = Backend.OPENAI
 
 
-class GroqProviderConfig(ProviderConfig):
+class GroqProviderConfig(_ProviderBase):
     backend: Literal[Backend.GROQ] = Backend.GROQ
 
 
-class HuggingFaceProviderConfig(ProviderConfig):
+class HuggingFaceProviderConfig(_ProviderBase):
     backend: Literal[Backend.HUGGINGFACE] = Backend.HUGGINGFACE
 
 
-class OllamaProviderConfig(ProviderConfig):
+class OllamaProviderConfig(_ProviderBase):
     backend: Literal[Backend.OLLAMA] = Backend.OLLAMA
 
 
-class LlamaCppProviderConfig(ProviderConfig):
+class LlamaCppProviderConfig(_ProviderBase):
     backend: Literal[Backend.LLAMACPP] = Backend.LLAMACPP
 
 
-class GenericProviderConfig(ProviderConfig):
+class GenericProviderConfig(_ProviderBase):
     backend: Literal[Backend.GENERIC] = Backend.GENERIC
 
 
@@ -176,6 +180,10 @@ ProviderConfigUnion = Annotated[
     | GenericProviderConfig,
     Field(discriminator="backend"),
 ]
+
+
+# Backward compatibility: alias for the old ProviderConfig class
+ProviderConfig = GenericProviderConfig
 
 
 class _MCPBase(BaseModel):
@@ -283,14 +291,10 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
         api_key_env_var="GROQ_API_KEY",
     ),
     OllamaProviderConfig(
-        name="ollama",
-        api_base="http://127.0.0.1:11434/v1",
-        api_key_env_var="",
+        name="ollama", api_base="http://127.0.0.1:11434/v1", api_key_env_var=""
     ),
     LlamaCppProviderConfig(
-        name="llamacpp",
-        api_base="http://127.0.0.1:8080/v1",
-        api_key_env_var="",
+        name="llamacpp", api_base="http://127.0.0.1:8080/v1", api_key_env_var=""
     ),
 ]
 
@@ -516,6 +520,7 @@ class VibeConfig(BaseSettings):
     @model_validator(mode="after")
     def _merge_default_models(self) -> VibeConfig:
         from revibe.core.model_config import DEFAULT_MODELS
+
         existing_keys = {(m.provider, m.name) for m in self.models}
         for m in DEFAULT_MODELS:
             if (m.provider, m.name) not in existing_keys:
