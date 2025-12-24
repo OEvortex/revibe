@@ -5,7 +5,7 @@ from collections.abc import Callable
 import httpx
 import pytest
 
-from vibe.cli.update_notifier import (
+from revibe.cli.update_notifier import (
     GitHubVersionUpdateGateway,
     VersionUpdateGatewayCause,
     VersionUpdateGatewayError,

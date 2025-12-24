@@ -8,19 +8,19 @@ import pytest
 
 from tests.mock.utils import mock_llm_chunk
 from tests.stubs.fake_backend import FakeBackend
-from vibe.core.agent import Agent
-from vibe.core.config import SessionLoggingConfig, VibeConfig
-from vibe.core.middleware import (
+from revibe.core.agent import Agent
+from revibe.core.config import SessionLoggingConfig, VibeConfig
+from revibe.core.middleware import (
     ConversationContext,
     MiddlewareAction,
     MiddlewarePipeline,
     MiddlewareResult,
     ResetReason,
 )
-from vibe.core.modes import AgentMode
-from vibe.core.tools.base import BaseToolConfig, ToolPermission
-from vibe.core.tools.builtins.todo import TodoArgs
-from vibe.core.types import (
+from revibe.core.modes import AgentMode
+from revibe.core.tools.base import BaseToolConfig, ToolPermission
+from revibe.core.tools.builtins.todo import TodoArgs
+from revibe.core.types import (
     ApprovalResponse,
     AssistantEvent,
     FunctionCall,
@@ -31,7 +31,7 @@ from vibe.core.types import (
     ToolCallEvent,
     ToolResultEvent,
 )
-from vibe.core.utils import CancellationReason, get_user_cancellation_message
+from revibe.core.utils import CancellationReason, get_user_cancellation_message
 
 
 class InjectBeforeMiddleware:

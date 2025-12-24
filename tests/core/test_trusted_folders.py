@@ -7,8 +7,8 @@ from unittest.mock import patch
 import pytest
 import tomli_w
 
-from vibe.core.paths.global_paths import TRUSTED_FOLDERS_FILE
-from vibe.core.trusted_folders import TrustedFoldersManager
+from revibe.core.paths.global_paths import TRUSTED_FOLDERS_FILE
+from revibe.core.trusted_folders import TrustedFoldersManager
 
 
 class TestTrustedFoldersManager:

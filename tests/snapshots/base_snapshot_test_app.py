@@ -4,10 +4,10 @@ from rich.style import Style
 from textual.widgets.text_area import TextAreaTheme
 
 from tests.stubs.fake_backend import FakeBackend
-from vibe.cli.textual_ui.app import VibeApp
-from vibe.cli.textual_ui.widgets.chat_input import ChatTextArea
-from vibe.core.agent import Agent
-from vibe.core.config import SessionLoggingConfig, VibeConfig
+from revibe.cli.textual_ui.app import VibeApp
+from revibe.cli.textual_ui.widgets.chat_input import ChatTextArea
+from revibe.core.agent import Agent
+from revibe.core.config import SessionLoggingConfig, VibeConfig
 
 
 def default_config() -> VibeConfig:

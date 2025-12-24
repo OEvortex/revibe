@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from vibe.core.paths.config_paths import CONFIG_FILE
-from vibe.core.paths.global_paths import GLOBAL_CONFIG_FILE, VIBE_HOME
-from vibe.core.trusted_folders import trusted_folders_manager
+from revibe.core.paths.config_paths import CONFIG_FILE
+from revibe.core.paths.global_paths import GLOBAL_CONFIG_FILE, VIBE_HOME
+from revibe.core.trusted_folders import trusted_folders_manager
 
 
 class TestResolveConfigFile:

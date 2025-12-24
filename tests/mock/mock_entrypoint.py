@@ -14,14 +14,14 @@ from unittest.mock import patch
 
 from pydantic import ValidationError
 
-from vibe.core.paths.config_paths import unlock_config_paths
+from revibe.core.paths.config_paths import unlock_config_paths
 
 if __name__ == "__main__":
     unlock_config_paths()
 
     from tests import TESTS_ROOT
     from tests.mock.utils import MOCK_DATA_ENV_VAR
-    from vibe.core.types import LLMChunk
+    from revibe.core.types import LLMChunk
 
     sys.path.insert(0, str(TESTS_ROOT))
 
@@ -60,6 +60,6 @@ if __name__ == "__main__":
         side_effect=mock_complete_streaming,
     ).start()
 
-    from vibe.acp.entrypoint import main
+    from revibe.acp.entrypoint import main
 
     main()

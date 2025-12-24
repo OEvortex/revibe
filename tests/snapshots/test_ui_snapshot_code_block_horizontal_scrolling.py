@@ -4,7 +4,7 @@ from textual.pilot import Pilot
 from textual.widgets.markdown import MarkdownFence
 
 from tests.snapshots.snap_compare import SnapCompare
-from vibe.cli.textual_ui.widgets.messages import AssistantMessage
+from revibe.cli.textual_ui.widgets.messages import AssistantMessage
 
 
 def test_snapshot_allows_horizontal_scrolling_for_long_code_blocks(

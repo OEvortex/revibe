@@ -8,13 +8,13 @@ from tests.update_notifier.adapters.fake_update_cache_repository import (
 from tests.update_notifier.adapters.fake_version_update_gateway import (
     FakeVersionUpdateGateway,
 )
-from vibe.cli.update_notifier import (
+from revibe.cli.update_notifier import (
     UpdateCache,
     VersionUpdate,
     VersionUpdateGatewayCause,
     VersionUpdateGatewayError,
 )
-from vibe.cli.update_notifier.version_update import (
+from revibe.cli.update_notifier.version_update import (
     VersionUpdateError,
     get_update_if_available,
 )

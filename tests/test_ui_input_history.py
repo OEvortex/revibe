@@ -5,11 +5,11 @@ from pathlib import Path
 
 import pytest
 
-from vibe.cli.history_manager import HistoryManager
-from vibe.cli.textual_ui.app import VibeApp
-from vibe.cli.textual_ui.widgets.chat_input.body import ChatInputBody
-from vibe.cli.textual_ui.widgets.chat_input.container import ChatInputContainer
-from vibe.core.config import SessionLoggingConfig, VibeConfig
+from revibe.cli.history_manager import HistoryManager
+from revibe.cli.textual_ui.app import VibeApp
+from revibe.cli.textual_ui.widgets.chat_input.body import ChatInputBody
+from revibe.cli.textual_ui.widgets.chat_input.container import ChatInputContainer
+from revibe.core.config import SessionLoggingConfig, VibeConfig
 
 
 @pytest.fixture

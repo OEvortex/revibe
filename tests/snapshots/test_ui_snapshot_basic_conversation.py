@@ -6,7 +6,7 @@ from tests.mock.utils import mock_llm_chunk
 from tests.snapshots.base_snapshot_test_app import BaseSnapshotTestApp, default_config
 from tests.snapshots.snap_compare import SnapCompare
 from tests.stubs.fake_backend import FakeBackend
-from vibe.core.agent import Agent
+from revibe.core.agent import Agent
 
 
 class SnapshotTestAppWithConversation(BaseSnapshotTestApp):

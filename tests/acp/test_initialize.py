@@ -10,7 +10,7 @@ from acp.schema import (
 import pytest
 
 from tests.stubs.fake_connection import FakeAgentSideConnection
-from vibe.acp.acp_agent import VibeAcpAgent
+from revibe.acp.acp_agent import VibeAcpAgent
 
 
 @pytest.fixture

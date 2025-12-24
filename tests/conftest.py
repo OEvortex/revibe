@@ -7,8 +7,8 @@ from typing import Any
 import pytest
 import tomli_w
 
-from vibe.core.paths import global_paths
-from vibe.core.paths.config_paths import unlock_config_paths
+from revibe.core.paths import global_paths
+from revibe.core.paths.config_paths import unlock_config_paths
 
 
 def get_base_config() -> dict[str, Any]:

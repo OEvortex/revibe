@@ -14,9 +14,9 @@ import pytest
 
 from tests.stubs.fake_backend import FakeBackend
 from tests.stubs.fake_connection import FakeAgentSideConnection
-from vibe.acp.acp_agent import VibeAcpAgent
-from vibe.core.agent import Agent
-from vibe.core.types import LLMChunk, LLMMessage, LLMUsage, Role
+from revibe.acp.acp_agent import VibeAcpAgent
+from revibe.core.agent import Agent
+from revibe.core.types import LLMChunk, LLMMessage, LLMUsage, Role
 
 
 @pytest.fixture

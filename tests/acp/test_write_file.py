@@ -5,14 +5,14 @@ from pathlib import Path
 from acp import WriteTextFileRequest
 import pytest
 
-from vibe.acp.tools.builtins.write_file import AcpWriteFileState, WriteFile
-from vibe.core.tools.base import ToolError
-from vibe.core.tools.builtins.write_file import (
+from revibe.acp.tools.builtins.write_file import AcpWriteFileState, WriteFile
+from revibe.core.tools.base import ToolError
+from revibe.core.tools.builtins.write_file import (
     WriteFileArgs,
     WriteFileConfig,
     WriteFileResult,
 )
-from vibe.core.types import ToolCallEvent, ToolResultEvent
+from revibe.core.types import ToolCallEvent, ToolResultEvent
 
 
 class MockConnection:
@@ -207,7 +207,7 @@ class TestAcpWriteFileSessionUpdates:
         assert update.locations[0].path == "/tmp/test.txt"
 
     def test_tool_call_session_update_invalid_args(self) -> None:
-        from vibe.core.types import FunctionCall, ToolCall
+        from revibe.core.types import FunctionCall, ToolCall
 
         class InvalidArgs:
             pass

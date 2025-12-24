@@ -5,9 +5,9 @@ from pathlib import Path
 from acp import ReadTextFileRequest, ReadTextFileResponse
 import pytest
 
-from vibe.acp.tools.builtins.read_file import AcpReadFileState, ReadFile
-from vibe.core.tools.base import ToolError
-from vibe.core.tools.builtins.read_file import (
+from revibe.acp.tools.builtins.read_file import AcpReadFileState, ReadFile
+from revibe.core.tools.base import ToolError
+from revibe.core.tools.builtins.read_file import (
     ReadFileArgs,
     ReadFileResult,
     ReadFileToolConfig,

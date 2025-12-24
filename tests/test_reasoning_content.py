@@ -9,17 +9,17 @@ import respx
 
 from tests.mock.utils import mock_llm_chunk
 from tests.stubs.fake_backend import FakeBackend
-from vibe.core.agent import Agent
-from vibe.core.config import (
+from revibe.core.agent import Agent
+from revibe.core.config import (
     ModelConfig,
     ProviderConfig,
     SessionLoggingConfig,
     VibeConfig,
 )
-from vibe.core.llm.backend.generic import GenericBackend
-from vibe.core.llm.backend.mistral import MistralMapper, ParsedContent
-from vibe.core.llm.format import APIToolFormatHandler
-from vibe.core.types import AssistantEvent, LLMMessage, ReasoningEvent, Role
+from revibe.core.llm.backend.generic import GenericBackend
+from revibe.core.llm.backend.mistral import MistralMapper, ParsedContent
+from revibe.core.llm.format import APIToolFormatHandler
+from revibe.core.types import AssistantEvent, LLMMessage, ReasoningEvent, Role
 
 
 def make_config() -> VibeConfig:

@@ -2,16 +2,16 @@ from __future__ import annotations
 
 import pytest
 
-from vibe.core.config import SessionLoggingConfig, VibeConfig
-from vibe.core.middleware import (
+from revibe.core.config import SessionLoggingConfig, VibeConfig
+from revibe.core.middleware import (
     PLAN_MODE_REMINDER,
     ConversationContext,
     MiddlewareAction,
     MiddlewarePipeline,
     PlanModeMiddleware,
 )
-from vibe.core.modes import AgentMode
-from vibe.core.types import AgentStats
+from revibe.core.modes import AgentMode
+from revibe.core.types import AgentStats
 
 
 def make_context() -> ConversationContext:

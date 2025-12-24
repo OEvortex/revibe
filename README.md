@@ -1,28 +1,22 @@
-# Mistral Vibe
+# ReVibe
 
-[![PyPI Version](https://img.shields.io/pypi/v/mistral-vibe)](https://pypi.org/project/mistral-vibe)
+[![PyPI Version](https://img.shields.io/pypi/v/revibe)](https://pypi.org/project/revibe)
 [![Python Version](https://img.shields.io/badge/python-3.12%2B-blue)](https://www.python.org/downloads/release/python-3120/)
-[![CI Status](https://github.com/mistralai/mistral-vibe/actions/workflows/ci.yml/badge.svg)](https://github.com/mistralai/mistral-vibe/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/mistralai/mistral-vibe)](https://github.com/mistralai/mistral-vibe/blob/main/LICENSE)
+[![License](https://img.shields.io/github/license/OEvortex/revibe)](https://github.com/OEvortex/revibe/blob/main/LICENSE)
 
-```
-██████████████████░░
-██████████████████░░
-████  ██████  ████░░
-████    ██    ████░░
-████          ████░░
-████  ██  ██  ████░░
-██      ██      ██░░
-██████████████████░░
-██████████████████░░
-```
+**Multi-provider CLI coding agent with a clean, minimal interface.**
 
-**Mistral's open-source CLI coding assistant.**
+ReVibe is a command-line coding assistant powered by multiple language model providers. It provides a conversational interface to your codebase, allowing you to use natural language to explore, modify, and interact with your projects through a powerful set of tools.
 
-Mistral Vibe is a command-line coding assistant powered by Mistral's models. It provides a conversational interface to your codebase, allowing you to use natural language to explore, modify, and interact with your projects through a powerful set of tools.
+### ✨ Key Features
 
-> [!WARNING]
-> Mistral Vibe works on Windows, but we officially support and target UNIX environments.
+- **Multi-Provider Support**: OpenAI, Anthropic, Mistral, HuggingFace, Groq, and local models
+- **Runtime Provider Switching**: Use `/provider` and `/model` commands to switch providers on the fly
+- **Clean Minimal TUI**: Inspired by Codex CLI and Claude Code for distraction-free coding
+- **Powerful Toolset**: File manipulation, code search, version control, and command execution
+
+> [!NOTE]
+> ReVibe works on Windows, macOS, and Linux.
 
 ### One-line install (recommended)
 
@@ -44,13 +38,13 @@ Then, use uv command below.
 ### Using uv
 
 ```bash
-uv tool install mistral-vibe
+uv tool install revibe
 ```
 
 ### Using pip
 
 ```bash
-pip install mistral-vibe
+pip install revibe
 ```
 
 ## Features
@@ -306,7 +300,7 @@ This affects where Vibe looks for:
 
 ## Editors/IDEs
 
-Mistral Vibe can be used in text editors and IDEs that support [Agent Client Protocol](https://agentclientprotocol.com/overview/clients). See the [ACP Setup documentation](docs/acp-setup.md) for setup instructions for various editors and IDEs.
+REVIBE can be used in text editors and IDEs that support [Agent Client Protocol](https://agentclientprotocol.com/overview/clients). See the [ACP Setup documentation](docs/acp-setup.md) for setup instructions for various editors and IDEs.
 
 ## Resources
 

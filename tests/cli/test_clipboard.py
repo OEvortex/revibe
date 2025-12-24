@@ -9,7 +9,7 @@ import pyperclip
 import pytest
 from textual.app import App
 
-from vibe.cli.clipboard import (
+from revibe.cli.clipboard import (
     _copy_osc52,
     _copy_wayland_clipboard,
     _copy_x11_clipboard,

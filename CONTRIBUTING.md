@@ -1,10 +1,20 @@
-# Contributing to Mistral Vibe
+# Contributing to REVIBE
 
-Thank you for your interest in Mistral Vibe! We appreciate your enthusiasm and support.
+Thank you for your interest in REVIBE! We appreciate your enthusiasm and support.
+
+**🔄 REVIBE is a fork of Mistral Vibe by Oevortex**
+
+This project builds upon the excellent foundation of [Mistral Vibe](https://github.com/mistralai/mistral-vibe) while adding new features and provider support.
 
 ## Current Status
 
-**Mistral Vibe is in active development** — our team is iterating quickly and making lots of changes under the hood. Because of this pace, we may be slower than usual when reviewing PRs and issues.
+**REVIBE is in active development** — our team is iterating quickly and making lots of changes under the hood. Because of this pace, we may be slower than usual when reviewing PRs and issues.
+
+### 📋 Fork Information
+
+- **Original Project**: [Mistral Vibe](https://github.com/mistralai/mistral-vibe)
+- **Fork Maintainer**: Oevortex
+- **Key Differences**: Multi-provider support, enhanced architecture, additional backends
 
 **We especially encourage**:
 
@@ -52,7 +62,7 @@ This section is for developers who want to set up the repository for local devel
 
    ```bash
    git clone <repository-url>
-   cd mistral-vibe
+   cd revibe
    ```
 
 2. Install dependencies:
@@ -163,6 +173,6 @@ While we're not accepting code contributions at the moment, we may open up contr
 
 ## Questions?
 
-If you have questions about using Mistral Vibe, please check the [README](README.md) first. For other inquiries, feel free to open a discussion or issue.
+If you have questions about using REVIBE, please check the [README](README.md) first. For other inquiries, feel free to open a discussion or issue.
 
-Thank you for helping make Mistral Vibe better! 🙏
+Thank you for helping make REVIBE better! 🙏

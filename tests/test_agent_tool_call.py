@@ -9,12 +9,12 @@ import pytest
 from tests.mock.utils import mock_llm_chunk
 from tests.stubs.fake_backend import FakeBackend
 from tests.stubs.fake_tool import FakeTool
-from vibe.core.agent import Agent
-from vibe.core.config import SessionLoggingConfig, VibeConfig
-from vibe.core.modes import AgentMode
-from vibe.core.tools.base import BaseToolConfig, ToolPermission
-from vibe.core.tools.builtins.todo import TodoItem
-from vibe.core.types import (
+from revibe.core.agent import Agent
+from revibe.core.config import SessionLoggingConfig, VibeConfig
+from revibe.core.modes import AgentMode
+from revibe.core.tools.base import BaseToolConfig, ToolPermission
+from revibe.core.tools.builtins.todo import TodoItem
+from revibe.core.types import (
     ApprovalResponse,
     AssistantEvent,
     BaseEvent,

@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-from vibe.cli.update_notifier.adapters.filesystem_update_cache_repository import (
+from revibe.cli.update_notifier.adapters.filesystem_update_cache_repository import (
     FileSystemUpdateCacheRepository,
 )
-from vibe.cli.update_notifier.ports.update_cache_repository import UpdateCache
+from revibe.cli.update_notifier.ports.update_cache_repository import UpdateCache
 
 
 @pytest.mark.asyncio

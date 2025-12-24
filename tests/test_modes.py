@@ -4,10 +4,10 @@ import pytest
 
 from tests.mock.utils import mock_llm_chunk
 from tests.stubs.fake_backend import FakeBackend
-from vibe.core.agent import Agent
-from vibe.core.config import SessionLoggingConfig, VibeConfig
-from vibe.core.llm.format import get_active_tool_classes
-from vibe.core.modes import (
+from revibe.core.agent import Agent
+from revibe.core.config import SessionLoggingConfig, VibeConfig
+from revibe.core.llm.format import get_active_tool_classes
+from revibe.core.modes import (
     MODE_CONFIGS,
     PLAN_MODE_TOOLS,
     AgentMode,
@@ -16,8 +16,8 @@ from vibe.core.modes import (
     get_mode_order,
     next_mode,
 )
-from vibe.core.tools.base import ToolPermission
-from vibe.core.types import (
+from revibe.core.tools.base import ToolPermission
+from revibe.core.types import (
     FunctionCall,
     LLMChunk,
     LLMMessage,

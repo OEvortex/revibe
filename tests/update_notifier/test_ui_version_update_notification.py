@@ -13,15 +13,15 @@ from tests.update_notifier.adapters.fake_update_cache_repository import (
 from tests.update_notifier.adapters.fake_version_update_gateway import (
     FakeVersionUpdateGateway,
 )
-from vibe.cli.textual_ui.app import VibeApp
-from vibe.cli.update_notifier import (
+from revibe.cli.textual_ui.app import VibeApp
+from revibe.cli.update_notifier import (
     UpdateCache,
     VersionUpdate,
     VersionUpdateGatewayCause,
     VersionUpdateGatewayError,
 )
-from vibe.core.config import SessionLoggingConfig, VibeConfig
-from vibe.core.modes import AgentMode
+from revibe.core.config import SessionLoggingConfig, VibeConfig
+from revibe.core.modes import AgentMode
 
 
 async def _wait_for_notification(
@@ -108,7 +108,7 @@ async def test_ui_displays_update_notification(make_vibe_app: VibeAppFactory) ->
     assert notification.title == "Update available"
     assert (
         notification.message
-        == '0.1.0 => 0.2.0\nRun "uv tool upgrade mistral-vibe" to update'
+        == '0.1.0 => 0.2.0\nRun "uv tool upgrade revibe" to update'
     )
 
 
@@ -217,6 +217,6 @@ async def test_ui_does_show_toast_when_cache_entry_is_too_old(
     assert notification.title == "Update available"
     assert (
         notification.message
-        == '0.1.0 => 0.2.0\nRun "uv tool upgrade mistral-vibe" to update'
+        == '0.1.0 => 0.2.0\nRun "uv tool upgrade revibe" to update'
     )
     assert notifier.fetch_update_calls == 1

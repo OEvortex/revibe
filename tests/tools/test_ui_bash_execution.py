@@ -6,10 +6,10 @@ import time
 import pytest
 from textual.widgets import Static
 
-from vibe.cli.textual_ui.app import VibeApp
-from vibe.cli.textual_ui.widgets.chat_input.container import ChatInputContainer
-from vibe.cli.textual_ui.widgets.messages import BashOutputMessage, ErrorMessage
-from vibe.core.config import SessionLoggingConfig, VibeConfig
+from revibe.cli.textual_ui.app import VibeApp
+from revibe.cli.textual_ui.widgets.chat_input.container import ChatInputContainer
+from revibe.cli.textual_ui.widgets.messages import BashOutputMessage, ErrorMessage
+from revibe.core.config import SessionLoggingConfig, VibeConfig
 
 
 @pytest.fixture

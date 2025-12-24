@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from tests.skills.conftest import create_skill
-from vibe.core.config import SessionLoggingConfig, VibeConfig
-from vibe.core.skills.manager import SkillManager
+from revibe.core.config import SessionLoggingConfig, VibeConfig
+from revibe.core.skills.manager import SkillManager
 
 
 @pytest.fixture

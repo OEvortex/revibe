@@ -4,8 +4,8 @@ import shutil
 
 import pytest
 
-from vibe.core.tools.base import ToolError
-from vibe.core.tools.builtins.grep import (
+from revibe.core.tools.base import ToolError
+from revibe.core.tools.builtins.grep import (
     Grep,
     GrepArgs,
     GrepBackend,

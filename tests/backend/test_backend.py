@@ -31,14 +31,14 @@ from tests.backend.data.mistral import (
     STREAMED_TOOL_CONVERSATION_PARAMS as MISTRAL_STREAMED_TOOL_CONVERSATION_PARAMS,
     TOOL_CONVERSATION_PARAMS as MISTRAL_TOOL_CONVERSATION_PARAMS,
 )
-from vibe.core.config import Backend, ModelConfig, ProviderConfig
-from vibe.core.llm.backend.factory import BACKEND_FACTORY
-from vibe.core.llm.backend.generic import GenericBackend
-from vibe.core.llm.backend.mistral import MistralBackend
-from vibe.core.llm.exceptions import BackendError
-from vibe.core.llm.types import BackendLike
-from vibe.core.types import LLMChunk, LLMMessage, Role, ToolCall
-from vibe.core.utils import get_user_agent
+from revibe.core.config import Backend, ModelConfig, ProviderConfig
+from revibe.core.llm.backend.factory import BACKEND_FACTORY
+from revibe.core.llm.backend.generic import GenericBackend
+from revibe.core.llm.backend.mistral import MistralBackend
+from revibe.core.llm.exceptions import BackendError
+from revibe.core.llm.types import BackendLike
+from revibe.core.types import LLMChunk, LLMMessage, Role, ToolCall
+from revibe.core.utils import get_user_agent
 
 
 class TestBackend:

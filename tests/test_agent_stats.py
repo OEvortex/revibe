@@ -6,17 +6,17 @@ import pytest
 
 from tests.mock.utils import mock_llm_chunk
 from tests.stubs.fake_backend import FakeBackend
-from vibe.core.agent import Agent
-from vibe.core.config import (
+from revibe.core.agent import Agent
+from revibe.core.config import (
     Backend,
     ModelConfig,
     ProviderConfig,
     SessionLoggingConfig,
     VibeConfig,
 )
-from vibe.core.modes import AgentMode
-from vibe.core.tools.base import BaseToolConfig, ToolPermission
-from vibe.core.types import (
+from revibe.core.modes import AgentMode
+from revibe.core.tools.base import BaseToolConfig, ToolPermission
+from revibe.core.types import (
     AgentStats,
     AssistantEvent,
     CompactEndEvent,

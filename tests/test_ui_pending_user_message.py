@@ -7,12 +7,12 @@ from types import SimpleNamespace
 
 import pytest
 
-from vibe.cli.textual_ui.app import VibeApp
-from vibe.cli.textual_ui.widgets.chat_input.container import ChatInputContainer
-from vibe.cli.textual_ui.widgets.messages import InterruptMessage, UserMessage
-from vibe.core.agent import Agent
-from vibe.core.config import SessionLoggingConfig, VibeConfig
-from vibe.core.types import BaseEvent
+from revibe.cli.textual_ui.app import VibeApp
+from revibe.cli.textual_ui.widgets.chat_input.container import ChatInputContainer
+from revibe.cli.textual_ui.widgets.messages import InterruptMessage, UserMessage
+from revibe.core.agent import Agent
+from revibe.core.config import SessionLoggingConfig, VibeConfig
+from revibe.core.types import BaseEvent
 
 
 async def _wait_for(

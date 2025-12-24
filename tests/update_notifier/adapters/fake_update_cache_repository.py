@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from vibe.cli.update_notifier.ports.update_cache_repository import (
+from revibe.cli.update_notifier.ports.update_cache_repository import (
     UpdateCache,
     UpdateCacheRepository,
 )

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from vibe.core.tools.base import BaseToolState, ToolError, ToolPermission
-from vibe.core.tools.builtins.bash import Bash, BashArgs, BashToolConfig
+from revibe.core.tools.base import BaseToolState, ToolError, ToolPermission
+from revibe.core.tools.builtins.bash import Bash, BashArgs, BashToolConfig
 
 
 @pytest.fixture

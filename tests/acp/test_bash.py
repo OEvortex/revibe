@@ -5,9 +5,9 @@ import asyncio
 from acp.schema import TerminalOutputResponse, WaitForTerminalExitResponse
 import pytest
 
-from vibe.acp.tools.builtins.bash import AcpBashState, Bash
-from vibe.core.tools.base import ToolError
-from vibe.core.tools.builtins.bash import BashArgs, BashResult, BashToolConfig
+from revibe.acp.tools.builtins.bash import AcpBashState, Bash
+from revibe.core.tools.base import ToolError
+from revibe.core.tools.builtins.bash import BashArgs, BashResult, BashToolConfig
 
 
 class MockTerminalHandle:

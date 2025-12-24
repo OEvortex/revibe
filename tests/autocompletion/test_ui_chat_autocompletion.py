@@ -7,10 +7,10 @@ from textual.content import Content
 from textual.style import Style
 from textual.widgets import Markdown
 
-from vibe.cli.textual_ui.app import VibeApp
-from vibe.cli.textual_ui.widgets.chat_input.completion_popup import CompletionPopup
-from vibe.cli.textual_ui.widgets.chat_input.container import ChatInputContainer
-from vibe.core.config import SessionLoggingConfig, VibeConfig
+from revibe.cli.textual_ui.app import VibeApp
+from revibe.cli.textual_ui.widgets.chat_input.completion_popup import CompletionPopup
+from revibe.cli.textual_ui.widgets.chat_input.container import ChatInputContainer
+from revibe.core.config import SessionLoggingConfig, VibeConfig
 
 
 @pytest.fixture

@@ -10,7 +10,7 @@ from tests.update_notifier.adapters.fake_update_cache_repository import (
 from tests.update_notifier.adapters.fake_version_update_gateway import (
     FakeVersionUpdateGateway,
 )
-from vibe.cli.update_notifier import VersionUpdate
+from revibe.cli.update_notifier import VersionUpdate
 
 
 class SnapshotTestAppWithUpdate(BaseSnapshotTestApp):

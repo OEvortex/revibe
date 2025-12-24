@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
-# Mistral Vibe Installation Script
-# This script installs uv if not present and then installs mistral-vibe using uv
+# REVIBE Installation Script (Fork of Mistral Vibe by Oevortex)
+# This script installs uv if not present and then installs revibe using uv
 
 set -euo pipefail
 
@@ -79,10 +79,10 @@ function install_uv() {
 }
 
 function install_vibe() {
-    info "Installing mistral-vibe from GitHub repository using uv..."
-    uv tool install mistral-vibe
+    info "Installing revibe from GitHub repository using uv..."
+    uv tool install revibe
 
-    success "Mistral Vibe installed successfully! (commands: vibe, vibe-acp)"
+    success "REVIBE installed successfully! (commands: vibe, vibe-acp)"
 }
 
 function main() {
@@ -97,7 +97,7 @@ function main() {
     echo "██████████████████░░"
     echo "██████████████████░░"
     echo
-    echo "Starting Mistral Vibe installation..."
+    echo "Starting REVIBE installation..."
     echo
 
     check_platform
