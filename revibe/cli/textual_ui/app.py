@@ -1248,46 +1248,46 @@ class VibeApp(App):
             try:
                 config_app = self.query_one(ConfigApp)
                 config_app.action_close()
+                self._last_escape_time = None
+                return
             except Exception:
                 pass
-            self._last_escape_time = None
-            return
 
         if self._current_bottom_app == BottomApp.Approval:
             try:
                 approval_app = self.query_one(ApprovalApp)
                 approval_app.action_reject()
+                self._last_escape_time = None
+                return
             except Exception:
                 pass
-            self._last_escape_time = None
-            return
 
         if self._current_bottom_app == BottomApp.ApiKeyInput:
             try:
                 api_key_input = self.query_one(ApiKeyInput)
                 api_key_input.action_cancel()
+                self._last_escape_time = None
+                return
             except Exception:
                 pass
-            self._last_escape_time = None
-            return
 
         if self._current_bottom_app == BottomApp.Model:
             try:
                 model_selector = self.query_one(ModelSelector)
                 model_selector.action_close()
+                self._last_escape_time = None
+                return
             except Exception:
                 pass
-            self._last_escape_time = None
-            return
 
         if self._current_bottom_app == BottomApp.Provider:
             try:
                 provider_selector = self.query_one(ProviderSelector)
                 provider_selector.action_close()
+                self._last_escape_time = None
+                return
             except Exception:
                 pass
-            self._last_escape_time = None
-            return
 
         if (
             self._current_bottom_app == BottomApp.Input

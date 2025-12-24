@@ -7,6 +7,8 @@ Screen {
     width: 100%;
     background: $background;
     padding: 0;
+    scrollbar-size: 0 0;
+    scrollbar-visibility: hidden;
 }
 
 #loading-area {
@@ -46,6 +48,7 @@ Screen {
     .tool-result-content {
         max-height: 9;
         overflow-y: auto;
+        scrollbar-size: 0 0;
         scrollbar-visibility: hidden;
     }
 }
@@ -138,6 +141,7 @@ Screen {
     color: $text;
     border: none;
     padding: 0;
+    scrollbar-size: 0 0;
     scrollbar-visibility: hidden;
 }
 
@@ -149,7 +153,8 @@ ToastRack {
 
 Markdown MarkdownFence {
     overflow-x: auto;
-    scrollbar-size-horizontal: 1;
+    scrollbar-size: 0 0;
+    scrollbar-visibility: hidden;
     max-width: 95%;
 }
 
@@ -726,6 +731,8 @@ WelcomeBanner {
     background: transparent;
     border: none;
     padding: 0;
+    scrollbar-size: 0 0;
+    scrollbar-visibility: hidden;
 }
 
 #model-selector, #provider-selector {
@@ -857,6 +864,8 @@ ContextProgress {
     width: 100%;
     height: auto;
     max-height: 8;
+    scrollbar-size: 0 0;
+    scrollbar-visibility: hidden;
 }
 
 .approval-title {

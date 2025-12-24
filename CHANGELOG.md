@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New provider support: Hugging Face, Groq, Ollama, and llama.cpp
 - Unified HTTP client using httpx package across all backends
 
+### Fixed
+
+- Fix keyboard navigation bugs in model and provider selectors
+
 ## [1.3.0] - 2025-12-23
 
 ### Added

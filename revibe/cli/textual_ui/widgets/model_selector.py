@@ -192,31 +192,40 @@ class ModelSelector(Container):
             self.loading = False
             self._update_list(self.query_one("#model-selector-filter", Input).value)
 
-    @on(Input.Submitted, "#model-selector-filter")
-    def on_filter_submitted(self, event: Input.Submitted) -> None:
-        option_list = self.query_one("#model-selector-list", OptionList)
-        if option_list.highlighted is not None and 0 <= option_list.highlighted < len(self._filtered_models):
-            model = self._filtered_models[option_list.highlighted]
-            self.post_message(
-                self.ModelSelected(
-                    model_alias=model.alias,
-                    model_name=model.name,
-                    provider=model.provider,
-                )
-            )
-
     def on_key(self, event: events.Key) -> None:
+        option_list = self.query_one("#model-selector-list", OptionList)
+
+        # If OptionList has focus, it handles up/down/enter itself.
+        # We only need to handle ESC to close the selector.
+        if option_list.has_focus:
+            if event.key == "escape":
+                self.action_close()
+                event.stop()
+                event.prevent_default()
+            return
+
+        # If we are here, focus is likely on the search Input.
         if event.key in ("up", "down", "pageup", "pagedown"):
-            if self.query_one("#model-selector-filter").has_focus:
-                option_list = self.query_one("#model-selector-list", OptionList)
-                if event.key == "up":
-                    option_list.action_cursor_up()
-                elif event.key == "down":
-                    option_list.action_cursor_down()
-                elif event.key == "pageup":
-                    option_list.action_page_up()
-                elif event.key == "pagedown":
-                    option_list.action_page_down()
+            if event.key == "up":
+                option_list.action_cursor_up()
+            elif event.key == "down":
+                option_list.action_cursor_down()
+            elif event.key == "pageup":
+                option_list.action_page_up()
+            elif event.key == "pagedown":
+                option_list.action_page_down()
+            event.stop()
+            event.prevent_default()
+        elif event.key == "enter":
+            if option_list.highlighted is not None and 0 <= option_list.highlighted < len(self._filtered_models):
+                model = self._filtered_models[option_list.highlighted]
+                self.post_message(
+                    self.ModelSelected(
+                        model_alias=model.alias,
+                        model_name=model.name,
+                        provider=model.provider,
+                    )
+                )
                 event.stop()
                 event.prevent_default()
         elif event.key == "escape":

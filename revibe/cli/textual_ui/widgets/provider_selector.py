@@ -64,6 +64,9 @@ class ProviderSelector(Container):
             self.action_close()
             event.stop()
             event.prevent_default()
+        elif event.key == "enter":
+            # OptionList handles enter by default, but we can be explicit if needed
+            pass
 
     def _update_list(self) -> None:
         option_list = self.query_one("#provider-selector-list", OptionList)
