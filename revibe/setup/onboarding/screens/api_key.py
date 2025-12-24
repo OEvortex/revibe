@@ -42,7 +42,23 @@ class ApiKeyScreen(OnboardingScreen):
 
     def __init__(self) -> None:
         super().__init__()
-        config = VibeConfig.model_construct()
+        # Provider will be loaded when screen is shown
+        self.provider = None
+
+    def _load_config(self) -> VibeConfig:
+        """Load config, handling missing API key since we're in setup.
+
+        Uses model_construct with TOML data to get the saved active_model
+        while bypassing API key validation.
+        """
+        from revibe.core.config import TomlFileSettingsSource
+
+        toml_data = TomlFileSettingsSource(VibeConfig).toml_data
+        return VibeConfig.model_construct(**toml_data)
+
+    def on_show(self) -> None:
+        """Reload config when screen becomes visible to pick up saved provider selection."""
+        config = self._load_config()
         active_model = config.get_active_model()
         self.provider = config.get_provider_for_model(active_model)
 
@@ -69,6 +85,12 @@ class ApiKeyScreen(OnboardingScreen):
         )
 
     def compose(self) -> ComposeResult:
+        # Ensure provider is loaded (in case on_show hasn't been called yet)
+        if self.provider is None:
+            config = self._load_config()
+            active_model = config.get_active_model()
+            self.provider = config.get_provider_for_model(active_model)
+
         provider_name = self.provider.name.capitalize()
 
         self.input_widget = Input(
