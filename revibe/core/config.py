@@ -24,7 +24,7 @@ from revibe.core.paths.global_paths import GLOBAL_ENV_FILE, SESSION_LOG_DIR
 from revibe.core.prompts import SystemPrompt
 from revibe.core.tools.base import BaseToolConfig
 
-PROJECT_DOC_FILENAMES = ["AGENTS.md", "VIBE.md", ".vibe.md"]
+PROJECT_DOC_FILENAMES = ["AGENTS.md", "REVIBE.md", ".revibe.md"]
 
 
 def load_api_keys_from_env() -> None:
@@ -457,12 +457,19 @@ class VibeConfig(BaseSettings):
         )
 
     def get_provider_for_model(self, model: ModelConfig) -> ProviderConfig:
-        for provider in self.providers:
-            if provider.name == model.provider:
-                return provider
-        raise ValueError(
-            f"Provider '{model.provider}' for model '{model.name}' not found in configuration."
-        )
+        # Merge DEFAULT_PROVIDERS with configured providers
+        providers_map: dict[str, ProviderConfig] = {}
+        for p in DEFAULT_PROVIDERS:
+            providers_map[p.name] = p
+        for p in self.providers:
+            providers_map[p.name] = p
+
+        provider = providers_map.get(model.provider)
+        if provider is None:
+            raise ValueError(
+                f"Provider '{model.provider}' for model '{model.name}' not found in configuration."
+            )
+        return provider
 
     @classmethod
     def settings_customise_sources(

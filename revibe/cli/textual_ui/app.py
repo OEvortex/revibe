@@ -23,6 +23,8 @@ from revibe.cli.textual_ui.terminal_theme import (
     TERMINAL_THEME_NAME,
     capture_terminal_theme,
 )
+from revibe.cli.textual_ui.widgets.api_key_input import ApiKeyInput
+from revibe.cli.textual_ui.widgets.api_key_input import ApiKeyInput
 from revibe.cli.textual_ui.widgets.approval_app import ApprovalApp
 from revibe.cli.textual_ui.widgets.chat_input import ChatInputContainer
 from revibe.cli.textual_ui.widgets.compact import CompactMessage
@@ -30,6 +32,7 @@ from revibe.cli.textual_ui.widgets.config_app import ConfigApp
 from revibe.cli.textual_ui.widgets.model_selector import ModelSelector
 from revibe.cli.textual_ui.widgets.provider_selector import ProviderSelector
 from revibe.cli.textual_ui.widgets.context_progress import ContextProgress, TokenState
+from revibe.core.config import ProviderConfig
 from revibe.cli.textual_ui.widgets.loading import LoadingWidget
 from revibe.cli.textual_ui.widgets.messages import (
     AssistantMessage,
@@ -72,6 +75,7 @@ from revibe.core.utils import (
 
 class BottomApp(StrEnum):
     Approval = auto()
+    ApiKeyInput = auto()
     Config = auto()
     Input = auto()
     Provider = auto()
@@ -324,10 +328,41 @@ class VibeApp(App):
         self, message: ProviderSelector.ProviderSelected
     ) -> None:
         provider_name = message.provider_name
+        # Find the provider config - merge defaults with config like the selector does
+        from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfig
+
+        providers_map: dict[str, ProviderConfig] = {}
+        for p in DEFAULT_PROVIDERS:
+            providers_map[p.name] = p
+        for p in self.config.providers:
+            providers_map[p.name] = p
+
+        provider = providers_map.get(provider_name)
+
+        if provider is None:
+            await self._mount_and_scroll(
+                ErrorMessage(f"Provider '{provider_name}' not found.")
+            )
+            await self._switch_to_input_app()
+            return
+
+        # Check if API key is required and present
+        if provider.api_key_env_var:
+            import os
+            if not os.getenv(provider.api_key_env_var):
+                # API key is required but not set - ask user to enter it
+                await self._mount_and_scroll(
+                    WarningMessage(
+                        f"API key required for {provider_name}. "
+                        f"Please enter your {provider.api_key_env_var}."
+                    )
+                )
+                await self._switch_to_api_key_input(provider)
+                return
+
         await self._mount_and_scroll(
             UserCommandMessage(f"Provider selected: {provider_name}")
         )
-        await self._switch_to_input_app()
         # Show models for this provider
         await self._switch_to_model_selector(provider_filter=provider_name)
 
@@ -356,6 +391,88 @@ class VibeApp(App):
     ) -> None:
         await self._mount_and_scroll(
             UserCommandMessage("Model selection cancelled.")
+        )
+        await self._switch_to_input_app()
+
+    async def on_api_key_input_api_key_submitted(
+        self, message: ApiKeyInput.ApiKeySubmitted
+    ) -> None:
+        provider_name = message.provider_name
+        api_key = message.api_key
+
+        # Find the provider to get the env var name - merge defaults with config like the selector does
+        from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfig
+
+        providers_map: dict[str, ProviderConfig] = {}
+        for p in DEFAULT_PROVIDERS:
+            providers_map[p.name] = p
+        for p in self.config.providers:
+            providers_map[p.name] = p
+
+        provider = providers_map.get(provider_name)
+
+        if provider is None:
+            await self._mount_and_scroll(
+                ErrorMessage(f"Provider '{provider_name}' not found.")
+            )
+            await self._switch_to_input_app()
+            return
+
+        # Save the API key to the global .env file
+        from revibe.core.paths.global_paths import GLOBAL_ENV_FILE
+
+        try:
+            env_file = GLOBAL_ENV_FILE.path
+            env_file.parent.mkdir(parents=True, exist_ok=True)
+
+            # Read existing content
+            existing_content = ""
+            if env_file.exists():
+                existing_content = env_file.read_text(encoding="utf-8")
+
+            # Check if env var already exists and update it, otherwise append
+            env_var_line = f"{provider.api_key_env_var}={api_key}"
+            lines = existing_content.splitlines()
+            updated_lines = []
+            var_found = False
+
+            for line in lines:
+                if line.strip().startswith(f"{provider.api_key_env_var}="):
+                    updated_lines.append(env_var_line)
+                    var_found = True
+                elif line.strip() and not line.strip().startswith("#"):
+                    updated_lines.append(line)
+
+            if not var_found:
+                updated_lines.append(env_var_line)
+
+            # Write back to file
+            env_file.write_text("\n".join(updated_lines) + "\n", encoding="utf-8")
+
+            # Set the environment variable for the current session
+            import os
+            os.environ[provider.api_key_env_var] = api_key
+
+            await self._mount_and_scroll(
+                UserCommandMessage(
+                    f"API key saved for {provider_name}. "
+                    f"Set environment variable: {provider.api_key_env_var}"
+                )
+            )
+
+            # Show models for this provider now that the API key is set
+            await self._switch_to_model_selector(provider_filter=provider_name)
+        except Exception as e:
+            await self._mount_and_scroll(
+                ErrorMessage(f"Failed to save API key: {e}")
+            )
+            await self._switch_to_input_app()
+
+    async def on_api_key_input_api_key_cancelled(
+        self, message: ApiKeyInput.ApiKeyCancelled
+    ) -> None:
+        await self._mount_and_scroll(
+            UserCommandMessage("API key entry cancelled.")
         )
         await self._switch_to_input_app()
 
@@ -1000,6 +1117,27 @@ class VibeApp(App):
 
         self.call_after_refresh(provider_selector.focus)
 
+    async def _switch_to_api_key_input(self, provider: ProviderConfig) -> None:
+        if self._current_bottom_app == BottomApp.ApiKeyInput:
+            return
+
+        bottom_container = self.query_one("#bottom-app-container")
+
+        try:
+            chat_input_container = self.query_one(ChatInputContainer)
+            await chat_input_container.remove()
+        except Exception:
+            pass
+
+        if self._mode_indicator:
+            self._mode_indicator.display = False
+
+        api_key_input = ApiKeyInput(provider)
+        await bottom_container.mount(api_key_input)
+        self._current_bottom_app = BottomApp.ApiKeyInput
+
+        self.call_after_refresh(api_key_input.focus)
+
     async def _switch_to_model_selector(
         self, provider_filter: str | None = None
     ) -> None:
@@ -1077,6 +1215,12 @@ class VibeApp(App):
         except Exception:
             pass
 
+        try:
+            api_key_input = self.query_one("#api-key-input")
+            await api_key_input.remove()
+        except Exception:
+            pass
+
         if self._mode_indicator:
             self._mode_indicator.display = True
 
@@ -1115,6 +1259,8 @@ class VibeApp(App):
                     self.query_one(ProviderSelector).focus()
                 case BottomApp.Model:
                     self.query_one(ModelSelector).focus()
+                case BottomApp.ApiKeyInput:
+                    self.query_one(ApiKeyInput).focus()
         except Exception:
             pass
 
@@ -1134,6 +1280,15 @@ class VibeApp(App):
             try:
                 approval_app = self.query_one(ApprovalApp)
                 approval_app.action_reject()
+            except Exception:
+                pass
+            self._last_escape_time = None
+            return
+
+        if self._current_bottom_app == BottomApp.ApiKeyInput:
+            try:
+                api_key_input = self.query_one(ApiKeyInput)
+                api_key_input.action_cancel()
             except Exception:
                 pass
             self._last_escape_time = None
