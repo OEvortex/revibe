@@ -1,7 +1,7 @@
 ---
-name: REVIBE
-description: "Download, install, and run REVIBE"
-author: Mistral AI
+name: ReVibe
+description: "Download, install, and run ReVibe"
+author: OEvortex
 
 inputs:
   prompt:
@@ -9,8 +9,8 @@ inputs:
     required: true
     default: |
       You are a helpful assistant
-  MISTRAL_API_KEY:
-    description: API Key for AI Studio
+  API_KEY:
+    description: API Key for the configured provider
     required: true
   install_python:
     description: |
@@ -40,21 +40,21 @@ runs:
     - name: Install uv
       uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5
 
-    - name: Install REVIBE
+    - name: Install ReVibe
       shell: bash
       working-directory: ${{ github.action_path }}
       run: |
         uv sync --locked --all-extras --dev
 
-    - name: Run REVIBE
+    - name: Run ReVibe
       id: run-revibe
       shell: bash
       working-directory: ${{ github.action_path }}
       env:
-        MISTRAL_API_KEY: "${{ inputs.MISTRAL_API_KEY }}"
+        MISTRAL_API_KEY: "${{ inputs.API_KEY }}"
         PROMPT_INPUT: "${{ inputs.prompt }}"
       run: |
         cd "${{ github.workspace }}"
-        uv run --directory "${{ github.action_path }}" vibe \
+        uv run --directory "${{ github.action_path }}" revibe \
           --auto-approve \
           -p "$PROMPT_INPUT"

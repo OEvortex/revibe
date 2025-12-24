@@ -85,7 +85,11 @@ def parse_arguments() -> argparse.Namespace:
         default=None,
         help="Load agent configuration from ~/.vibe/agents/NAME.toml",
     )
-    parser.add_argument("--setup", action="store_true", help="Setup API key and exit")
+    parser.add_argument(
+        "--setup",
+        action="store_true",
+        help="Run interactive setup: choose provider, theme, and configure API key",
+    )
 
     continuation_group = parser.add_mutually_exclusive_group()
     continuation_group.add_argument(

@@ -49,7 +49,7 @@ class WelcomeScreen(OnboardingScreen):
         Binding("escape", "cancel", "Cancel", show=False),
     ]
 
-    NEXT_SCREEN = "theme_selection"
+    NEXT_SCREEN = "provider_selection"
 
     def __init__(self) -> None:
         super().__init__()

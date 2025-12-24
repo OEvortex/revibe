@@ -37,6 +37,87 @@ WelcomeScreen #enter-hint.hidden {
 }
 
 /* =============================================================================
+   Provider Selection Screen
+   ============================================================================= */
+
+#provider-outer {
+    width: 100%;
+    height: 100%;
+    align: center middle;
+}
+
+#provider-content {
+    width: auto;
+    height: auto;
+    padding: 1 0;
+    align: center middle;
+}
+
+#provider-title {
+    text-align: center;
+    width: 100%;
+    margin-bottom: 1;
+    text-style: bold;
+}
+
+#provider-subtitle {
+    text-align: center;
+    width: 100%;
+    margin-bottom: 2;
+}
+
+#provider-nav {
+    width: auto;
+    height: auto;
+    align: center middle;
+}
+
+.nav-arrow {
+    text-align: center;
+    color: $text-muted;
+    width: 100%;
+}
+
+#provider-list {
+    width: 32;
+    height: auto;
+    margin: 1 0;
+}
+
+.provider-item {
+    text-align: left;
+    width: 100%;
+    padding: 0 1;
+}
+
+.provider-item.selected {
+    color: $text;
+    text-style: bold;
+    background: $surface;
+}
+
+.provider-item.fade-1 {
+    text-opacity: 50%;
+}
+
+.provider-item.fade-2 {
+    text-opacity: 25%;
+}
+
+#provider-description {
+    text-align: center;
+    width: 100%;
+    margin-top: 1;
+    margin-bottom: 1;
+    height: 1;
+}
+
+#provider-hint {
+    text-align: center;
+    margin-top: 1;
+}
+
+/* =============================================================================
    Theme Selection Screen
    ============================================================================= */
 

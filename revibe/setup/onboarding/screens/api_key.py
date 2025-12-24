@@ -17,10 +17,13 @@ from revibe.core.paths.global_paths import GLOBAL_ENV_FILE
 from revibe.setup.onboarding.base import OnboardingScreen
 
 PROVIDER_HELP = {
-    "mistral": ("https://console.mistral.ai/codestral/vibe", "Mistral AI Studio")
+    "mistral": ("https://console.mistral.ai/api-keys", "Mistral AI Console"),
+    "openai": ("https://platform.openai.com/api-keys", "OpenAI Platform"),
+    "anthropic": ("https://console.anthropic.com/settings/keys", "Anthropic Console"),
+    "groq": ("https://console.groq.com/keys", "Groq Console"),
 }
 CONFIG_DOCS_URL = (
-    "https://github.com/mistralai/mistral-vibe?tab=readme-ov-file#configuration"
+    "https://github.com/OEvortex/revibe?tab=readme-ov-file#configuration"
 )
 
 
@@ -58,7 +61,7 @@ class ApiKeyScreen(OnboardingScreen):
         )
 
     def _compose_config_docs(self) -> ComposeResult:
-        yield Static("[dim]Learn more about Vibe configuration:[/]")
+        yield Static("[dim]Learn more about ReVibe configuration:[/]")
         yield Horizontal(
             Static("→ ", classes="link-chevron"),
             Link(CONFIG_DOCS_URL, url=CONFIG_DOCS_URL),
