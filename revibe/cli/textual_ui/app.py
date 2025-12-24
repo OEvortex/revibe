@@ -1271,6 +1271,24 @@ class VibeApp(App):
             self._last_escape_time = None
             return
 
+        if self._current_bottom_app == BottomApp.Model:
+            try:
+                model_selector = self.query_one(ModelSelector)
+                model_selector.action_close()
+            except Exception:
+                pass
+            self._last_escape_time = None
+            return
+
+        if self._current_bottom_app == BottomApp.Provider:
+            try:
+                provider_selector = self.query_one(ProviderSelector)
+                provider_selector.action_close()
+            except Exception:
+                pass
+            self._last_escape_time = None
+            return
+
         if (
             self._current_bottom_app == BottomApp.Input
             and self._last_escape_time is not None

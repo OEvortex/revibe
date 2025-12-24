@@ -59,6 +59,12 @@ class ProviderSelector(Container):
         self._update_list()
         self.query_one("#provider-selector-list").focus()
 
+    def on_key(self, event: events.Key) -> None:
+        if event.key == "escape":
+            self.action_close()
+            event.stop()
+            event.prevent_default()
+
     def _update_list(self) -> None:
         option_list = self.query_one("#provider-selector-list", OptionList)
         option_list.clear_options()

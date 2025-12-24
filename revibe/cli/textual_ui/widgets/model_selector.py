@@ -206,8 +206,8 @@ class ModelSelector(Container):
             )
 
     def on_key(self, event: events.Key) -> None:
-        if self.query_one("#model-selector-filter").has_focus:
-            if event.key in ("up", "down", "pageup", "pagedown"):
+        if event.key in ("up", "down", "pageup", "pagedown"):
+            if self.query_one("#model-selector-filter").has_focus:
                 option_list = self.query_one("#model-selector-list", OptionList)
                 if event.key == "up":
                     option_list.action_cursor_up()
@@ -219,6 +219,10 @@ class ModelSelector(Container):
                     option_list.action_page_down()
                 event.stop()
                 event.prevent_default()
+        elif event.key == "escape":
+            self.action_close()
+            event.stop()
+            event.prevent_default()
 
     @on(OptionList.OptionSelected)
     def on_option_selected(self, event: OptionList.OptionSelected) -> None:

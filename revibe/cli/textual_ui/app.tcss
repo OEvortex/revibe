@@ -731,10 +731,10 @@ WelcomeBanner {
 #model-selector, #provider-selector {
     width: 100%;
     height: auto;
-    max-height: 25;
+    max-height: 28;
     background: $background;
-    border: round $primary;
-    padding: 1 2;
+    border: double $primary;
+    padding: 1 4;
     margin: 0 0 1 0;
 }
 
@@ -744,11 +744,12 @@ WelcomeBanner {
     color: $primary;
     margin-bottom: 1;
     text-align: center;
+    border-bottom: solid $primary;
 }
 
 #model-selector-filter {
     margin-bottom: 1;
-    border: none;
+    border: tall $primary;
     background: $surface;
     color: $text;
     padding: 0 1;
@@ -756,10 +757,12 @@ WelcomeBanner {
 
 #model-selector-list, #provider-selector-list {
     height: auto;
-    max-height: 15;
+    max-height: 18;
     background: transparent;
     border: none;
     padding: 0;
+    scrollbar-size: 0 0;
+    scrollbar-visibility: hidden;
 }
 
 OptionList > .option-list--option-highlighted {
