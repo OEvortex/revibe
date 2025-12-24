@@ -15,6 +15,7 @@ PROVIDER_DESCRIPTIONS: dict[str, str] = {
     "mistral": "Mistral AI - Devstral models",
     "openai": "OpenAI - GPT-4o, o1 models",
     "anthropic": "Anthropic - Claude models",
+    "huggingface": "Hugging Face - Inference API and local models",
     "groq": "Groq - Fast inference",
     "ollama": "Ollama - Local models",
     "llamacpp": "llama.cpp - Local server",

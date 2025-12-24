@@ -38,7 +38,17 @@ class ProviderSelector(Container):
         super().__init__(id="provider-selector")
         self.config = config
         self.selected_index = 0
-        self.providers = list(config.providers)
+        # Merge DEFAULT_PROVIDERS with the loaded configuration so the selector
+        # shows all built-in providers even if a user's config omits some entries.
+        from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfig
+
+        providers_map: dict[str, ProviderConfig] = {}
+        for p in DEFAULT_PROVIDERS:
+            providers_map[p.name] = p
+        for p in config.providers:
+            providers_map[p.name] = p
+
+        self.providers = list(providers_map.values())
         self.title_widget: Static | None = None
         self.option_widgets: list[Static] = []
         self.help_widget: Static | None = None

@@ -255,6 +255,12 @@ DEFAULT_PROVIDERS = [
         backend=Backend.GENERIC,
     ),
     ProviderConfig(
+        name="huggingface",
+        api_base="https://api-inference.huggingface.co",
+        api_key_env_var="HUGGINGFACE_API_KEY",
+        backend=Backend.HUGGINGFACE,
+    ),
+    ProviderConfig(
         name="groq",
         api_base="https://api.groq.com/openai/v1",
         api_key_env_var="GROQ_API_KEY",
