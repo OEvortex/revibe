@@ -30,8 +30,8 @@ class ModeIndicator(Static):
 
     def _update_display(self) -> None:
         icon = MODE_ICONS.get(self._mode, "??")
-        name = self._mode.display_name.lower()
-        self.update(f"{icon} {name} mode (shift+tab to cycle)")
+        name = self._mode.display_name.upper()
+        self.update(f" {icon} {name} ")
 
         for safety_class in SAFETY_CLASSES.values():
             self.remove_class(safety_class)

@@ -36,8 +36,6 @@ dependencies = [
     "httpx>=0.28.1",
     "mcp>=1.14.0",
     "mistralai==1.9.11",
-    "openai>=1.0.0",
-    "groq>=0.1.0",
     "pexpect>=4.9.0",
     "packaging>=24.1",
     "pydantic>=2.12.4",

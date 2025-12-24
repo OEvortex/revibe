@@ -20,7 +20,7 @@ from revibe.core.types import (
 from revibe.core.utils import async_generator_retry, async_retry
 
 if TYPE_CHECKING:
-    from revibe.core.config import ModelConfig, ProviderConfig
+    from revibe.core.config import ModelConfig, ProviderConfigUnion
 
 
 class PreparedRequest(NamedTuple):
@@ -42,7 +42,7 @@ class APIAdapter(Protocol):
         max_tokens: int | None,
         tool_choice: StrToolChoice | AvailableTool | None,
         enable_streaming: bool,
-        provider: ProviderConfig,
+        provider: ProviderConfigUnion,
         api_key: str | None = None,
     ) -> PreparedRequest: ...
 
@@ -113,7 +113,7 @@ class OpenAIAdapter(APIAdapter):
         max_tokens: int | None,
         tool_choice: StrToolChoice | AvailableTool | None,
         enable_streaming: bool,
-        provider: ProviderConfig,
+        provider: ProviderConfigUnion,
         api_key: str | None = None,
     ) -> PreparedRequest:
         converted_messages = [msg.model_dump(exclude_none=True) for msg in messages]
@@ -165,7 +165,7 @@ class GenericBackend:
         self,
         *,
         client: httpx.AsyncClient | None = None,
-        provider: ProviderConfig,
+        provider: ProviderConfigUnion,
         timeout: float = 720.0,
     ) -> None:
         """Initialize the backend.

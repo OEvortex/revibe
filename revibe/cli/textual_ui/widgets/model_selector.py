@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-from textual import events
+from textual import events, on
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Container, Vertical
 from textual.message import Message
-from textual.widgets import Static
+from textual.widgets import Static, OptionList, Input
+from textual.widgets.option_list import Option
 
 from revibe.core.config import ModelConfig, ProviderConfig
 
@@ -16,16 +17,13 @@ if TYPE_CHECKING:
 
 
 class ModelSelector(Container):
-    """Widget for selecting a model."""
+    """Widget for selecting a model with high performance and filtering."""
 
     can_focus = True
-    can_focus_children = False
+    can_focus_children = True
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("up", "move_up", "Up", show=False),
-        Binding("down", "move_down", "Down", show=False),
-        Binding("enter", "select", "Select", show=False),
-        Binding("space", "select", "Select", show=False),
+        Binding("escape", "close", "Cancel", show=False),
     ]
 
     class ModelSelected(Message):
@@ -41,9 +39,9 @@ class ModelSelector(Container):
     def __init__(self, config: VibeConfig, provider_filter: str | None = None) -> None:
         super().__init__(id="model-selector")
         self.config = config
-        self.selected_index = 0
         self.provider_filter = provider_filter
         self.loading = False
+        self._missing_api_key_message: str | None = None
 
         # Filter models by provider if specified
         if provider_filter:
@@ -53,17 +51,7 @@ class ModelSelector(Container):
         else:
             self.models = list(config.models)
 
-        self.title_widget: Static | None = None
-        self.option_widgets: list[Static] = []
-        self.help_widget: Static | None = None
-        # When a provider requires an API key but none is set, we show an explanatory message
-        self._missing_api_key_message: str | None = None
-
-        # Find current model index
-        for i, m in enumerate(self.models):
-            if m.alias == config.active_model:
-                self.selected_index = i
-                break
+        self._filtered_models: list[ModelConfig] = list(self.models)
 
     def compose(self) -> ComposeResult:
         title = "Select Model"
@@ -71,32 +59,50 @@ class ModelSelector(Container):
             title = f"Select Model ({self.provider_filter})"
 
         with Vertical(id="model-content"):
-            self.title_widget = Static(title, classes="settings-title")
-            yield self.title_widget
-            yield Static("")
-
-            if self.loading:
-                yield Static("  Loading models...", id="model-loading")
-            else:
-                for _ in self.models:
-                    widget = Static("", classes="settings-option")
-                    self.option_widgets.append(widget)
-                    yield widget
-
-                if not self.models:
-                    yield Static("  No models available", classes="settings-option")
-
-            yield Static("")
-            self.help_widget = Static(
+            yield Static(title, classes="settings-title")
+            yield Input(placeholder="Search models...", id="model-selector-filter")
+            yield OptionList(id="model-selector-list")
+            yield Static(
                 "↑↓ navigate  Enter select  ESC cancel", classes="settings-help"
             )
-            yield self.help_widget
 
     async def on_mount(self) -> None:
+        self._update_list()
         # Always attempt to fetch dynamic models (for the filtered provider or all providers)
         await self._fetch_dynamic_models()
-        self._update_display()
-        self.focus()
+        self.query_one("#model-selector-filter").focus()
+
+    @on(Input.Changed, "#model-selector-filter")
+    def on_filter_changed(self, event: Input.Changed) -> None:
+        self._update_list(event.value)
+
+    def _update_list(self, filter_text: str = "") -> None:
+        option_list = self.query_one("#model-selector-list", OptionList)
+        option_list.clear_options()
+
+        filter_text = filter_text.lower()
+
+        self._filtered_models = [
+            m for m in self.models
+            if filter_text in m.alias.lower() or filter_text in m.provider.lower()
+        ]
+
+        if self._missing_api_key_message:
+            option_list.add_option(Option(f"  {self._missing_api_key_message}", disabled=True))
+        elif not self._filtered_models:
+            if self.loading:
+                option_list.add_option(Option("  Loading models...", disabled=True))
+            else:
+                option_list.add_option(Option("  No models available", disabled=True))
+        else:
+            for model in self._filtered_models:
+                option_list.add_option(Option(f"{model.alias} ({model.provider})"))
+
+            # Highlight active model if it's in the list
+            for i, m in enumerate(self._filtered_models):
+                if m.alias == self.config.active_model:
+                    option_list.highlighted = i
+                    break
 
     async def _fetch_dynamic_models(self) -> None:
         """Fetch models from provider backends. If provider_filter is set, only fetch for that provider,
@@ -104,7 +110,7 @@ class ModelSelector(Container):
         """
         self._missing_api_key_message = None
         self.loading = True
-        self.refresh(layout=True)
+        self._update_list(self.query_one("#model-selector-filter", Input).value)
 
         try:
             from revibe.core.llm.backend.factory import BACKEND_FACTORY
@@ -132,6 +138,7 @@ class ModelSelector(Container):
                         # Clear any models we had filtered earlier
                         self.models = [m for m in self.models if m.provider != provider.name]
                         self.loading = False
+                        self._update_list(self.query_one("#model-selector-filter", Input).value)
                         return
                     providers_to_query.append(provider)
             else:
@@ -167,77 +174,18 @@ class ModelSelector(Container):
             if added_any:
                 # Sort models by provider then name for stable display
                 self.models.sort(key=lambda x: (x.provider, x.name))
-
-                # Update selected index if current active_model exists
-                for i, m in enumerate(self.models):
-                    if m.alias == self.config.active_model:
-                        self.selected_index = i
-                        break
         finally:
             self.loading = False
-            # Re-compose or update widgets
-            self.option_widgets = []
-            content_container = self.query_one("#model-content")
-            await content_container.remove_children()
-            await content_container.mount_all(self._get_dynamic_compose())
-            self._update_display()
+            self._update_list(self.query_one("#model-selector-filter", Input).value)
 
-    def _get_dynamic_compose(self) -> list[Static]:
-        widgets = []
-        title = "Select Model" if not self.provider_filter else f"Select Model ({self.provider_filter})"
-        widgets.append(Static(title, classes="settings-title"))
-        widgets.append(Static(""))
+    @on(Input.Submitted, "#model-selector-filter")
+    def on_filter_submitted(self, event: Input.Submitted) -> None:
+        self.query_one("#model-selector-list").focus()
 
-        for _ in self.models:
-            widget = Static("", classes="settings-option")
-            self.option_widgets.append(widget)
-            widgets.append(widget)
-
-        if self._missing_api_key_message:
-            widgets.append(Static(f"  {self._missing_api_key_message}", classes="settings-option"))
-        elif not self.models:
-            widgets.append(Static("  No models available", classes="settings-option"))
-
-        widgets.append(Static(""))
-        widgets.append(Static(
-            "↑↓ navigate  Enter select  ESC cancel", classes="settings-help"
-        ))
-
-        return widgets
-
-    def _update_display(self) -> None:
-        if self.loading:
-            return
-
-        for i, (model, widget) in enumerate(
-            zip(self.models, self.option_widgets, strict=True)
-        ):
-            is_selected = i == self.selected_index
-            cursor = "› " if is_selected else "  "
-            text = f"{cursor}{model.alias} ({model.provider})"
-
-            widget.update(text)
-            widget.remove_class("settings-value-cycle-selected")
-            widget.remove_class("settings-value-cycle-unselected")
-
-            if is_selected:
-                widget.add_class("settings-value-cycle-selected")
-            else:
-                widget.add_class("settings-value-cycle-unselected")
-
-    def action_move_up(self) -> None:
-        if self.models:
-            self.selected_index = (self.selected_index - 1) % len(self.models)
-            self._update_display()
-
-    def action_move_down(self) -> None:
-        if self.models:
-            self.selected_index = (self.selected_index + 1) % len(self.models)
-            self._update_display()
-
-    def action_select(self) -> None:
-        if self.models:
-            model = self.models[self.selected_index]
+    @on(OptionList.OptionSelected)
+    def on_option_selected(self, event: OptionList.OptionSelected) -> None:
+        if 0 <= event.option_index < len(self._filtered_models):
+            model = self._filtered_models[event.option_index]
             self.post_message(
                 self.ModelSelected(
                     model_alias=model.alias,
@@ -248,13 +196,4 @@ class ModelSelector(Container):
 
     def action_close(self) -> None:
         self.post_message(self.SelectorClosed())
-
-    def on_blur(self, event: events.Blur) -> None:
-        # Only refocus if we are still mounted and not blurring to a child
-        if self.is_mounted and self.app.focused != self:
-            self.call_after_refresh(self._ensure_focus)
-
-    def _ensure_focus(self) -> None:
-        if self.is_mounted and self.app.focused is None:
-            self.focus()
 

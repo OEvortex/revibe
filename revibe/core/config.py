@@ -23,6 +23,7 @@ from revibe.core.paths.config_paths import AGENT_DIR, CONFIG_DIR, CONFIG_FILE, P
 from revibe.core.paths.global_paths import GLOBAL_ENV_FILE, SESSION_LOG_DIR
 from revibe.core.prompts import SystemPrompt
 from revibe.core.tools.base import BaseToolConfig
+from revibe.core.model_config import ModelConfig, DEFAULT_MODELS
 
 PROJECT_DOC_FILENAMES = ["AGENTS.md", "REVIBE.md", ".revibe.md"]
 
@@ -58,8 +59,7 @@ class MissingPromptFileError(RuntimeError):
 class WrongBackendError(RuntimeError):
     def __init__(self, backend: Backend, is_mistral_api: bool) -> None:
         super().__init__(
-            f"Wrong backend '{backend}' for {'' if is_mistral_api else 'non-'}"
-            f"mistral API. Use '{Backend.MISTRAL}' for mistral API and '{Backend.GENERIC}' for others."
+            f"Wrong backend '{backend}' for mistral API. Use '{Backend.MISTRAL}' for mistral API."
         )
         self.backend = backend
         self.is_mistral_api = is_mistral_api
@@ -126,6 +126,8 @@ class Backend(StrEnum):
     OPENAI = auto()
     HUGGINGFACE = auto()
     GROQ = auto()
+    OLLAMA = auto()
+    LLAMACPP = auto()
 
 
 class ProviderConfig(BaseModel):
@@ -134,6 +136,46 @@ class ProviderConfig(BaseModel):
     api_key_env_var: str = ""
     api_style: str = "openai"
     backend: Backend = Backend.GENERIC
+
+
+class MistralProviderConfig(ProviderConfig):
+    backend: Literal[Backend.MISTRAL] = Backend.MISTRAL
+
+
+class OpenAIProviderConfig(ProviderConfig):
+    backend: Literal[Backend.OPENAI] = Backend.OPENAI
+
+
+class GroqProviderConfig(ProviderConfig):
+    backend: Literal[Backend.GROQ] = Backend.GROQ
+
+
+class HuggingFaceProviderConfig(ProviderConfig):
+    backend: Literal[Backend.HUGGINGFACE] = Backend.HUGGINGFACE
+
+
+class OllamaProviderConfig(ProviderConfig):
+    backend: Literal[Backend.OLLAMA] = Backend.OLLAMA
+
+
+class LlamaCppProviderConfig(ProviderConfig):
+    backend: Literal[Backend.LLAMACPP] = Backend.LLAMACPP
+
+
+class GenericProviderConfig(ProviderConfig):
+    backend: Literal[Backend.GENERIC] = Backend.GENERIC
+
+
+ProviderConfigUnion = Annotated[
+    MistralProviderConfig
+    | OpenAIProviderConfig
+    | GroqProviderConfig
+    | HuggingFaceProviderConfig
+    | OllamaProviderConfig
+    | LlamaCppProviderConfig
+    | GenericProviderConfig,
+    Field(discriminator="backend"),
+]
 
 
 class _MCPBase(BaseModel):
@@ -218,150 +260,37 @@ MCPServer = Annotated[
 ]
 
 
-class ModelConfig(BaseModel):
-    name: str
-    provider: str
-    alias: str
-    temperature: float = 0.2
-    input_price: float = 0.0  # Price per million input tokens
-    output_price: float = 0.0  # Price per million output tokens
-
-    @model_validator(mode="before")
-    @classmethod
-    def _default_alias_to_name(cls, data: Any) -> Any:
-        if isinstance(data, dict):
-            if "alias" not in data or data["alias"] is None:
-                data["alias"] = data.get("name")
-        return data
-
-
-DEFAULT_PROVIDERS = [
-    ProviderConfig(
+DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
+    MistralProviderConfig(
         name="mistral",
         api_base="https://api.mistral.ai/v1",
         api_key_env_var="MISTRAL_API_KEY",
-        backend=Backend.MISTRAL,
     ),
-    ProviderConfig(
+    OpenAIProviderConfig(
         name="openai",
         api_base="https://api.openai.com/v1",
         api_key_env_var="OPENAI_API_KEY",
-        backend=Backend.OPENAI,
     ),
-    ProviderConfig(
-        name="anthropic",
-        api_base="https://api.anthropic.com/v1",
-        api_key_env_var="ANTHROPIC_API_KEY",
-        backend=Backend.GENERIC,
-    ),
-    ProviderConfig(
+    HuggingFaceProviderConfig(
         name="huggingface",
         # Use the Hugging Face router base URL for inference and model listing
         api_base="https://router.huggingface.co/v1",
         api_key_env_var="HUGGINGFACE_API_KEY",
-        backend=Backend.HUGGINGFACE,
     ),
-    ProviderConfig(
+    GroqProviderConfig(
         name="groq",
         api_base="https://api.groq.com/openai/v1",
         api_key_env_var="GROQ_API_KEY",
-        backend=Backend.GROQ,
     ),
-    ProviderConfig(
+    OllamaProviderConfig(
         name="ollama",
         api_base="http://127.0.0.1:11434/v1",
         api_key_env_var="",
-        backend=Backend.GENERIC,
     ),
-    ProviderConfig(
+    LlamaCppProviderConfig(
         name="llamacpp",
         api_base="http://127.0.0.1:8080/v1",
         api_key_env_var="",
-    ),
-]
-
-DEFAULT_MODELS = [
-    # Mistral models
-    ModelConfig(
-        name="mistral-vibe-cli-latest",
-        provider="mistral",
-        alias="devstral-2",
-        input_price=0.4,
-        output_price=2.0,
-    ),
-    ModelConfig(
-        name="devstral-small-latest",
-        provider="mistral",
-        alias="devstral-small",
-        input_price=0.1,
-        output_price=0.3,
-    ),
-    # OpenAI models
-    ModelConfig(
-        name="gpt-4o",
-        provider="openai",
-        alias="gpt-4o",
-        input_price=2.5,
-        output_price=10.0,
-    ),
-    ModelConfig(
-        name="gpt-4o-mini",
-        provider="openai",
-        alias="gpt-4o-mini",
-        input_price=0.15,
-        output_price=0.6,
-    ),
-    ModelConfig(
-        name="o1",
-        provider="openai",
-        alias="o1",
-        input_price=15.0,
-        output_price=60.0,
-    ),
-    # Anthropic models
-    ModelConfig(
-        name="claude-sonnet-4-20250514",
-        provider="anthropic",
-        alias="claude-sonnet-4",
-        input_price=3.0,
-        output_price=15.0,
-    ),
-    ModelConfig(
-        name="claude-3-5-haiku-20241022",
-        provider="anthropic",
-        alias="claude-haiku",
-        input_price=0.8,
-        output_price=4.0,
-    ),
-    # Groq models
-    ModelConfig(
-        name="llama-3.3-70b-versatile",
-        provider="groq",
-        alias="llama-70b",
-        input_price=0.59,
-        output_price=0.79,
-    ),
-    ModelConfig(
-        name="llama-3.1-8b-instant",
-        provider="groq",
-        alias="llama-8b",
-        input_price=0.05,
-        output_price=0.08,
-    ),
-    # Local models
-    ModelConfig(
-        name="devstral",
-        provider="llamacpp",
-        alias="local",
-        input_price=0.0,
-        output_price=0.0,
-    ),
-    ModelConfig(
-        name="codellama",
-        provider="ollama",
-        alias="ollama-codellama",
-        input_price=0.0,
-        output_price=0.0,
     ),
 ]
 
@@ -383,7 +312,7 @@ class VibeConfig(BaseSettings):
     include_prompt_detail: bool = True
     enable_update_checks: bool = True
     api_timeout: float = 720.0
-    providers: list[ProviderConfig] = Field(
+    providers: list[ProviderConfigUnion] = Field(
         default_factory=lambda: list(DEFAULT_PROVIDERS)
     )
     models: list[ModelConfig] = Field(default_factory=lambda: list(DEFAULT_MODELS))
@@ -457,9 +386,9 @@ class VibeConfig(BaseSettings):
             f"Active model '{self.active_model}' not found in configuration."
         )
 
-    def get_provider_for_model(self, model: ModelConfig) -> ProviderConfig:
+    def get_provider_for_model(self, model: ModelConfig) -> ProviderConfigUnion:
         # Merge DEFAULT_PROVIDERS with configured providers
-        providers_map: dict[str, ProviderConfig] = {}
+        providers_map: dict[str, ProviderConfigUnion] = {}
         for p in DEFAULT_PROVIDERS:
             providers_map[p.name] = p
         for p in self.providers:
@@ -519,9 +448,7 @@ class VibeConfig(BaseSettings):
             is_mistral_api = any(
                 provider.api_base.startswith(api_base) for api_base in MISTRAL_API_BASES
             )
-            if (is_mistral_api and provider.backend != Backend.MISTRAL) or (
-                not is_mistral_api and provider.backend != Backend.GENERIC
-            ):
+            if is_mistral_api and provider.backend != Backend.MISTRAL:
                 raise WrongBackendError(provider.backend, is_mistral_api)
 
         except ValueError:

@@ -6,6 +6,8 @@ from revibe.core.llm.backend.groq import GroqBackend
 from revibe.core.llm.backend.huggingface import HuggingFaceBackend
 from revibe.core.llm.backend.mistral import MistralBackend
 from revibe.core.llm.backend.openai import OpenAIBackend
+from revibe.core.llm.backend.ollama import OllamaBackend
+from revibe.core.llm.backend.llamacpp import LlamaCppBackend
 
 BACKEND_FACTORY = {
     Backend.MISTRAL: MistralBackend,
@@ -13,4 +15,6 @@ BACKEND_FACTORY = {
     Backend.OPENAI: OpenAIBackend,
     Backend.HUGGINGFACE: HuggingFaceBackend,
     Backend.GROQ: GroqBackend,
+    Backend.OLLAMA: OllamaBackend,
+    Backend.LLAMACPP: LlamaCppBackend,
 }

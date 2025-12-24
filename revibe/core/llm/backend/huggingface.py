@@ -22,7 +22,7 @@ from revibe.core.types import (
 )
 
 if TYPE_CHECKING:
-    from revibe.core.config import ModelConfig, ProviderConfig
+    from revibe.core.config import ModelConfig, ProviderConfigUnion
 
 
 class HuggingFaceMapper:
@@ -97,7 +97,7 @@ class HuggingFaceMapper:
 
 
 class HuggingFaceBackend:
-    def __init__(self, provider: ProviderConfig, timeout: float = 720.0) -> None:
+    def __init__(self, provider: ProviderConfigUnion, timeout: float = 720.0) -> None:
         self._client: httpx.AsyncClient | None = None
         self._provider = provider
         self._mapper = HuggingFaceMapper()

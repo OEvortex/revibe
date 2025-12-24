@@ -710,8 +710,8 @@ WelcomeBanner {
     width: 100%;
     height: auto;
     background: $background;
-    border: round $foreground-muted;
-    padding: 0 1;
+    border: round $primary;
+    padding: 1 2;
     margin: 0 0 1 0;
 }
 
@@ -720,15 +720,82 @@ WelcomeBanner {
     height: auto;
 }
 
+#config-option-list {
+    height: auto;
+    max-height: 10;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+#model-selector, #provider-selector {
+    width: 100%;
+    height: auto;
+    max-height: 25;
+    background: $background;
+    border: round $primary;
+    padding: 1 2;
+    margin: 0 0 1 0;
+}
+
 .settings-title {
     height: auto;
     text-style: bold;
     color: $primary;
+    margin-bottom: 1;
+    text-align: center;
+}
+
+#model-selector-filter {
+    margin-bottom: 1;
+    border: none;
+    background: $surface;
+    color: $text;
+    padding: 0 1;
+}
+
+#model-selector-list, #provider-selector-list {
+    height: auto;
+    max-height: 15;
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+OptionList > .option-list--option-highlighted {
+    background: $primary;
+    color: $text;
+    text-style: bold;
 }
 
 .settings-option {
     height: auto;
     color: $foreground;
+}
+
+.settings-help {
+    height: auto;
+    color: $text-muted;
+    text-align: center;
+    margin-top: 1;
+}
+
+#bottom-bar {
+    height: 1;
+    width: 100%;
+    background: $surface;
+    padding: 0 1;
+    align: left middle;
+    layout: horizontal;
+}
+
+PathDisplay {
+    color: $primary;
+    text-style: bold;
+}
+
+ContextProgress {
+    color: $accent;
 }
 
 .settings-cursor-selected {
@@ -872,28 +939,32 @@ ExpandingBorder {
 
 ModeIndicator {
     width: auto;
-    height: auto;
-    background: transparent;
+    height: 1;
+    background: $surface;
     padding: 0;
-    margin: 0 0 0 1;
-    color: $text-muted;
-    align: left middle;
+    margin: 0 1;
+    text-style: bold;
+    align: center middle;
+}
 
-    &.mode-safe {
-        color: $success;
-    }
+ModeIndicator.mode-safe {
+    background: $success;
+    color: $text;
+}
 
-    &.mode-neutral {
-        color: $text-muted;
-    }
+ModeIndicator.mode-neutral {
+    background: $primary;
+    color: $text;
+}
 
-    &.mode-destructive {
-        color: $warning;
-    }
+ModeIndicator.mode-destructive {
+    background: $warning;
+    color: $text;
+}
 
-    &.mode-yolo {
-        color: $error;
-    }
+ModeIndicator.mode-yolo {
+    background: $error;
+    color: $text;
 }
 
 PathDisplay {

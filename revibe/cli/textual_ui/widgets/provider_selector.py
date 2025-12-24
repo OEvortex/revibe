@@ -2,28 +2,26 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-from textual import events
+from textual import events, on
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Container, Vertical
 from textual.message import Message
-from textual.widgets import Static
+from textual.widgets import Static, OptionList
+from textual.widgets.option_list import Option
 
 if TYPE_CHECKING:
     from revibe.core.config import VibeConfig
 
 
 class ProviderSelector(Container):
-    """Widget for selecting a provider."""
+    """Widget for selecting a provider using OptionList for performance."""
 
     can_focus = True
-    can_focus_children = False
+    can_focus_children = True
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("up", "move_up", "Up", show=False),
-        Binding("down", "move_down", "Down", show=False),
-        Binding("enter", "select", "Select", show=False),
-        Binding("space", "select", "Select", show=False),
+        Binding("escape", "close", "Cancel", show=False),
     ]
 
     class ProviderSelected(Message):
@@ -37,7 +35,6 @@ class ProviderSelector(Container):
     def __init__(self, config: VibeConfig) -> None:
         super().__init__(id="provider-selector")
         self.config = config
-        self.selected_index = 0
         # Merge DEFAULT_PROVIDERS with the loaded configuration so the selector
         # shows all built-in providers even if a user's config omits some entries.
         from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfig
@@ -49,79 +46,42 @@ class ProviderSelector(Container):
             providers_map[p.name] = p
 
         self.providers = list(providers_map.values())
-        self.title_widget: Static | None = None
-        self.option_widgets: list[Static] = []
-        self.help_widget: Static | None = None
 
-        # Find current provider index
+    def compose(self) -> ComposeResult:
+        with Vertical(id="provider-content"):
+            yield Static("Select Provider", classes="settings-title")
+            yield OptionList(id="provider-selector-list")
+            yield Static(
+                "↑↓ navigate  Enter select  ESC cancel", classes="settings-help"
+            )
+
+    def on_mount(self) -> None:
+        self._update_list()
+        self.query_one("#provider-selector-list").focus()
+
+    def _update_list(self) -> None:
+        option_list = self.query_one("#provider-selector-list", OptionList)
+        option_list.clear_options()
+
+        for provider in self.providers:
+            option_list.add_option(Option(provider.name))
+
+        # Highlight active provider
         try:
-            active_model = config.get_active_model()
+            active_model = self.config.get_active_model()
             for i, p in enumerate(self.providers):
                 if p.name == active_model.provider:
-                    self.selected_index = i
+                    option_list.highlighted = i
                     break
         except ValueError:
             pass
 
-    def compose(self) -> ComposeResult:
-        with Vertical(id="provider-content"):
-            self.title_widget = Static("Select Provider", classes="settings-title")
-            yield self.title_widget
-            yield Static("")
-
-            for _ in self.providers:
-                widget = Static("", classes="settings-option")
-                self.option_widgets.append(widget)
-                yield widget
-
-            yield Static("")
-            self.help_widget = Static(
-                "↑↓ navigate  Enter select  ESC cancel", classes="settings-help"
-            )
-            yield self.help_widget
-
-    def on_mount(self) -> None:
-        self._update_display()
-        self.focus()
-
-    def _update_display(self) -> None:
-        for i, (provider, widget) in enumerate(
-            zip(self.providers, self.option_widgets, strict=True)
-        ):
-            is_selected = i == self.selected_index
-            cursor = "› " if is_selected else "  "
-            text = f"{cursor}{provider.name}"
-
-            widget.update(text)
-            widget.remove_class("settings-value-cycle-selected")
-            widget.remove_class("settings-value-cycle-unselected")
-
-            if is_selected:
-                widget.add_class("settings-value-cycle-selected")
-            else:
-                widget.add_class("settings-value-cycle-unselected")
-
-    def action_move_up(self) -> None:
-        self.selected_index = (self.selected_index - 1) % len(self.providers)
-        self._update_display()
-
-    def action_move_down(self) -> None:
-        self.selected_index = (self.selected_index + 1) % len(self.providers)
-        self._update_display()
-
-    def action_select(self) -> None:
-        provider = self.providers[self.selected_index]
-        self.post_message(self.ProviderSelected(provider_name=provider.name))
+    @on(OptionList.OptionSelected)
+    def on_option_selected(self, event: OptionList.OptionSelected) -> None:
+        if 0 <= event.option_index < len(self.providers):
+            provider = self.providers[event.option_index]
+            self.post_message(self.ProviderSelected(provider_name=provider.name))
 
     def action_close(self) -> None:
         self.post_message(self.SelectorClosed())
-
-    def on_blur(self, event: events.Blur) -> None:
-        # Only refocus if we are still mounted and not blurring to a child
-        if self.is_mounted and self.app.focused != self:
-            self.call_after_refresh(self._ensure_focus)
-
-    def _ensure_focus(self) -> None:
-        if self.is_mounted and self.app.focused is None:
-            self.focus()
 
