@@ -118,3 +118,11 @@ class BackendLike(Protocol):
             The number of prompt tokens
         """
         ...
+
+    async def list_models(self) -> list[str]:
+        """List available models for the provider.
+
+        Returns:
+            List of model names
+        """
+        ...

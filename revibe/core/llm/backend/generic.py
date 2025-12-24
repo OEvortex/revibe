@@ -240,7 +240,9 @@ class GenericBackend:
         if extra_headers:
             headers.update(extra_headers)
 
-        url = f"{self._provider.api_base}{endpoint}"
+        base_url = self._provider.api_base.rstrip("/")
+        endpoint = endpoint.lstrip("/")
+        url = f"{base_url}/{endpoint}"
 
         try:
             res_data, _ = await self._make_request(url, body, headers)
@@ -305,7 +307,9 @@ class GenericBackend:
         if extra_headers:
             headers.update(extra_headers)
 
-        url = f"{self._provider.api_base}{endpoint}"
+        base_url = self._provider.api_base.rstrip("/")
+        endpoint = endpoint.lstrip("/")
+        url = f"{base_url}/{endpoint}"
 
         try:
             async for res_data in self._make_streaming_request(url, body, headers):
@@ -408,6 +412,35 @@ class GenericBackend:
             raise ValueError("Missing usage in non streaming completion")
 
         return result.usage.prompt_tokens
+
+    async def list_models(self) -> list[str]:
+        api_key = (
+            os.getenv(self._provider.api_key_env_var)
+            if self._provider.api_key_env_var
+            else None
+        )
+
+        api_style = getattr(self._provider, "api_style", "openai")
+        adapter = BACKEND_ADAPTERS[api_style]
+
+        headers = adapter.build_headers(api_key)
+        base_url = self._provider.api_base.rstrip("/")
+        url = f"{base_url}/models"
+
+        try:
+            client = self._get_client()
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+
+            if isinstance(data, list):
+                return [m["id"] for m in data if "id" in m]
+            if isinstance(data, dict) and "data" in data:
+                return [m["id"] for m in data["data"] if "id" in m]
+            return []
+
+        except Exception:
+            return []
 
     async def close(self) -> None:
         if self._owns_client and self._client:

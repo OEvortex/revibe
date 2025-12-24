@@ -30,7 +30,7 @@ class OpenAIMapper:
     def prepare_message(self, msg: LLMMessage) -> dict[str, Any]:
         """Convert LLMMessage to OpenAI message format."""
         message: dict[str, Any] = {"role": msg.role.value, "content": msg.content or ""}
-        
+
         if msg.tool_calls:
             message["tool_calls"] = [
                 {
@@ -43,10 +43,10 @@ class OpenAIMapper:
                 }
                 for tc in msg.tool_calls
             ]
-        
+
         if msg.tool_call_id:
             message["tool_call_id"] = msg.tool_call_id
-        
+
         return message
 
     def prepare_tool(self, tool: AvailableTool) -> dict[str, Any]:
@@ -66,7 +66,7 @@ class OpenAIMapper:
         """Convert tool choice to OpenAI format."""
         if isinstance(tool_choice, str):
             return tool_choice
-        
+
         return {
             "type": "function",
             "function": {"name": tool_choice.function.name},
@@ -80,7 +80,7 @@ class OpenAIMapper:
         """Parse OpenAI tool calls to ToolCall format."""
         if not tool_calls:
             return []
-        
+
         return [
             ToolCall(
                 id=tool_call.get("id", ""),
@@ -294,3 +294,10 @@ class OpenAIBackend:
             raise ValueError("Missing usage in non streaming completion")
 
         return result.usage.prompt_tokens
+
+    async def list_models(self) -> list[str]:
+        try:
+            response = await self._get_client().models.list()
+            return [m.id for m in response.data]
+        except Exception:
+            return []

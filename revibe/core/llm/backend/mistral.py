@@ -369,3 +369,10 @@ class MistralBackend:
             raise ValueError("Missing usage in non streaming completion")
 
         return result.usage.prompt_tokens
+
+    async def list_models(self) -> list[str]:
+        try:
+            response = await self._get_client().models.list_async()
+            return [m.id for m in response.data]
+        except Exception:
+            return []

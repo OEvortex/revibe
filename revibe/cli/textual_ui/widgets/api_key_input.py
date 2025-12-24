@@ -64,7 +64,26 @@ class ApiKeyInput(Container):
             yield self.help_widget
 
     def on_mount(self) -> None:
-        self.input_widget.focus()
+        if self.input_widget:
+            self.input_widget.focus()
+
+    def on_focus(self, event: events.Focus) -> None:
+        if self.input_widget:
+            self.input_widget.focus()
+
+    def on_click(self, event: events.Click) -> None:
+        if self.input_widget:
+            self.input_widget.focus()
+
+    def on_blur(self, event: events.Blur) -> None:
+        # If we are blurring, check if we need to refocus
+        # We use call_after_refresh to check the focus state after the change
+        self.call_after_refresh(self._ensure_focus)
+
+    def _ensure_focus(self) -> None:
+        if self.is_mounted and self.app.focused != self.input_widget:
+            if self.input_widget:
+                self.input_widget.focus()
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         api_key = event.value.strip()
@@ -73,6 +92,3 @@ class ApiKeyInput(Container):
 
     def action_cancel(self) -> None:
         self.post_message(self.ApiKeyCancelled())
-
-    def on_blur(self, event: events.Blur) -> None:
-        self.call_after_refresh(self.focus)

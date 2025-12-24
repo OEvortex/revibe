@@ -1071,18 +1071,29 @@ class VibeApp(App):
                 ErrorMessage(result.message, collapsed=self._tools_collapsed)
             )
 
+    async def _clear_bottom_app(self) -> None:
+        """Remove any currently active bottom application widget."""
+        for widget_type in [
+            ChatInputContainer,
+            ConfigApp,
+            ApprovalApp,
+            ProviderSelector,
+            ModelSelector,
+            ApiKeyInput,
+        ]:
+            try:
+                widget = self.query_one(widget_type)
+                await widget.remove()
+            except Exception:
+                pass
+
     async def _switch_to_config_app(self) -> None:
         if self._current_bottom_app == BottomApp.Config:
             return
 
         bottom_container = self.query_one("#bottom-app-container")
         await self._mount_and_scroll(UserCommandMessage("Configuration opened..."))
-
-        try:
-            chat_input_container = self.query_one(ChatInputContainer)
-            await chat_input_container.remove()
-        except Exception:
-            pass
+        await self._clear_bottom_app()
 
         if self._mode_indicator:
             self._mode_indicator.display = False
@@ -1101,12 +1112,7 @@ class VibeApp(App):
 
         bottom_container = self.query_one("#bottom-app-container")
         await self._mount_and_scroll(UserCommandMessage("Select a provider..."))
-
-        try:
-            chat_input_container = self.query_one(ChatInputContainer)
-            await chat_input_container.remove()
-        except Exception:
-            pass
+        await self._clear_bottom_app()
 
         if self._mode_indicator:
             self._mode_indicator.display = False
@@ -1122,12 +1128,7 @@ class VibeApp(App):
             return
 
         bottom_container = self.query_one("#bottom-app-container")
-
-        try:
-            chat_input_container = self.query_one(ChatInputContainer)
-            await chat_input_container.remove()
-        except Exception:
-            pass
+        await self._clear_bottom_app()
 
         if self._mode_indicator:
             self._mode_indicator.display = False
@@ -1146,12 +1147,7 @@ class VibeApp(App):
 
         bottom_container = self.query_one("#bottom-app-container")
         await self._mount_and_scroll(UserCommandMessage("Select a model..."))
-
-        try:
-            chat_input_container = self.query_one(ChatInputContainer)
-            await chat_input_container.remove()
-        except Exception:
-            pass
+        await self._clear_bottom_app()
 
         if self._mode_indicator:
             self._mode_indicator.display = False
@@ -1166,12 +1162,7 @@ class VibeApp(App):
         self, tool_name: str, tool_args: BaseModel
     ) -> None:
         bottom_container = self.query_one("#bottom-app-container")
-
-        try:
-            chat_input_container = self.query_one(ChatInputContainer)
-            await chat_input_container.remove()
-        except Exception:
-            pass
+        await self._clear_bottom_app()
 
         if self._mode_indicator:
             self._mode_indicator.display = False
@@ -1190,61 +1181,25 @@ class VibeApp(App):
 
     async def _switch_to_input_app(self) -> None:
         bottom_container = self.query_one("#bottom-app-container")
-
-        try:
-            config_app = self.query_one("#config-app")
-            await config_app.remove()
-        except Exception:
-            pass
-
-        try:
-            approval_app = self.query_one("#approval-app")
-            await approval_app.remove()
-        except Exception:
-            pass
-
-        try:
-            provider_selector = self.query_one("#provider-selector")
-            await provider_selector.remove()
-        except Exception:
-            pass
-
-        try:
-            model_selector = self.query_one("#model-selector")
-            await model_selector.remove()
-        except Exception:
-            pass
-
-        try:
-            api_key_input = self.query_one("#api-key-input")
-            await api_key_input.remove()
-        except Exception:
-            pass
+        await self._clear_bottom_app()
 
         if self._mode_indicator:
             self._mode_indicator.display = True
 
         try:
-            chat_input_container = self.query_one(ChatInputContainer)
+            chat_input_container = ChatInputContainer(
+                history_file=self.history_file,
+                command_registry=self.commands,
+                id="input-container",
+                safety=self._current_agent_mode.safety,
+            )
+            await bottom_container.mount(chat_input_container)
             self._chat_input_container = chat_input_container
             self._current_bottom_app = BottomApp.Input
+
             self.call_after_refresh(chat_input_container.focus_input)
-            return
         except Exception:
             pass
-
-        chat_input_container = ChatInputContainer(
-            history_file=self.history_file,
-            command_registry=self.commands,
-            id="input-container",
-            safety=self._current_agent_mode.safety,
-        )
-        await bottom_container.mount(chat_input_container)
-        self._chat_input_container = chat_input_container
-
-        self._current_bottom_app = BottomApp.Input
-
-        self.call_after_refresh(chat_input_container.focus_input)
 
     def _focus_current_bottom_app(self) -> None:
         try:

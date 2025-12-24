@@ -29,7 +29,7 @@ class HuggingFaceMapper:
     def prepare_message(self, msg: LLMMessage) -> dict[str, Any]:
         """Convert LLMMessage to HuggingFace message format."""
         message: dict[str, Any] = {"role": msg.role.value, "content": msg.content or ""}
-        
+
         # HuggingFace has different tool call format
         if msg.tool_calls:
             message["tool_calls"] = [
@@ -43,10 +43,10 @@ class HuggingFaceMapper:
                 }
                 for tc in msg.tool_calls
             ]
-        
+
         if msg.tool_call_id:
             message["tool_call_id"] = msg.tool_call_id
-        
+
         return message
 
     def prepare_tool(self, tool: AvailableTool) -> dict[str, Any]:
@@ -66,7 +66,7 @@ class HuggingFaceMapper:
         """Convert tool choice to HuggingFace format."""
         if isinstance(tool_choice, str):
             return tool_choice
-        
+
         return {
             "type": "function",
             "function": {"name": tool_choice.function.name},
@@ -80,7 +80,7 @@ class HuggingFaceMapper:
         """Parse HuggingFace tool calls to ToolCall format."""
         if not tool_calls:
             return []
-        
+
         return [
             ToolCall(
                 id=tool_call.get("id", ""),
@@ -151,7 +151,7 @@ class HuggingFaceBackend:
     ) -> Any:
         """Make HTTP request to HuggingFace API."""
         client = self._get_client()
-        
+
         if stream:
             response = await client.post(endpoint, json=payload)
             response.raise_for_status()
@@ -179,7 +179,7 @@ class HuggingFaceBackend:
                 "temperature": temperature,
                 "stream": False,
             }
-            
+
             if tools:
                 payload["tools"] = [self._mapper.prepare_tool(tool) for tool in tools]
             if tool_choice:
@@ -189,7 +189,8 @@ class HuggingFaceBackend:
             if extra_headers:
                 payload["extra_headers"] = extra_headers
 
-            response = await self._make_request("/chat/completions", payload)
+            base_url = self._api_base.rstrip("/")
+            response = await self._make_request(f"{base_url}/chat/completions", payload)
 
             return LLMChunk(
                 message=LLMMessage(
@@ -249,7 +250,7 @@ class HuggingFaceBackend:
                 "temperature": temperature,
                 "stream": True,
             }
-            
+
             if tools:
                 payload["tools"] = [self._mapper.prepare_tool(tool) for tool in tools]
             if tool_choice:
@@ -259,17 +260,18 @@ class HuggingFaceBackend:
             if extra_headers:
                 payload["extra_headers"] = extra_headers
 
-            response = await self._make_request("/chat/completions", payload, stream=True)
+            base_url = self._api_base.rstrip("/")
+            response = await self._make_request(f"{base_url}/chat/completions", payload, stream=True)
 
             async for line in response.aiter_lines():
                 if line.strip() == "" or line.startswith("data: [DONE]"):
                     continue
-                
+
                 if line.startswith("data: "):
                     data = line[6:].strip()
                     try:
                         chunk = json.loads(data)
-                        
+
                         yield LLMChunk(
                             message=LLMMessage(
                                 role=Role.assistant,
@@ -336,3 +338,18 @@ class HuggingFaceBackend:
             raise ValueError("Missing usage in non streaming completion")
 
         return result.usage.prompt_tokens
+
+    async def list_models(self) -> list[str]:
+        try:
+            client = self._get_client()
+            base_url = self._api_base.rstrip("/")
+            response = await client.get(f"{base_url}/models")
+            response.raise_for_status()
+            data = response.json()
+            if isinstance(data, list):
+                return [m["id"] for m in data if "id" in m]
+            if isinstance(data, dict) and "data" in data:
+                return [m["id"] for m in data["data"] if "id" in m]
+            return []
+        except Exception:
+            return []

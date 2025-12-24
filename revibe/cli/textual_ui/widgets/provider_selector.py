@@ -117,5 +117,11 @@ class ProviderSelector(Container):
         self.post_message(self.SelectorClosed())
 
     def on_blur(self, event: events.Blur) -> None:
-        self.call_after_refresh(self.focus)
+        # Only refocus if we are still mounted and not blurring to a child
+        if self.is_mounted and self.app.focused != self:
+            self.call_after_refresh(self._ensure_focus)
+
+    def _ensure_focus(self) -> None:
+        if self.is_mounted and self.app.focused is None:
+            self.focus()
 
