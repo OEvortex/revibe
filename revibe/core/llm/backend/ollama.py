@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 class OllamaBackend(OpenAIBackend):
     def __init__(self, provider: ProviderConfigUnion, timeout: float = 720.0) -> None:
-        super().__init__(provider, timeout)
+        super().__init__(provider=provider, timeout=timeout)
 
     async def list_models(self) -> list[str]:
         """Fetch models from Ollama's native /api/tags endpoint."""

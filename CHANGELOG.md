@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Replace block logo with "REVIBE" text in welcome banner
 - Make token display dynamic based on model context instead of hardcoded values
+- Refactor LLM backend: Unified OpenAI-compatible providers to wrap `OpenAIBackend` and removed `GenericBackend`
 
 ### Fixed
 

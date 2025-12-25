@@ -133,7 +133,9 @@ class MistralMapper:
             reasoning_content=concat_reasoning if concat_reasoning else None,
         )
 
-    def parse_tool_calls(self, tool_calls: list[mistralai.ToolCall]) -> list[ToolCall]:
+    def parse_tool_calls(self, tool_calls: list[mistralai.ToolCall] | None) -> list[ToolCall]:
+        if not tool_calls:
+            return []
         return [
             ToolCall(
                 id=tool_call.id,

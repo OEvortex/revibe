@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import shlex
 import tomllib
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, TypeAlias
 
 from dotenv import dotenv_values
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -188,8 +188,7 @@ ProviderConfigUnion = Annotated[
 ]
 
 
-# Backward compatibility: alias for the old ProviderConfig class
-ProviderConfig = GenericProviderConfig
+ProviderConfig: TypeAlias = ProviderConfigUnion
 
 
 class _MCPBase(BaseModel):

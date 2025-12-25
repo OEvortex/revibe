@@ -63,7 +63,7 @@ class ApiKeyScreen(OnboardingScreen):
         self.provider = config.get_provider_for_model(active_model)
 
     def _compose_provider_link(self, provider_name: str) -> ComposeResult:
-        if self.provider.name not in PROVIDER_HELP:
+        if not self.provider or self.provider.name not in PROVIDER_HELP:
             return
 
         help_url, help_name = PROVIDER_HELP[self.provider.name]
@@ -146,6 +146,8 @@ class ApiKeyScreen(OnboardingScreen):
             self._save_and_finish(event.value)
 
     def _save_and_finish(self, api_key: str) -> None:
+        if not self.provider:
+            return
         env_key = self.provider.api_key_env_var
         os.environ[env_key] = api_key
         try:

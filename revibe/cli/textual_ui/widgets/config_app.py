@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar, TypedDict
+from typing import TYPE_CHECKING, ClassVar, TypedDict, cast
 
 from textual import on
 from textual.app import ComposeResult
@@ -120,7 +120,7 @@ class ConfigApp(Container):
             self.post_message(self.SettingChanged(key=key, value=new_value))
 
             # Update the option text in the list
-            option_list = self.query_one("#config-option-list", OptionList)
+            option_list = cast("Any", self.query_one("#config-option-list"))
             option_list.replace_option_at_index(index, Option(f"{setting['label']}: {new_value}"))
             option_list.highlighted = index
 
