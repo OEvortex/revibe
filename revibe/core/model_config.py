@@ -48,6 +48,7 @@ DEFAULT_MODELS = [
     ModelConfig(
         name="gpt-5.2",
         provider="openai",
+        alias="gpt-5.2",
         input_price=1.75,
         output_price=14.0,
         context=400000,
@@ -56,6 +57,7 @@ DEFAULT_MODELS = [
     ModelConfig(
         name="gpt-5.1",
         provider="openai",
+        alias="gpt-5.1",
         input_price=1.25,
         output_price=10.0,
         context=400000,
@@ -64,6 +66,7 @@ DEFAULT_MODELS = [
     ModelConfig(
         name="gpt-5",
         provider="openai",
+        alias="gpt-5",
         input_price=1.25,
         output_price=10.0,
         context=400000,
@@ -72,6 +75,7 @@ DEFAULT_MODELS = [
     ModelConfig(
         name="gpt-5-mini",
         provider="openai",
+        alias="gpt-5-mini",
         input_price=0.25,
         output_price=2.0,
         context=400000,
@@ -80,6 +84,7 @@ DEFAULT_MODELS = [
     ModelConfig(
         name="gpt-5.1-codex-max",
         provider="openai",
+        alias="gpt-5.1-codex-max",
         input_price=1.25,
         output_price=10.0,
         context=400000,
@@ -88,6 +93,7 @@ DEFAULT_MODELS = [
     ModelConfig(
         name="gpt-5.1-codex",
         provider="openai",
+        alias="gpt-5.1-codex",
         input_price=1.25,
         output_price=10.0,
         context=1000000,
@@ -96,6 +102,7 @@ DEFAULT_MODELS = [
     ModelConfig(
         name="gpt-5-codex",
         provider="openai",
+        alias="gpt-5-codex",
         input_price=1.25,
         output_price=10.0,
         context=1000000,
@@ -104,6 +111,7 @@ DEFAULT_MODELS = [
     ModelConfig(
         name="gpt-5.2-pro",
         provider="openai",
+        alias="gpt-5.2-pro",
         input_price=21.0,
         output_price=168.0,
         context=400000,
@@ -112,6 +120,7 @@ DEFAULT_MODELS = [
     ModelConfig(
         name="gpt-5-pro",
         provider="openai",
+        alias="gpt-5-pro",
         input_price=15.0,
         output_price=120.0,
         context=400000,
@@ -120,6 +129,7 @@ DEFAULT_MODELS = [
     ModelConfig(
         name="gpt-4.1",
         provider="openai",
+        alias="gpt-4.1",
         input_price=2.0,
         output_price=8.0,
         context=1000000,
@@ -166,6 +176,52 @@ DEFAULT_MODELS = [
         name="zai-org/GLM-4.7-FP8",
         provider="huggingface",
         alias="glm-4.7",
+    ),
+    ### Cerebras models
+    ModelConfig(
+        name="zai-glm-4.6",
+        provider="cerebras",
+        alias="zai-glm-4.6",
+        input_price=2.25,
+        output_price=2.75,
+        context=131072,
+        max_output=40960,
+    ),
+    ModelConfig(
+        name="qwen-3-235b-a22b-instruct-2507",
+        provider="cerebras",
+        alias="qwen-3-235b",
+        input_price=0.60,
+        output_price=1.20,
+        context=131072,
+        max_output=40960,
+    ),
+    ModelConfig(
+        name="llama-3.3-70b",
+        provider="cerebras",
+        alias="llama-3.3-70b",
+        input_price=0.85,
+        output_price=1.20,
+        context=128000,
+        max_output=65536,
+    ),
+    ModelConfig(
+        name="qwen-3-32b",
+        provider="cerebras",
+        alias="qwen-3-32b",
+        input_price=0.40,
+        output_price=0.80,
+        context=131072,
+        max_output=8192,
+    ),
+    ModelConfig(
+        name="gpt-oss-120b",
+        provider="cerebras",
+        alias="gpt-oss-120b",
+        input_price=0.35,
+        output_price=0.75,
+        context=131072,
+        max_output=40960,
     ),
 ]
 

@@ -11,7 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Dynamic version display from pyproject.toml
 - REVIBE text logo in welcome banner with animated colors
-- New provider support: Hugging Face, Groq, Ollama, and llama.cpp
+- New provider support: Hugging Face, Groq, Ollama, Cerebras, and llama.cpp
+- Added high-performance models: Llama 3.3 70B, Qwen 3 (235B & 32B), Z.ai GLM 4.6, and GPT-OSS 120B (via Cerebras)
 - Unified HTTP client using httpx package across all backends
 
 ### Changed

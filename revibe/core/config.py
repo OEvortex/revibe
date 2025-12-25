@@ -131,6 +131,7 @@ class Backend(StrEnum):
     OPENAI = auto()
     HUGGINGFACE = auto()
     GROQ = auto()
+    CEREBRAS = auto()
     OLLAMA = auto()
     LLAMACPP = auto()
 
@@ -166,6 +167,10 @@ class LlamaCppProviderConfig(_ProviderBase):
     backend: Literal[Backend.LLAMACPP] = Backend.LLAMACPP
 
 
+class CerebrasProviderConfig(_ProviderBase):
+    backend: Literal[Backend.CEREBRAS] = Backend.CEREBRAS
+
+
 class GenericProviderConfig(_ProviderBase):
     backend: Literal[Backend.GENERIC] = Backend.GENERIC
 
@@ -177,6 +182,7 @@ ProviderConfigUnion = Annotated[
     | HuggingFaceProviderConfig
     | OllamaProviderConfig
     | LlamaCppProviderConfig
+    | CerebrasProviderConfig
     | GenericProviderConfig,
     Field(discriminator="backend"),
 ]
@@ -295,6 +301,11 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
     ),
     LlamaCppProviderConfig(
         name="llamacpp", api_base="http://127.0.0.1:8080/v1", api_key_env_var=""
+    ),
+    CerebrasProviderConfig(
+        name="cerebras",
+        api_base="https://api.cerebras.ai/v1",
+        api_key_env_var="CEREBRAS_API_KEY",
     ),
 ]
 

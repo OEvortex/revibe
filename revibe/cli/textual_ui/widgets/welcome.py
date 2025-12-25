@@ -102,8 +102,9 @@ class WelcomeBanner(Static):
         )
         mcp_count = len(self.config.mcp_servers)
         model_count = len(self.config.models)
+        provider_count = len({m.provider for m in self.config.models})
         self._static_line3_suffix = (
-            f"[dim]stats [/] [{STATS_COLOR}]{model_count}[/] models · [{STATS_COLOR}]{mcp_count}[/] MCP"
+            f"[dim]stats [/] [{STATS_COLOR}]{model_count}[/] models · [{STATS_COLOR}]{provider_count}[/] providers · [{STATS_COLOR}]{mcp_count}[/] MCP"
         )
         self._static_line4_suffix = (
             f"[dim]path  [/] [{PATH_COLOR}]{self.config.effective_workdir}[/]"
