@@ -134,6 +134,7 @@ class Backend(StrEnum):
     CEREBRAS = auto()
     OLLAMA = auto()
     LLAMACPP = auto()
+    QWEN = auto()
 
 
 class _ProviderBase(BaseModel):
@@ -175,6 +176,10 @@ class GenericProviderConfig(_ProviderBase):
     backend: Literal[Backend.GENERIC] = Backend.GENERIC
 
 
+class QwenProviderConfig(_ProviderBase):
+    backend: Literal[Backend.QWEN] = Backend.QWEN
+
+
 ProviderConfigUnion = Annotated[
     MistralProviderConfig
     | OpenAIProviderConfig
@@ -183,7 +188,8 @@ ProviderConfigUnion = Annotated[
     | OllamaProviderConfig
     | LlamaCppProviderConfig
     | CerebrasProviderConfig
-    | GenericProviderConfig,
+    | GenericProviderConfig
+    | QwenProviderConfig,
     Field(discriminator="backend"),
 ]
 
@@ -305,6 +311,11 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
         name="cerebras",
         api_base="https://api.cerebras.ai/v1",
         api_key_env_var="CEREBRAS_API_KEY",
+    ),
+    QwenProviderConfig(
+        name="qwen",
+        api_base="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+        api_key_env_var="DASHSCOPE_API_KEY",
     ),
 ]
 

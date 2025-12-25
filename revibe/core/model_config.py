@@ -223,5 +223,24 @@ DEFAULT_MODELS = [
         context=131072,
         max_output=40960,
     ),
+    ### Qwen Code models
+    ModelConfig(
+        name="qwen3-coder-plus",
+        provider="qwen",
+        alias="qwen-coder-plus",
+        input_price=0.0,
+        output_price=0.0,
+        context=1000000,
+        max_output=65536,
+    ),
+    ModelConfig(
+        name="qwen3-coder-flash",
+        provider="qwen",
+        alias="qwen-coder-flash",
+        input_price=0.0,
+        output_price=0.0,
+        context=1000000,
+        max_output=65536,
+    )
 ]
 

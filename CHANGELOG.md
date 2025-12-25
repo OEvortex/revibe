@@ -11,9 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Dynamic version display from pyproject.toml
 - REVIBE text logo in welcome banner with animated colors
-- New provider support: Hugging Face, Groq, Ollama, Cerebras, and llama.cpp
-- Added high-performance models: Llama 3.3 70B, Qwen 3 (235B & 32B), Z.ai GLM 4.6, and GPT-OSS 120B (via Cerebras)
+- New provider support: Hugging Face, Groq, Ollama, Cerebras, llama.cpp, and Qwen Code
+- Added high-performance models: Llama 3.3 70B, Qwen 3 (235B & 32B), Z.ai GLM 4.6, GPT-OSS 120B (via Cerebras), and Qwen3 Coder (Plus & Flash)
 - Unified HTTP client using httpx package across all backends
+- Implemented Qwen OAuth authentication mirroring Roo-Code for seamless integration with Qwen CLI credentials
 
 ### Changed
 
@@ -28,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix welcome banner animation rendering with new REVIBE logo
 - Update model configs with explicit context and max_output values
 - Fix keyboard navigation bugs in model and provider selectors
+- Fix Qwen authentication by correctly utilizing `resource_url` from OAuth credentials
 
 ## [1.3.0] - 2025-12-23
 

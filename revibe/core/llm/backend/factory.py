@@ -8,6 +8,7 @@ from revibe.core.llm.backend.llamacpp import LlamaCppBackend
 from revibe.core.llm.backend.mistral import MistralBackend
 from revibe.core.llm.backend.ollama import OllamaBackend
 from revibe.core.llm.backend.cerebras import CerebrasBackend
+from revibe.core.llm.backend.qwen import QwenBackend
 
 BACKEND_FACTORY = {
     Backend.MISTRAL: MistralBackend,
@@ -18,4 +19,6 @@ BACKEND_FACTORY = {
     Backend.OLLAMA: OllamaBackend,
     Backend.LLAMACPP: LlamaCppBackend,
     Backend.CEREBRAS: CerebrasBackend,
+    Backend.QWEN: QwenBackend,
 }
+
