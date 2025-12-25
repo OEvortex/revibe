@@ -226,7 +226,7 @@ DEFAULT_MODELS = [
     ### Qwen Code models
     ModelConfig(
         name="qwen3-coder-plus",
-        provider="qwen",
+        provider="qwencode",
         alias="qwen-coder-plus",
         input_price=0.0,
         output_price=0.0,
@@ -235,7 +235,7 @@ DEFAULT_MODELS = [
     ),
     ModelConfig(
         name="qwen3-coder-flash",
-        provider="qwen",
+        provider="qwencode",
         alias="qwen-coder-flash",
         input_price=0.0,
         output_price=0.0,

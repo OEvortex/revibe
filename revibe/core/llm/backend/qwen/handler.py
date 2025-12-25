@@ -23,7 +23,7 @@ import httpx
 
 
 from revibe.core.llm.backend.qwen.oauth import QwenOAuthManager
-from revibe.core.llm.backend.qwen.types import QWEN_INTL_BASE_URL
+from revibe.core.llm.backend.qwen.types import QWEN_DEFAULT_BASE_URL, HTTP_OK
 from revibe.core.llm.exceptions import BackendErrorBuilder
 from revibe.core.types import (
     AvailableTool,
@@ -38,6 +38,9 @@ from revibe.core.types import (
 
 if TYPE_CHECKING:
     from revibe.core.config import ModelConfig, ProviderConfigUnion
+
+# HTTP Status codes for error handling
+HTTP_UNAUTHORIZED = 401
 
 
 class ThinkingBlockParser:
@@ -163,8 +166,11 @@ class QwenBackend:
             self._owns_client = True
         return self._client
 
-    async def _get_auth_headers(self) -> dict[str, str]:
+    async def _get_auth_headers(self, force_refresh: bool = False) -> dict[str, str]:
         """Get authentication headers.
+
+        Args:
+            force_refresh: If True, forces a token refresh for OAuth.
 
         Returns headers with either API key or OAuth token.
         """
@@ -173,7 +179,9 @@ class QwenBackend:
         if self._api_key:
             headers["Authorization"] = f"Bearer {self._api_key}"
         elif self._oauth_manager:
-            access_token, _ = await self._oauth_manager.ensure_authenticated()
+            access_token, _ = await self._oauth_manager.ensure_authenticated(
+                force_refresh=force_refresh
+            )
             headers["Authorization"] = f"Bearer {access_token}"
 
         return headers
@@ -183,14 +191,14 @@ class QwenBackend:
 
         Returns URL from provider config, OAuth credentials, or default.
         """
-        if self._provider.api_base:
+        if self._api_key and self._provider.api_base:
             return self._provider.api_base.rstrip("/")
 
         if self._oauth_manager:
             _, base_url = await self._oauth_manager.ensure_authenticated()
             return base_url.rstrip("/")
 
-        return QWEN_INTL_BASE_URL.rstrip("/")
+        return QWEN_DEFAULT_BASE_URL.rstrip("/")
 
     def _prepare_messages(
         self, messages: list[LLMMessage]
@@ -259,7 +267,31 @@ class QwenBackend:
         Returns:
             LLMChunk with the completion.
         """
-        headers = await self._get_auth_headers()
+        return await self._complete_with_retry(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            tools=tools,
+            max_tokens=max_tokens,
+            tool_choice=tool_choice,
+            extra_headers=extra_headers,
+        )
+
+    async def _complete_with_retry(
+        self,
+        *,
+        model: ModelConfig,
+        messages: list[LLMMessage],
+        temperature: float = 0.2,
+        tools: list[AvailableTool] | None = None,
+        max_tokens: int | None = None,
+        tool_choice: StrToolChoice | AvailableTool | None = None,
+        extra_headers: dict[str, str] | None = None,
+        _retry_count: int = 0,
+    ) -> LLMChunk:
+        """Internal complete method with retry logic for auth failures."""
+        force_refresh = _retry_count > 0
+        headers = await self._get_auth_headers(force_refresh=force_refresh)
         if extra_headers:
             headers.update(extra_headers)
 
@@ -287,10 +319,20 @@ class QwenBackend:
                 content=json.dumps(payload).encode("utf-8"),
             )
             response.raise_for_status()
-            data = response.json()
+
+            try:
+                data = response.json()
+            except json.JSONDecodeError as e:
+                body_text = response.text[:200] if response.text else "(empty response)"
+                raise ValueError(
+                    f"Invalid JSON response from API: {body_text}"
+                ) from e
 
             # Parse response
-            choice = data.get("choices", [{}])[0]
+            choices = data.get("choices", [])
+            if not choices:
+                raise ValueError(f"API response missing choices: {data}")
+            choice = choices[0]
             message_data = choice.get("message", {})
             usage_data = data.get("usage", {})
 
@@ -320,6 +362,22 @@ class QwenBackend:
             )
 
         except httpx.HTTPStatusError as e:
+            # Retry once with fresh token on 401 Unauthorized
+            if (
+                e.response.status_code == HTTP_UNAUTHORIZED
+                and self._oauth_manager
+                and _retry_count == 0
+            ):
+                return await self._complete_with_retry(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    tools=tools,
+                    max_tokens=max_tokens,
+                    tool_choice=tool_choice,
+                    extra_headers=extra_headers,
+                    _retry_count=1,
+                )
             raise BackendErrorBuilder.build_http_error(
                 provider=self._provider.name,
                 endpoint=url,
@@ -368,7 +426,34 @@ class QwenBackend:
         Yields:
             LLMChunk objects as they arrive.
         """
-        headers = await self._get_auth_headers()
+        # Try streaming with retry on 401
+        async for chunk in self._complete_streaming_with_retry(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            tools=tools,
+            max_tokens=max_tokens,
+            tool_choice=tool_choice,
+            extra_headers=extra_headers,
+            _retry_count=0,
+        ):
+            yield chunk
+
+    async def _complete_streaming_with_retry(
+        self,
+        *,
+        model: ModelConfig,
+        messages: list[LLMMessage],
+        temperature: float = 0.2,
+        tools: list[AvailableTool] | None = None,
+        max_tokens: int | None = None,
+        tool_choice: StrToolChoice | AvailableTool | None = None,
+        extra_headers: dict[str, str] | None = None,
+        _retry_count: int = 0,
+    ) -> AsyncGenerator[LLMChunk, None]:
+        """Internal streaming method with retry logic for auth failures."""
+        force_refresh = _retry_count > 0
+        headers = await self._get_auth_headers(force_refresh=force_refresh)
         if extra_headers:
             headers.update(extra_headers)
 
@@ -403,24 +488,76 @@ class QwenBackend:
             ) as response:
                 response.raise_for_status()
 
+                # Check if response is actually a streaming response
+                content_type = response.headers.get("content-type", "")
+                if "text/event-stream" not in content_type:
+                    # Non-streaming response - might be an error
+                    body = await response.aread()
+                    body_text = body.decode("utf-8")
+                    if body_text:
+                        try:
+                            error_data = json.loads(body_text)
+                            error_msg = (
+                                error_data.get("error", {}).get("message")
+                                or error_data.get("message")
+                                or error_data.get("detail")
+                                or str(error_data)
+                            )
+                            raise ValueError(f"API returned error: {error_msg}")
+                        except json.JSONDecodeError:
+                            raise ValueError(f"Unexpected API response: {body_text[:200]}")
+                    return
+
                 async for line in response.aiter_lines():
                     if not line.strip():
                         continue
 
-                    if ": " not in line:
+                    # SSE format: "field: value" - colon followed by optional space
+                    if ":" not in line:
+                        # Could be a raw JSON error response
+                        try:
+                            error_data = json.loads(line)
+                            if "error" in error_data or "message" in error_data:
+                                error_msg = (
+                                    error_data.get("error", {}).get("message")
+                                    if isinstance(error_data.get("error"), dict)
+                                    else error_data.get("error")
+                                    or error_data.get("message")
+                                    or str(error_data)
+                                )
+                                raise ValueError(f"API error: {error_msg}")
+                        except json.JSONDecodeError:
+                            pass
                         continue
 
                     delim_index = line.find(":")
-                    key = line[:delim_index]
-                    value = line[delim_index + 2:]
+                    key = line[:delim_index].strip()
+                    # Value starts after colon, with optional leading space
+                    value = line[delim_index + 1:].lstrip()
 
                     if key != "data":
                         continue
-                    if value == "[DONE]":
-                        return
+                    if not value or value == "[DONE]":
+                        continue
 
-                    chunk_data = json.loads(value.strip())
-                    delta = chunk_data.get("choices", [{}])[0].get("delta", {})
+                    try:
+                        chunk_data = json.loads(value)
+                    except json.JSONDecodeError:
+                        # Skip malformed JSON lines
+                        continue
+
+                    # Check for error in the chunk
+                    if "error" in chunk_data:
+                        error_info = chunk_data["error"]
+                        error_msg = (
+                            error_info.get("message")
+                            if isinstance(error_info, dict)
+                            else str(error_info)
+                        )
+                        raise ValueError(f"API error: {error_msg}")
+
+                    choices = chunk_data.get("choices", [])
+                    delta = choices[0].get("delta", {}) if choices else {}
                     usage = chunk_data.get("usage")
 
                     content = ""
@@ -474,6 +611,24 @@ class QwenBackend:
                     )
 
         except httpx.HTTPStatusError as e:
+            # Retry once with fresh token on 401 Unauthorized
+            if (
+                e.response.status_code == HTTP_UNAUTHORIZED
+                and self._oauth_manager
+                and _retry_count == 0
+            ):
+                async for chunk in self._complete_streaming_with_retry(
+                    model=model,
+                    messages=messages,
+                    temperature=temperature,
+                    tools=tools,
+                    max_tokens=max_tokens,
+                    tool_choice=tool_choice,
+                    extra_headers=extra_headers,
+                    _retry_count=1,
+                ):
+                    yield chunk
+                return
             raise BackendErrorBuilder.build_http_error(
                 provider=self._provider.name,
                 endpoint=url,

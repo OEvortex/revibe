@@ -29,7 +29,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix welcome banner animation rendering with new REVIBE logo
 - Update model configs with explicit context and max_output values
 - Fix keyboard navigation bugs in model and provider selectors
-- Fix Qwen authentication by correctly utilizing `resource_url` from OAuth credentials
+- Fix Qwen OAuth token refresh failure caused by Alibaba Cloud WAF (added User-Agent support)
+- Correct Qwen API endpoint resolution to prioritize OAuth portal (`portal.qwen.ai`) when using credentials
+- Fix `list index out of range` crash in Qwen streaming loop when receiving empty choices chunks
+- Remove conflicting default `api_base` for Qwen provider to allow proper endpoint auto-detection
+- Enhance Qwen backend robustness with improved SSE parsing and graceful JSON error handling
 
 ## [1.3.0] - 2025-12-23
 

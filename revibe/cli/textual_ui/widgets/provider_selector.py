@@ -60,13 +60,43 @@ class ProviderSelector(Container):
         self.query_one("#provider-selector-list").focus()
 
     def on_key(self, event: events.Key) -> None:
-        if event.key == "escape":
-            self.action_close()
+        option_list = self.query_one("#provider-selector-list", OptionList)
+
+        # If OptionList has focus, it handles up/down/enter itself.
+        # We only need to handle ESC to close the selector.
+        if option_list.has_focus:
+            if event.key == "escape":
+                self.action_close()
+                event.stop()
+                event.prevent_default()
+            return
+
+        # If we are here, focus is likely elsewhere in the widget (e.g. container).
+        # Proxy navigation keys to the OptionList.
+        if event.key in ("up", "down", "pageup", "pagedown"):
+            if event.key == "up":
+                option_list.action_cursor_up()
+            elif event.key == "down":
+                option_list.action_cursor_down()
+            elif event.key == "pageup":
+                option_list.action_page_up()
+            elif event.key == "pagedown":
+                option_list.action_page_down()
             event.stop()
             event.prevent_default()
         elif event.key == "enter":
-            # OptionList handles enter by default, but we can be explicit if needed
-            pass
+            if (
+                option_list.highlighted is not None
+                and 0 <= option_list.highlighted < len(self.providers)
+            ):
+                provider = self.providers[option_list.highlighted]
+                self.post_message(self.ProviderSelected(provider_name=provider.name))
+                event.stop()
+                event.prevent_default()
+        elif event.key == "escape":
+            self.action_close()
+            event.stop()
+            event.prevent_default()
 
     def _update_list(self) -> None:
         option_list = self.query_one("#provider-selector-list", OptionList)

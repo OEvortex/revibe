@@ -313,9 +313,9 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
         api_key_env_var="CEREBRAS_API_KEY",
     ),
     QwenProviderConfig(
-        name="qwen",
-        api_base="https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-        api_key_env_var="DASHSCOPE_API_KEY",
+        name="qwencode",
+        api_base="",  # Uses OAuth base URL from qwen backend
+        api_key_env_var="",
     ),
 ]
 

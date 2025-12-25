@@ -134,6 +134,7 @@ class QwenOAuthManager:
                     headers={
                         "Content-Type": "application/x-www-form-urlencoded",
                         "Accept": "application/json",
+                        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
                     },
                     content=object_to_url_encoded(body_data),
                 )
@@ -147,7 +148,13 @@ class QwenOAuthManager:
                         response=response,
                     )
 
-                token_data = response.json()
+                try:
+                    token_data = response.json()
+                except json.JSONDecodeError as e:
+                    raise ValueError(
+                        f"Token refresh failed: Invalid JSON response from OAuth endpoint. "
+                        f"Response: {response.text[:200]}"
+                    ) from e
 
                 if token_data.get("error"):
                     raise ValueError(
@@ -208,8 +215,18 @@ class QwenOAuthManager:
         current_time_ms = int(time.time() * 1000)
         return current_time_ms < credentials.expiry_date - TOKEN_REFRESH_BUFFER_MS
 
-    async def ensure_authenticated(self) -> tuple[str, str]:
+    def invalidate_credentials(self) -> None:
+        """Invalidate cached credentials to force a refresh on next request.
+
+        Call this when receiving authentication errors (401) from the API.
+        """
+        self._credentials = None
+
+    async def ensure_authenticated(self, force_refresh: bool = False) -> tuple[str, str]:
         """Ensure we have valid authentication credentials.
+
+        Args:
+            force_refresh: If True, forces a token refresh regardless of expiry.
 
         Returns:
             Tuple of (access_token, base_url).
@@ -219,10 +236,10 @@ class QwenOAuthManager:
             ValueError: If credentials are invalid.
             httpx.HTTPStatusError: If token refresh fails.
         """
-        if not self._credentials:
-            self._credentials = self._load_cached_credentials()
+        # Always reload credentials from file to pick up external updates (e.g., from Qwen CLI)
+        self._credentials = self._load_cached_credentials()
 
-        if not self._is_token_valid(self._credentials):
+        if force_refresh or not self._is_token_valid(self._credentials):
             self._credentials = await self._refresh_access_token(self._credentials)
 
         return self._credentials.access_token, self._get_base_url(self._credentials)
@@ -235,12 +252,18 @@ class QwenOAuthManager:
 
         Returns:
             The API base URL.
+
+        Note:
+            For OAuth authentication, the resource_url (e.g., 'portal.qwen.ai') IS the API endpoint.
+            OAuth tokens only work with this endpoint, not with dashscope.aliyuncs.com.
         """
         base_url = credentials.resource_url or QWEN_DEFAULT_BASE_URL
 
         if not base_url.startswith(("http://", "https://")):
             base_url = f"https://{base_url}"
 
+        # Remove trailing slashes and add /v1 if not present
+        base_url = base_url.rstrip("/")
         if not base_url.endswith("/v1"):
             base_url = f"{base_url}/v1"
 
