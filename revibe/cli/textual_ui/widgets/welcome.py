@@ -56,9 +56,6 @@ class WelcomeBanner(Static):
     COLOR_CACHE_THRESHOLD = 0.001
     BORDER_PROGRESS_THRESHOLD = 0.01
 
-    BLOCK = "▇▇"
-    SPACE = "  "
-    LOGO_TEXT_GAP = "   "
 
     def __init__(self, config: VibeConfig) -> None:
         super().__init__(" ")
@@ -92,19 +89,20 @@ class WelcomeBanner(Static):
         self._initialize_static_line_suffixes()
 
     def _initialize_static_line_suffixes(self) -> None:
-        self._static_line1_suffix = (
-            f"{self.LOGO_TEXT_GAP}[b]ReVibe v{__version__}[/]"
-        )
-        self._static_line2_suffix = (
-            f"{self.LOGO_TEXT_GAP}[dim]{self.config.active_model}[/]"
-        )
+        self._static_line1_suffix = f"[b]ReVibe v{__version__}[/]"
+        self._static_line2_suffix = f"[dim]model [/] {self.config.active_model}"
         mcp_count = len(self.config.mcp_servers)
         model_count = len(self.config.models)
-        self._static_line3_suffix = f"{self.LOGO_TEXT_GAP}[dim]{model_count} models · {mcp_count} MCP servers[/]"
-        self._static_line5_suffix = (
-            f"{self.LOGO_TEXT_GAP}[dim]{self.config.effective_workdir}[/]"
+        self._static_line3_suffix = (
+            f"[dim]stats [/] {model_count} models · {mcp_count} MCP servers"
         )
-        self._static_line7 = f"[dim]Type[/] [{self.BORDER_TARGET_COLOR}]/help[/] [dim]for more information • [/][{self.BORDER_TARGET_COLOR}]/terminal-setup[/][dim] for shift+enter[/]"
+        self._static_line4_suffix = (
+            f"[dim]path  [/] {self.config.effective_workdir}"
+        )
+        self._static_line7 = Text.from_markup(
+            f"[dim]Type[/] [{self.BORDER_TARGET_COLOR}]/help[/] [dim]for information • [/][{self.BORDER_TARGET_COLOR}]/terminal-setup[/][dim] for shift+enter[/]",
+            justify="center",
+        )
 
     @property
     def skeleton_color(self) -> str:
@@ -121,7 +119,7 @@ class WelcomeBanner(Static):
     def _init_after_styles(self) -> None:
         self._cache_skeleton_color()
         self._cached_text_lines[5] = Text("")
-        self._cached_text_lines[6] = Text.from_markup(self._static_line7)
+        self._cached_text_lines[6] = self._static_line7
         self._update_display()
         self._start_animation()
 
@@ -266,14 +264,12 @@ class WelcomeBanner(Static):
         )
 
     def _build_line(self, line_idx: int, color: str) -> str:
-        S = self.SPACE
-
-        # REVIBE text logo with animated colors - only in logo area
+        # Just return the info lines directly for a clean look
         patterns = [
-            f"[{color}]{self.BLOCK}[/]{S}{self._static_line1_suffix}",
-            f"[{color}]{self.BLOCK}[/]{S}{self._static_line2_suffix}",
-            f"[{color}]{self.BLOCK}[/]{S}{self._static_line3_suffix}",
-            f"[{color}]{self.BLOCK}[/]{S}",
-            f"[{color}]{self.BLOCK}[/]{S}{self._static_line5_suffix}",
+            self._static_line1_suffix,
+            self._static_line2_suffix,
+            self._static_line3_suffix,
+            self._static_line4_suffix,
+            "",
         ]
         return patterns[line_idx]
