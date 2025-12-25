@@ -10,7 +10,7 @@ ReVibe is a command-line coding assistant powered by multiple language model pro
 
 ### ✨ Key Features
 
-- **Multi-Provider Support**: OpenAI, Anthropic, Mistral, HuggingFace, Groq, and local models
+- **Multi-Provider Support**: OpenAI, Mistral, HuggingFace, Groq, and local models
 - **Runtime Provider Switching**: Use `/provider` and `/model` commands to switch providers on the fly
 - **Clean Minimal TUI**: Inspired by Codex CLI and Claude Code for distraction-free coding
 - **Powerful Toolset**: File manipulation, code search, version control, and command execution
