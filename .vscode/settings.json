@@ -19,8 +19,11 @@
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,
   "python.analysis.typeCheckingMode": "strict",
-  "python.testing.pytestArgs": ["tests"],
+  "python.testing.pytestArgs": [
+    "tests"
+  ],
   "python.testing.pytestEnabled": true,
   "ruff.enable": true,
-  "ruff.organizeImports": true
+  "ruff.organizeImports": true,
+  "python.languageServer": "None"
 }

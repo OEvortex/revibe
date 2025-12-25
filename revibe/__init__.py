@@ -13,4 +13,4 @@ try:
     __version__ = pyproject_data["project"]["version"]
 except Exception:
     # Fallback to hardcoded version if reading fails
-    __version__ = "1.4.0"
+    __version__ = "0.0.0"

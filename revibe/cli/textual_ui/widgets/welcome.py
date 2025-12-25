@@ -270,10 +270,10 @@ class WelcomeBanner(Static):
 
         # REVIBE text logo with animated colors - only in logo area
         patterns = [
-            f"[{color}]REVIBE[/]{S}{self._static_line1_suffix}",
-            f"[{color}]REVIBE[/]{S}{self._static_line2_suffix}",
-            f"[{color}]REVIBE[/]{S}{self._static_line3_suffix}",
-            f"[{color}]REVIBE[/]{S}",
-            f"[{color}]REVIBE[/]{S}{self._static_line5_suffix}",
+            f"[{color}]{self.BLOCK}[/]{S}{self._static_line1_suffix}",
+            f"[{color}]{self.BLOCK}[/]{S}{self._static_line2_suffix}",
+            f"[{color}]{self.BLOCK}[/]{S}{self._static_line3_suffix}",
+            f"[{color}]{self.BLOCK}[/]{S}",
+            f"[{color}]{self.BLOCK}[/]{S}{self._static_line5_suffix}",
         ]
         return patterns[line_idx]

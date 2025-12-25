@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Dynamic version display from pyproject.toml
 - REVIBE text logo in welcome banner with animated colors
+- New provider support: Hugging Face, Groq, Ollama, and llama.cpp
+- Unified HTTP client using httpx package across all backends
 
 ### Changed
 
@@ -23,16 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix continuation message to use "revibe" instead of "vibe"
 - Fix welcome banner animation rendering with new REVIBE logo
 - Update model configs with explicit context and max_output values
-
-## [1.4.0] - 2025-12-24
-
-### Added
-
-- New provider support: Hugging Face, Groq, Ollama, and llama.cpp
-- Unified HTTP client using httpx package across all backends
-
-### Fixed
-
 - Fix keyboard navigation bugs in model and provider selectors
 
 ## [1.3.0] - 2025-12-23
