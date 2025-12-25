@@ -375,6 +375,8 @@ class MistralBackend:
     async def list_models(self) -> list[str]:
         try:
             response = await self._get_client().models.list_async()
+            if response.data is None:
+                return []
             return [m.id for m in response.data]
         except Exception:
             return []
