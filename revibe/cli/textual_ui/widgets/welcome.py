@@ -260,23 +260,20 @@ class WelcomeBanner(Static):
         color = self._get_color(line_idx)
         state = self._line_states[line_idx]
 
-        if color == state.rendered_color and self._cached_text_lines[slot_idx]:
-            return
-
         state.rendered_color = color
         self._cached_text_lines[slot_idx] = Text.from_markup(
             self._build_line(slot_idx, color)
         )
 
     def _build_line(self, line_idx: int, color: str) -> str:
-        B = self.BLOCK
         S = self.SPACE
 
+        # REVIBE text logo with animated colors - only in logo area
         patterns = [
-            f"{S}[{color}]{B}[/]{S}{S}{S}[{color}]{B}[/]{S}{self._static_line1_suffix}",
-            f"{S}[{color}]{B}{B}[/]{S}[{color}]{B}{B}[/]{S}{self._static_line2_suffix}",
-            f"{S}[{color}]{B}{B}{B}{B}{B}[/]{S}{self._static_line3_suffix}",
-            f"{S}[{color}]{B}[/]{S}[{color}]{B}[/]{S}[{color}]{B}[/]{S}",
-            f"[{color}]{B}{B}{B}[/]{S}[{color}]{B}{B}{B}[/]{self._static_line5_suffix}",
+            f"[{color}]REVIBE[/]{S}{self._static_line1_suffix}",
+            f"[{color}]REVIBE[/]{S}{self._static_line2_suffix}",
+            f"[{color}]REVIBE[/]{S}{self._static_line3_suffix}",
+            f"[{color}]REVIBE[/]{S}",
+            f"[{color}]REVIBE[/]{S}{self._static_line5_suffix}",
         ]
         return patterns[line_idx]

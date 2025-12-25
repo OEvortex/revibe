@@ -60,7 +60,7 @@ from revibe.core.utils import (
     is_dangerous_directory,
     logger,
 )
-from revibe.update_notifier import (
+from revibe.cli.update_notifier import (
     FileSystemUpdateCacheRepository,
     PyPIVersionUpdateGateway,
     UpdateCacheRepository,
@@ -202,8 +202,15 @@ class VibeApp(App):
         self._context_progress = self.query_one(ContextProgress)
 
         if self.config.auto_compact_threshold > 0:
+            # Use the actual model context limit for display, but auto_compact_threshold for compaction
+            try:
+                active_model = self.config.get_active_model()
+                display_context = active_model.context
+            except ValueError:
+                display_context = self.config.auto_compact_threshold
+
             self._context_progress.tokens = TokenState(
-                max_tokens=self.config.auto_compact_threshold, current_tokens=0
+                max_tokens=display_context, current_tokens=0
             )
 
         chat_input_container = self.query_one(ChatInputContainer)
@@ -770,8 +777,15 @@ class VibeApp(App):
             async for event in self.agent.act(rendered_prompt):
                 if self._context_progress and self.agent:
                     current_state = self._context_progress.tokens
+                    # Use the actual model context limit for display
+                    try:
+                        active_model = self.config.get_active_model()
+                        display_context = active_model.context
+                    except ValueError:
+                        display_context = current_state.max_tokens
+
                     self._context_progress.tokens = TokenState(
-                        max_tokens=current_state.max_tokens,
+                        max_tokens=display_context,
                         current_tokens=self.agent.stats.context_tokens,
                     )
 
@@ -905,8 +919,15 @@ class VibeApp(App):
                     current_tokens = (
                         self.agent.stats.context_tokens if self.agent else 0
                     )
+                    # Use the actual model context limit for display
+                    try:
+                        active_model = self.config.get_active_model()
+                        display_context = active_model.context
+                    except ValueError:
+                        display_context = self.config.auto_compact_threshold
+
                     self._context_progress.tokens = TokenState(
-                        max_tokens=self.config.auto_compact_threshold,
+                        max_tokens=display_context,
                         current_tokens=current_tokens,
                     )
                 else:
@@ -943,8 +964,15 @@ class VibeApp(App):
 
             if self._context_progress and self.agent:
                 current_state = self._context_progress.tokens
+                # Use the actual model context limit for display
+                try:
+                    active_model = self.config.get_active_model()
+                    display_context = active_model.context
+                except ValueError:
+                    display_context = current_state.max_tokens
+
                 self._context_progress.tokens = TokenState(
-                    max_tokens=current_state.max_tokens,
+                    max_tokens=display_context,
                     current_tokens=self.agent.stats.context_tokens,
                 )
             await messages_area.mount(UserMessage("/clear"))
@@ -1046,8 +1074,15 @@ class VibeApp(App):
 
             if self._context_progress:
                 current_state = self._context_progress.tokens
+                # Use the actual model context limit for display
+                try:
+                    active_model = self.config.get_active_model()
+                    display_context = active_model.context
+                except ValueError:
+                    display_context = current_state.max_tokens
+
                 self._context_progress.tokens = TokenState(
-                    max_tokens=current_state.max_tokens, current_tokens=new_tokens
+                    max_tokens=display_context, current_tokens=new_tokens
                 )
         except asyncio.CancelledError:
             compact_msg.set_error("Compaction interrupted")
@@ -1376,8 +1411,15 @@ class VibeApp(App):
 
             if self._context_progress:
                 current_state = self._context_progress.tokens
+                # Use the actual model context limit for display
+                try:
+                    active_model = self.config.get_active_model()
+                    display_context = active_model.context
+                except ValueError:
+                    display_context = current_state.max_tokens
+
                 self._context_progress.tokens = TokenState(
-                    max_tokens=current_state.max_tokens,
+                    max_tokens=display_context,
                     current_tokens=self.agent.stats.context_tokens,
                 )
 
@@ -1598,8 +1640,8 @@ def _print_session_resume_message(session_id: str | None) -> None:
         return
 
     print()
-    print("To continue this session, run: vibe --continue")
-    print(f"Or: vibe --resume {session_id}")
+    print("To continue this session, run: revibe --continue")
+    print(f"Or: revibe --resume {session_id}")
 
 
 def run_textual_ui(
