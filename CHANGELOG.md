@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-12-25
+
+### Added
+
+- Dynamic version display from pyproject.toml
+- REVIBE text logo in welcome banner with animated colors
+
+### Changed
+
+- Replace block logo with "REVIBE" text in welcome banner
+- Make token display dynamic based on model context instead of hardcoded values
+
+### Fixed
+
+- Fix hardcoded "200k tokens" display to show actual model context limit
+- Fix continuation message to use "revibe" instead of "vibe"
+- Fix welcome banner animation rendering with new REVIBE logo
+- Update model configs with explicit context and max_output values
+
 ## [1.4.0] - 2025-12-24
 
 ### Added
