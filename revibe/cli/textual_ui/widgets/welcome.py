@@ -89,18 +89,29 @@ class WelcomeBanner(Static):
         self._initialize_static_line_suffixes()
 
     def _initialize_static_line_suffixes(self) -> None:
-        self._static_line1_suffix = f"[b]ReVibe v{__version__}[/]"
-        self._static_line2_suffix = f"[dim]model [/] {self.config.active_model}"
+        # Define some premium colors
+        ACCENT = "#FFAF00"
+        MODEL_COLOR = "#00D1FF"
+        STATS_COLOR = "#00FF94"
+        PATH_COLOR = "#B388FF"
+        DIM = "#6272A4"
+
+        self._static_line1_suffix = f"[{ACCENT}]✦[/] [b]ReVibe[/] [dim]v{__version__}[/]"
+        self._static_line2_suffix = (
+            f"[dim]model [/] [{MODEL_COLOR}]{self.config.active_model}[/]"
+        )
         mcp_count = len(self.config.mcp_servers)
         model_count = len(self.config.models)
         self._static_line3_suffix = (
-            f"[dim]stats [/] {model_count} models · {mcp_count} MCP servers"
+            f"[dim]stats [/] [{STATS_COLOR}]{model_count}[/] models · [{STATS_COLOR}]{mcp_count}[/] MCP"
         )
         self._static_line4_suffix = (
-            f"[dim]path  [/] {self.config.effective_workdir}"
+            f"[dim]path  [/] [{PATH_COLOR}]{self.config.effective_workdir}[/]"
         )
+
+        # Footer with "pill" style commands
         self._static_line7 = Text.from_markup(
-            f"[dim]Type[/] [{self.BORDER_TARGET_COLOR}]/help[/] [dim]for information • [/][{self.BORDER_TARGET_COLOR}]/terminal-setup[/][dim] for shift+enter[/]",
+            f"[dim]Press[/] [b reverse] /help [/] [dim]or[/] [b reverse] /terminal-setup [/] [dim]to begin[/]",
             justify="center",
         )
 
@@ -270,6 +281,6 @@ class WelcomeBanner(Static):
             self._static_line2_suffix,
             self._static_line3_suffix,
             self._static_line4_suffix,
-            "",
+            "[dim]───────────────────────────────────────[/]",
         ]
         return patterns[line_idx]
