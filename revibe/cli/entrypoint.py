@@ -91,6 +91,16 @@ def parse_arguments() -> argparse.Namespace:
         help="Run interactive setup: choose provider, theme, and configure API key",
     )
 
+    parser.add_argument(
+        "--tool-format",
+        type=str,
+        choices=["native", "xml"],
+        default=None,
+        metavar="FORMAT",
+        help="Tool calling format: 'native' for API function calling (default), "
+        "'xml' for XML-based tool calling in prompts.",
+    )
+
     continuation_group = parser.add_mutually_exclusive_group()
     continuation_group.add_argument(
         "-c",

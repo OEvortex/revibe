@@ -152,6 +152,31 @@ class BaseTool[
 
         return None
 
+    @classmethod
+    @functools.cache
+    def get_xml_tool_prompt(cls) -> str | None:
+        """Loads and returns the content of the tool's XML prompt file, if it exists.
+
+        The XML prompt file is expected to be in a 'prompts' subdirectory relative to
+        the tool's source file, with the same name but a _xml.md extension
+        (e.g., bash.py -> prompts/bash_xml.md).
+
+        Falls back to the standard prompt if no XML version exists.
+        """
+        try:
+            class_file = inspect.getfile(cls)
+            class_path = Path(class_file)
+            prompt_dir = class_path.parent / "prompts"
+            xml_prompt_path = prompt_dir / f"{class_path.stem}_xml.md"
+
+            if xml_prompt_path.exists():
+                return xml_prompt_path.read_text("utf-8")
+        except (FileNotFoundError, TypeError, OSError):
+            pass
+
+        # Fall back to standard prompt
+        return cls.get_tool_prompt()
+
     async def invoke(self, **raw: Any) -> ToolResult:
         """Validate arguments and run the tool.
         Pattern checking is now handled by Agent._should_execute_tool.

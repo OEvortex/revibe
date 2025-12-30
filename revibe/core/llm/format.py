@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from fnmatch import fnmatch
 from functools import lru_cache
+import html
 import json
 import re
+from uuid import uuid4
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
@@ -271,4 +273,242 @@ class APIToolFormatHandler:
             tool_call_id=failed.call_id,
             name=failed.tool_name,
             content=error_content,
+        )
+
+
+class XMLToolFormatHandler:
+    """Handles XML-based tool calling format.
+
+    Tool definitions are embedded in the system prompt using XML tags.
+    The model responds with XML tool calls like:
+
+    <tool_call>
+    <tool_name>bash</tool_name>
+    <parameters>
+    <command>ls -la</command>
+    </parameters>
+    </tool_call>
+
+    This format is compatible with models that don't support native function calling.
+    """
+
+    # Regex patterns for parsing XML tool calls
+    TOOL_CALL_PATTERN = re.compile(
+        r'<tool_call>(.*?)</tool_call>',
+        re.DOTALL | re.IGNORECASE
+    )
+    TOOL_NAME_PATTERN = re.compile(
+        r'<tool_name>(.*?)</tool_name>',
+        re.DOTALL | re.IGNORECASE
+    )
+    PARAMETERS_PATTERN = re.compile(
+        r'<parameters>(.*?)</parameters>',
+        re.DOTALL | re.IGNORECASE
+    )
+    PARAM_PATTERN = re.compile(
+        r'<(\w+)>(.*?)</\1>',
+        re.DOTALL
+    )
+
+    @property
+    def name(self) -> str:
+        return "xml"
+
+    def get_available_tools(
+        self, tool_manager: ToolManager, config: VibeConfig
+    ) -> list[AvailableTool] | None:
+        """Return None - tools are embedded in system prompt for XML mode."""
+        return None
+
+    def get_tool_choice(self) -> StrToolChoice | AvailableTool | None:
+        """Return None - no tool choice in XML mode."""
+        return None
+
+    def get_tool_definitions_xml(
+        self, tool_manager: ToolManager, config: VibeConfig
+    ) -> str:
+        """Generate XML tool definitions for embedding in system prompt."""
+        active_tools = get_active_tool_classes(tool_manager, config)
+
+        if not active_tools:
+            return ""
+
+        lines = ["<tools>"]
+
+        for tool_class in active_tools:
+            tool_name = tool_class.get_name()
+            description = tool_class.description
+            parameters = tool_class.get_parameters()
+
+            lines.append(f'  <tool name="{html.escape(tool_name)}">')
+            lines.append(f'    <description>{html.escape(description)}</description>')
+
+            # Add parameters section
+            props = parameters.get("properties", {})
+            required = parameters.get("required", [])
+
+            if props:
+                lines.append("    <parameters>")
+                for param_name, param_info in props.items():
+                    param_type = param_info.get("type", "string")
+                    param_desc = param_info.get("description", "")
+                    is_required = param_name in required
+                    req_str = "true" if is_required else "false"
+
+                    lines.append(
+                        f'      <parameter name="{html.escape(param_name)}" '
+                        f'type="{html.escape(param_type)}" required="{req_str}">'
+                    )
+                    if param_desc:
+                        lines.append(f'        <description>{html.escape(param_desc)}</description>')
+
+                    # Add default value if present
+                    if "default" in param_info:
+                        default_val = param_info["default"]
+                        lines.append(f'        <default>{html.escape(str(default_val))}</default>')
+
+                    # Add enum values if present
+                    if "enum" in param_info:
+                        enum_vals = ", ".join(str(v) for v in param_info["enum"])
+                        lines.append(f'        <enum>{html.escape(enum_vals)}</enum>')
+
+                    lines.append("      </parameter>")
+                lines.append("    </parameters>")
+
+            lines.append("  </tool>")
+
+        lines.append("</tools>")
+        return "\n".join(lines)
+
+    def process_api_response_message(self, message: Any) -> LLMMessage:
+        """Process API response - in XML mode, tool calls are in content."""
+        return LLMMessage(
+            role=getattr(message, "role", Role.assistant),
+            content=getattr(message, "content", "") or "",
+            reasoning_content=getattr(message, "reasoning_content", None),
+            tool_calls=None,  # XML mode doesn't use native tool_calls
+        )
+
+    def parse_message(self, message: LLMMessage) -> ParsedMessage:
+        """Parse XML tool calls from message content."""
+        tool_calls = []
+        content = message.content or ""
+
+        # Find all <tool_call> blocks in content
+        for match in self.TOOL_CALL_PATTERN.finditer(content):
+            block = match.group(1)
+
+            # Extract tool name
+            name_match = self.TOOL_NAME_PATTERN.search(block)
+            if not name_match:
+                continue
+            tool_name = name_match.group(1).strip()
+
+            # Extract parameters
+            raw_args: dict[str, Any] = {}
+            params_match = self.PARAMETERS_PATTERN.search(block)
+            if params_match:
+                params_block = params_match.group(1)
+                # Parse individual parameters
+                for param_match in self.PARAM_PATTERN.finditer(params_block):
+                    param_name = param_match.group(1)
+                    param_value = param_match.group(2).strip()
+                    # Try to parse as JSON for complex types
+                    try:
+                        raw_args[param_name] = json.loads(param_value)
+                    except (json.JSONDecodeError, ValueError):
+                        raw_args[param_name] = param_value
+
+            # Generate a unique call ID
+            call_id = f"xml_{uuid4().hex[:12]}"
+
+            tool_calls.append(
+                ParsedToolCall(
+                    tool_name=tool_name,
+                    raw_args=raw_args,
+                    call_id=call_id,
+                )
+            )
+
+        return ParsedMessage(tool_calls=tool_calls)
+
+    def resolve_tool_calls(
+        self, parsed: ParsedMessage, tool_manager: ToolManager, config: VibeConfig
+    ) -> ResolvedMessage:
+        """Resolve parsed tool calls to actual tool instances."""
+        resolved_calls = []
+        failed_calls = []
+
+        active_tools = {
+            tool_class.get_name(): tool_class
+            for tool_class in get_active_tool_classes(tool_manager, config)
+        }
+
+        for parsed_call in parsed.tool_calls:
+            tool_class = active_tools.get(parsed_call.tool_name)
+            if not tool_class:
+                failed_calls.append(
+                    FailedToolCall(
+                        tool_name=parsed_call.tool_name,
+                        call_id=parsed_call.call_id,
+                        error=f"Unknown tool '{parsed_call.tool_name}'",
+                    )
+                )
+                continue
+
+            args_model, _ = tool_class._get_tool_args_results()
+            try:
+                validated_args = args_model.model_validate(parsed_call.raw_args)
+                resolved_calls.append(
+                    ResolvedToolCall(
+                        tool_name=parsed_call.tool_name,
+                        tool_class=tool_class,
+                        validated_args=validated_args,
+                        call_id=parsed_call.call_id,
+                    )
+                )
+            except ValidationError as e:
+                failed_calls.append(
+                    FailedToolCall(
+                        tool_name=parsed_call.tool_name,
+                        call_id=parsed_call.call_id,
+                        error=f"Invalid arguments: {e}",
+                    )
+                )
+
+        return ResolvedMessage(tool_calls=resolved_calls, failed_calls=failed_calls)
+
+    def create_tool_response_message(
+        self, tool_call: ResolvedToolCall, result_text: str
+    ) -> LLMMessage:
+        """Create a tool response message in XML format.
+
+        Returns as a user message since XML mode doesn't use the tool role.
+        """
+        xml_result = (
+            f'<tool_result name="{html.escape(tool_call.tool_name)}" '
+            f'call_id="{html.escape(tool_call.call_id)}">\n'
+            f'<status>success</status>\n'
+            f'<output>\n{result_text}\n</output>\n'
+            f'</tool_result>'
+        )
+        return LLMMessage(
+            role=Role.user,
+            content=xml_result,
+        )
+
+    def create_failed_tool_response_message(
+        self, failed: FailedToolCall, error_content: str
+    ) -> LLMMessage:
+        """Create a failed tool response message in XML format."""
+        xml_result = (
+            f'<tool_result name="{html.escape(failed.tool_name)}" '
+            f'call_id="{html.escape(failed.call_id)}">\n'
+            f'<status>error</status>\n'
+            f'<error>\n{error_content}\n</error>\n'
+            f'</tool_result>'
+        )
+        return LLMMessage(
+            role=Role.user,
+            content=xml_result,
         )

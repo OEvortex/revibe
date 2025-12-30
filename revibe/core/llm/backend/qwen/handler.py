@@ -98,6 +98,8 @@ class ThinkingBlockParser:
 
 
 class QwenBackend:
+    supported_formats: list[str] = ["native", "xml"]
+
     """Backend for Qwen Code API (Alibaba Cloud DashScope).
 
     Supports both OAuth authentication (for Qwen CLI users) and

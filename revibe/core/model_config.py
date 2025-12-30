@@ -2,10 +2,18 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class ModelConfig(BaseModel):
+    """Configuration for an LLM model.
+
+    Attributes:
+        supported_formats: List of supported tool calling formats.
+            - "native": Uses API's native function/tool calling
+            - "xml": Uses XML-based tool calling in prompts
+            Models default to supporting both formats.
+    """
     name: str
     provider: str
     alias: str
@@ -14,6 +22,7 @@ class ModelConfig(BaseModel):
     output_price: float = 0.0
     context: int = 128000
     max_output: int = 32000
+    supported_formats: list[str] = Field(default_factory=lambda: ["native", "xml"])
 
     @model_validator(mode="before")
     @classmethod

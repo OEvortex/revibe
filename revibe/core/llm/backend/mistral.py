@@ -152,6 +152,8 @@ class MistralMapper:
 
 
 class MistralBackend:
+    supported_formats: list[str] = ["native", "xml"]
+
     def __init__(self, provider: ProviderConfigUnion, timeout: float = 720.0) -> None:
         self._client: mistralai.Mistral | None = None
         self._provider = provider
