@@ -10,7 +10,7 @@ from textual.binding import Binding, BindingType
 from textual.containers import Center, Horizontal, Vertical
 from textual.events import MouseUp
 from textual.validation import Length
-from textual.widgets import Button, Input, Link, Static
+from textual.widgets import Input, Link, Static
 
 from revibe.cli.clipboard import copy_selection_to_clipboard
 from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfigUnion, VibeConfig
@@ -40,6 +40,7 @@ class ApiKeyScreen(OnboardingScreen):
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("ctrl+c", "cancel", "Cancel", show=False),
         Binding("escape", "cancel", "Cancel", show=False),
+        Binding("enter", "finish", "Finish", show=False),
     ]
 
     NEXT_SCREEN = None
@@ -85,10 +86,6 @@ class ApiKeyScreen(OnboardingScreen):
         active_model = config.get_active_model()
         self.provider = config.get_provider_for_model(active_model)
 
-        # Skip API key input for providers that don't require it
-        if not getattr(self.provider, "api_key_env_var", ""):
-            self.app.exit("completed")
-
     def _compose_provider_link(self, provider_name: str) -> ComposeResult:
         if not self.provider or self.provider.name not in PROVIDER_HELP:
             return
@@ -129,16 +126,7 @@ class ApiKeyScreen(OnboardingScreen):
                             f"{self.provider.name.capitalize()} does not require an API key.",
                             id="no-api-key-message",
                         )
-                        yield Static(
-                            "Your setup is complete. Press Enter or click below to continue.",
-                            id="continue-hint",
-                        )
-                        yield Center(
-                            Horizontal(
-                                Button("Continue", id="continue-button"),
-                                id="continue-box",
-                            )
-                        )
+                        yield Static("Press Enter to exit.", id="continue-hint")
                         yield Static("", id="feedback")
                 yield Static("", classes="spacer")
                 yield Vertical(
@@ -217,3 +205,6 @@ class ApiKeyScreen(OnboardingScreen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "continue-button":
             self.app.exit("completed")
+
+    def action_finish(self) -> None:
+        self.app.exit("completed")

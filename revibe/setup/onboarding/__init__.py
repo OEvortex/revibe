@@ -53,3 +53,4 @@ def run_onboarding(app: App | None = None) -> None:
             )
         case "completed":
             rprint("\n[green]Setup completed![/]")
+            rprint("[dim]Use 'revibe' to start using ReVibe.[/]")

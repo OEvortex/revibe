@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 from unittest.mock import Mock
+from types import MethodType
 
 from revibe.core.config import GenericProviderConfig as ProviderConfig, VibeConfig
 from revibe.setup.onboarding.screens.api_key import ApiKeyScreen
@@ -21,7 +22,7 @@ class TestApiKeyScreen:
         config = VibeConfig(models=[model], providers=[provider])
 
         screen = ApiKeyScreen()
-        screen._load_config = lambda: config  # Mock the config loading
+        screen._load_config = MethodType(lambda self: config, screen)  # Mock the config loading
 
         screen.app = Mock()
         screen.app.exit = Mock()
@@ -43,7 +44,7 @@ class TestApiKeyScreen:
         config = VibeConfig(models=[model], providers=[provider])
 
         screen = ApiKeyScreen()
-        screen._load_config = lambda: config  # Mock the config loading
+        screen._load_config = MethodType(lambda self: config, screen)  # Mock the config loading
 
         # Mock the app.exit method
         exit_called = False
@@ -75,7 +76,7 @@ class TestApiKeyScreen:
         config = VibeConfig(models=[model], providers=DEFAULT_PROVIDERS)
 
         screen = ApiKeyScreen()
-        screen._load_config = lambda: config
+        screen._load_config = MethodType(lambda self: config, screen)
 
         exit_called = False
         exit_value = None
