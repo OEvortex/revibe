@@ -14,6 +14,7 @@ class ModelConfig(BaseModel):
             - "xml": Uses XML-based tool calling in prompts
             Models default to supporting both formats.
     """
+
     name: str
     provider: str
     alias: str

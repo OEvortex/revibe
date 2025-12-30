@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-import pytest
-from unittest.mock import Mock
 from types import MethodType
+from unittest.mock import Mock
+
+import pytest
 
 from revibe.core.config import GenericProviderConfig as ProviderConfig, VibeConfig
-from revibe.setup.onboarding.screens.api_key import ApiKeyScreen
 from revibe.core.model_config import ModelConfig
+from revibe.setup.onboarding.screens.api_key import ApiKeyScreen
 
 
 class TestApiKeyScreen:

@@ -8,11 +8,9 @@ from pydantic import TypeAdapter
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Center, Horizontal, Vertical
-from textual.events import MouseUp
 from textual.validation import Length
-from textual.widgets import Input, Link, Static, Button
+from textual.widgets import Button, Input, Link, Static
 
-from revibe.cli.clipboard import copy_selection_to_clipboard
 from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfigUnion, VibeConfig
 from revibe.core.model_config import DEFAULT_MODELS, ModelConfig
 from revibe.core.paths.global_paths import GLOBAL_ENV_FILE
@@ -119,11 +117,13 @@ class ApiKeyScreen(OnboardingScreen):
         if not getattr(self.provider, "api_key_env_var", ""):
             with Vertical(id="api-key-outer"):
                 yield Static("", classes="spacer")
-                yield Center(Static("Setup Complete!", id="api-key-title"))
+                yield Center(
+                    Static("Setup Complete! Press Enter to exit.", id="api-key-title")
+                )
                 with Center():
                     with Vertical(id="api-key-content"):
                         yield Static(
-                            f"[dim]{self.provider.name.capitalize()} does not require an API key. Press Enter to exit.[/]",
+                            f"{self.provider.name.capitalize()} does not require an API key.",
                             id="no-api-key-message",
                         )
                         yield Static("", id="feedback")
