@@ -1277,54 +1277,30 @@ class VibeApp(App):
         except Exception:
             pass
 
-    def action_interrupt(self) -> None:
-        current_time = time.monotonic()
+    def _handle_bottom_app_interrupt(self) -> bool:
+        """Handle interrupt for bottom apps. Returns True if handled."""
+        handlers = {
+            BottomApp.Config: (ConfigApp, "action_close"),
+            BottomApp.Approval: (ApprovalApp, "action_reject"),
+            BottomApp.ApiKeyInput: (ApiKeyInput, "action_cancel"),
+            BottomApp.Model: (ModelSelector, "action_close"),
+            BottomApp.Provider: (ProviderSelector, "action_close"),
+        }
 
-        if self._current_bottom_app == BottomApp.Config:
+        handler = handlers.get(self._current_bottom_app)
+        if handler:
             try:
-                config_app = self.query_one(ConfigApp)
-                config_app.action_close()
+                widget_class, action = handler
+                widget = self.query_one(widget_class)
+                getattr(widget, action)()
                 self._last_escape_time = None
-                return
+                return True
             except Exception:
                 pass
+        return False
 
-        if self._current_bottom_app == BottomApp.Approval:
-            try:
-                approval_app = self.query_one(ApprovalApp)
-                approval_app.action_reject()
-                self._last_escape_time = None
-                return
-            except Exception:
-                pass
-
-        if self._current_bottom_app == BottomApp.ApiKeyInput:
-            try:
-                api_key_input = self.query_one(ApiKeyInput)
-                api_key_input.action_cancel()
-                self._last_escape_time = None
-                return
-            except Exception:
-                pass
-
-        if self._current_bottom_app == BottomApp.Model:
-            try:
-                model_selector = self.query_one(ModelSelector)
-                model_selector.action_close()
-                self._last_escape_time = None
-                return
-            except Exception:
-                pass
-
-        if self._current_bottom_app == BottomApp.Provider:
-            try:
-                provider_selector = self.query_one(ProviderSelector)
-                provider_selector.action_close()
-                self._last_escape_time = None
-                return
-            except Exception:
-                pass
-
+    def _handle_input_interrupt(self, current_time: float) -> bool:
+        """Handle interrupt for input widget. Returns True if handled."""
         if (
             self._current_bottom_app == BottomApp.Input
             and self._last_escape_time is not None
@@ -1335,21 +1311,32 @@ class VibeApp(App):
                 if input_widget.value:
                     input_widget.value = ""
                     self._last_escape_time = None
-                    return
+                    return True
             except Exception:
                 pass
+        return False
 
+    def _needs_interrupt(self) -> bool:
+        """Check if agent interruption is needed."""
         has_pending_user_message = any(
             msg.has_class("pending") for msg in self.query(UserMessage)
         )
-
-        interrupt_needed = self._agent_running or (
+        return self._agent_running or (
             self._agent_init_task
             and not self._agent_init_task.done()
             and has_pending_user_message
         )
 
-        if interrupt_needed:
+    def action_interrupt(self) -> None:
+        current_time = time.monotonic()
+
+        if self._handle_bottom_app_interrupt():
+            return
+
+        if self._handle_input_interrupt(current_time):
+            return
+
+        if self._needs_interrupt():
             self.run_worker(self._interrupt_agent(), exclusive=False)
 
         self._last_escape_time = current_time

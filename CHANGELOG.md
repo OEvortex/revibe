@@ -18,16 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- TUI Visual & Functional Enhancements:
-  - Added `redact_xml_tool_calls(text)` utility in `revibe/core/utils.py` to remove raw `<tool_call>...<tool_call>` blocks from assistant output stream
-  - Refactored `StreamingMessageBase` in `revibe/cli/textual_ui/widgets/messages.py` to track `_displayed_content` for smart UI updates
-  - Enhanced premium tool summaries in chat history:
-    * Grep now shows as `Grep (pattern)` instead of `grep: 'pattern'`
-    * Bash now shows as `Bash (command)` instead of raw command string
-    * Read File now shows as `Read (filename)` with cleaner summary
-    * Write File now shows as `Write (filename)`
-    * Search & Replace now shows as `Patch (filename)`
-  - Applied redaction logic to `ReasoningMessage` in `revibe/cli/textual_ui/widgets/messages.py` to hide raw XML in reasoning blocks
+- Setup TUI improvements:
+  - Skip API key input screen for providers that don't require API keys (ollama, llamacpp, qwencode)
+  - Display setup completion screen with "Press Enter to exit" instruction
+  - Hide configuration documentation links from completion screen
+  - Show usage message "Use 'revibe' to start using ReVibe" after setup completion
+
+### Fixed
+
+- AttributeError in `revibe --setup` caused by models loaded as dicts instead of ModelConfig objects
+- Type errors in config loading and provider handling
 
 ### Fixed
 
