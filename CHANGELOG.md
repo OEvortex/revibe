@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Dynamic tool prompt resolution in `BaseTool` allowing automatic fallback to standard prompts if XML version is missing.
 - First public release of ReVibe with all core functionality.
 - New models added to Hugging Face provider.
+- Animated "ReVibe" text logo in setup completion screen with gradient colors.
+- Provider help URLs for all API key requiring providers (Hugging Face, Cerebras).
 
 ### Changed
 
@@ -35,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     * Write File now shows as `Write (filename)`
     * Search & Replace now shows as `Patch (filename)`
   - Applied redaction logic to `ReasoningMessage` in `revibe/cli/textual_ui/widgets/messages.py` to hide raw XML in reasoning blocks
+- Model alias validation now allows same aliases for different providers while maintaining uniqueness within each provider.
 
 ### Fixed
 

@@ -8,6 +8,7 @@ from pydantic import TypeAdapter
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Center, Horizontal, Vertical
+from textual.timer import Timer
 from textual.validation import Length
 from textual.widgets import Button, Input, Link, Static
 
@@ -21,6 +22,11 @@ PROVIDER_HELP = {
     "openai": ("https://platform.openai.com/api-keys", "OpenAI Platform"),
     "anthropic": ("https://console.anthropic.com/settings/keys", "Anthropic Console"),
     "groq": ("https://console.groq.com/keys", "Groq Console"),
+    "huggingface": ("https://huggingface.co/settings/tokens", "Hugging Face Settings"),
+    "cerebras": (
+        "https://cloud.cerebras.ai/platform/api-keys",
+        "Cerebras Cloud Platform",
+    ),
 }
 CONFIG_DOCS_URL = "https://github.com/OEvortex/revibe?tab=readme-ov-file#configuration"
 
@@ -32,6 +38,28 @@ PROVIDER_ADAPTER = TypeAdapter(list[ProviderConfigUnion])
 def _save_api_key_to_env_file(env_key: str, api_key: str) -> None:
     GLOBAL_ENV_FILE.path.parent.mkdir(parents=True, exist_ok=True)
     set_key(GLOBAL_ENV_FILE.path, env_key, api_key)
+
+
+GRADIENT_COLORS = [
+    "#ff6b00",
+    "#ff7b00",
+    "#ff8c00",
+    "#ff9d00",
+    "#ffae00",
+    "#ffbf00",
+    "#ffae00",
+    "#ff9d00",
+    "#ff8c00",
+    "#ff7b00",
+]
+
+
+def _apply_gradient(text: str, offset: int) -> str:
+    result = []
+    for i, char in enumerate(text):
+        color = GRADIENT_COLORS[(i + offset) % len(GRADIENT_COLORS)]
+        result.append(f"[bold {color}]{char}[/]")
+    return "".join(result)
 
 
 class ApiKeyScreen(OnboardingScreen):
@@ -47,6 +75,8 @@ class ApiKeyScreen(OnboardingScreen):
         super().__init__()
         # Provider will be loaded when screen is shown
         self.provider = None
+        self._gradient_offset = 0
+        self._gradient_timer: Timer | None = None
 
     def _load_config(self) -> VibeConfig:
         """Load config, handling missing API key since we're in setup.
@@ -117,9 +147,7 @@ class ApiKeyScreen(OnboardingScreen):
         if not getattr(self.provider, "api_key_env_var", ""):
             with Vertical(id="api-key-outer"):
                 yield Static("", classes="spacer")
-                yield Center(
-                    Static("Setup Complete! Press Enter to exit.", id="api-key-title")
-                )
+                yield Center(Static("", id="api-key-title"))
                 with Center():
                     with Vertical(id="api-key-content"):
                         yield Static(
@@ -156,7 +184,27 @@ class ApiKeyScreen(OnboardingScreen):
                 id="config-docs-section",
             )
 
+    def _start_gradient_animation(self) -> None:
+        self._gradient_timer = self.set_interval(0.08, self._animate_gradient)
+
+    def _animate_gradient(self) -> None:
+        self._gradient_offset = (self._gradient_offset + 1) % len(GRADIENT_COLORS)
+        title_widget = self.query_one("#api-key-title", Static)
+        title_widget.update(self._render_title())
+
+    def _render_title(self) -> str:
+        prefix = "Setup Complete! "
+        revibe = "ReVibe"
+        suffix = " Setup Complete! Press Enter to exit."
+
+        animated_revibe = _apply_gradient(revibe, self._gradient_offset)
+        return f"{prefix}{animated_revibe}{suffix}"
+
     def on_mount(self) -> None:
+        title_widget = self.query_one("#api-key-title", Static)
+        if title_widget:
+            title_widget.update(self._render_title())
+            self._start_gradient_animation()
         if hasattr(self, "input_widget") and self.input_widget:
             self.input_widget.focus()
 
