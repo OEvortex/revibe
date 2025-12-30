@@ -22,7 +22,7 @@ class TestApiKeyScreen:
         config = VibeConfig(models=[model], providers=[provider])
 
         screen = ApiKeyScreen()
-        screen._load_config = MethodType(lambda self: config, screen)  # Mock the config loading
+        screen._load_config = MethodType(lambda self: config, screen)  # Mock the config loading  # type: ignore[invalid-assignment]
 
         screen.app = Mock()
         screen.app.exit = Mock()
@@ -44,7 +44,7 @@ class TestApiKeyScreen:
         config = VibeConfig(models=[model], providers=[provider])
 
         screen = ApiKeyScreen()
-        screen._load_config = MethodType(lambda self: config, screen)  # Mock the config loading
+        screen._load_config = MethodType(lambda self: config, screen)  # Mock the config loading  # type: ignore[invalid-assignment]
 
         # Mock the app.exit method
         exit_called = False
@@ -76,7 +76,7 @@ class TestApiKeyScreen:
         config = VibeConfig(models=[model], providers=DEFAULT_PROVIDERS)
 
         screen = ApiKeyScreen()
-        screen._load_config = MethodType(lambda self: config, screen)
+        screen._load_config = MethodType(lambda self: config, screen)  # type: ignore[invalid-assignment]
 
         exit_called = False
         exit_value = None

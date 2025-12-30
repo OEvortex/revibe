@@ -10,7 +10,7 @@ from textual.binding import Binding, BindingType
 from textual.containers import Center, Horizontal, Vertical
 from textual.events import MouseUp
 from textual.validation import Length
-from textual.widgets import Input, Link, Static
+from textual.widgets import Input, Link, Static, Button
 
 from revibe.cli.clipboard import copy_selection_to_clipboard
 from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfigUnion, VibeConfig
@@ -126,7 +126,7 @@ class ApiKeyScreen(OnboardingScreen):
                             f"{self.provider.name.capitalize()} does not require an API key.",
                             id="no-api-key-message",
                         )
-                        yield Static("Press Enter to exit.", id="continue-hint")
+                        yield Static("[dim]Press Enter to exit.[/]", id="continue-hint")
                         yield Static("", id="feedback")
                 yield Static("", classes="spacer")
                 yield Vertical(
