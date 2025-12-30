@@ -12,7 +12,11 @@ from pydantic import BaseModel
 from revibe.core.config import ToolFormat, VibeConfig
 from revibe.core.interaction_logger import InteractionLogger
 from revibe.core.llm.backend.factory import BACKEND_FACTORY
-from revibe.core.llm.format import APIToolFormatHandler, ResolvedMessage, XMLToolFormatHandler
+from revibe.core.llm.format import (
+    APIToolFormatHandler,
+    ResolvedMessage,
+    XMLToolFormatHandler,
+)
 from revibe.core.llm.types import BackendLike
 from revibe.core.middleware import (
     AutoCompactMiddleware,

@@ -8,7 +8,7 @@ import tomli_w
 
 from revibe.core import config
 from revibe.core.config import VibeConfig
-from revibe.core.paths.config_paths import unlock_config_paths, ConfigPath
+from revibe.core.paths.config_paths import ConfigPath, unlock_config_paths
 
 
 def _restore_dump_config(config_file: Path):

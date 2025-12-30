@@ -164,7 +164,7 @@ class OpenAIAdapter(APIAdapter):
 
 
 class OpenAIBackend:
-    supported_formats: list[str] = ["native", "xml"]
+    supported_formats: ClassVar[list[str]] = ["native", "xml"]
 
     def __init__(
         self,

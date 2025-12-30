@@ -144,7 +144,7 @@ DEFAULT_MODELS = [
         context=1000000,
         max_output=32768,
     ),
-    ### Groq models
+    # Groq models
     ModelConfig(
         name="moonshotai/kimi-k2-instruct-0905",
         provider="groq",
@@ -186,7 +186,7 @@ DEFAULT_MODELS = [
         provider="huggingface",
         alias="glm-4.7",
     ),
-    ### Cerebras models
+    # Cerebras models
     ModelConfig(
         name="zai-glm-4.6",
         provider="cerebras",
@@ -232,7 +232,7 @@ DEFAULT_MODELS = [
         context=131072,
         max_output=40960,
     ),
-    ### Qwen Code models
+    # Qwen Code models
     ModelConfig(
         name="qwen3-coder-plus",
         provider="qwencode",
@@ -252,4 +252,3 @@ DEFAULT_MODELS = [
         max_output=65536,
     )
 ]
-

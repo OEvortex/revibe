@@ -452,8 +452,8 @@ def get_universal_system_prompt(
     # Add XML tool definitions if using XML format
     from revibe.core.config import ToolFormat
     if config.tool_format == ToolFormat.XML:
-        from revibe.core.llm.format import XMLToolFormatHandler
         from revibe import VIBE_ROOT
+        from revibe.core.llm.format import XMLToolFormatHandler
         xml_handler = XMLToolFormatHandler()
         tool_defs = xml_handler.get_tool_definitions_xml(tool_manager, config)
         if tool_defs:

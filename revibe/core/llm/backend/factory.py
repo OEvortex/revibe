@@ -21,4 +21,3 @@ BACKEND_FACTORY = {
     Backend.CEREBRAS: CerebrasBackend,
     Backend.QWEN: QwenBackend,
 }
-

@@ -264,6 +264,7 @@ def run_sync[T](coro: Coroutine[Any, Any, T]) -> T:
     """
     try:
         asyncio.get_running_loop()
+
         def _run() -> T:
             return asyncio.run(coro)
 

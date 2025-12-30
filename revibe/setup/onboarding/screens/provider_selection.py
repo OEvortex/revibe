@@ -130,4 +130,3 @@ class ProviderSelectionScreen(OnboardingScreen):
             rprint(f"[yellow]Warning: Could not save provider selection: {e}[/]")
             # Continue anyway - the API key screen will handle the mismatch
         self.action_next()
-

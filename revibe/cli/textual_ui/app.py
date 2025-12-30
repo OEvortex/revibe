@@ -80,6 +80,7 @@ class BottomApp(StrEnum):
     Model = auto()
 
 
+# ruff: noqa: PLR0904
 class VibeApp(App):
     ENABLE_COMMAND_PALETTE = False
     CSS_PATH = "app.tcss"

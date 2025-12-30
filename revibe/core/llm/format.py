@@ -5,8 +5,8 @@ from functools import lru_cache
 import html
 import json
 import re
-from uuid import uuid4
 from typing import TYPE_CHECKING, Any
+from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 

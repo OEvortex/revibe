@@ -56,7 +56,6 @@ class WelcomeBanner(Static):
     COLOR_CACHE_THRESHOLD = 0.001
     BORDER_PROGRESS_THRESHOLD = 0.01
 
-
     def __init__(self, config: VibeConfig) -> None:
         super().__init__(" ")
         self.config = config
@@ -94,7 +93,6 @@ class WelcomeBanner(Static):
         MODEL_COLOR = "#00D1FF"
         STATS_COLOR = "#00FF94"
         PATH_COLOR = "#B388FF"
-        DIM = "#6272A4"
 
         self._static_line1_suffix = f"[{ACCENT}]✦[/] [b]ReVibe[/] [dim]v{__version__}[/]"
         self._static_line2_suffix = (

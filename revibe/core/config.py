@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import shlex
 import tomllib
-from typing import Annotated, Any, Literal, TypeAlias
+from typing import Annotated, Any, Literal
 
 from dotenv import dotenv_values
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -143,6 +143,7 @@ class ToolFormat(StrEnum):
     NATIVE: Use the API's native function/tool calling mechanism
     XML: Use XML-based tool calling embedded in prompts (for models without native support)
     """
+
     NATIVE = auto()
     XML = auto()
 

@@ -5,7 +5,7 @@ import json
 import os
 import re
 import types
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, ClassVar, NamedTuple
 
 import httpx
 import mistralai
@@ -133,7 +133,9 @@ class MistralMapper:
             reasoning_content=concat_reasoning if concat_reasoning else None,
         )
 
-    def parse_tool_calls(self, tool_calls: list[mistralai.ToolCall] | None) -> list[ToolCall]:
+    def parse_tool_calls(
+        self, tool_calls: list[mistralai.ToolCall] | None
+    ) -> list[ToolCall]:
         if not tool_calls:
             return []
         return [
@@ -152,7 +154,7 @@ class MistralMapper:
 
 
 class MistralBackend:
-    supported_formats: list[str] = ["native", "xml"]
+    supported_formats: ClassVar[list[str]] = ["native", "xml"]
 
     def __init__(self, provider: ProviderConfigUnion, timeout: float = 720.0) -> None:
         self._client: mistralai.Mistral | None = None
