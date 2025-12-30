@@ -14,10 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `XMLToolFormatHandler` for robust parsing of XML tool calls and generation of XML tool results.
 - `supported_formats` field in `ModelConfig` and backend implementations to manage compatibility.
 - Dynamic tool prompt resolution in `BaseTool` allowing automatic fallback to standard prompts if XML version is missing.
-- First public release of ReVibe with all core functionality
+- First public release of ReVibe with all core functionality.
+- New models added to Hugging Face provider.
 
 ### Changed
 
+- ReVibe configuration and data now saved in `.revibe` directory (migrated from `.vibe`).
 - Setup TUI improvements:
   - Skip API key input screen for providers that don't require API keys (ollama, llamacpp, qwencode)
   - Display setup completion screen with "Press Enter to exit" instruction
@@ -36,11 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- AttributeError in `revibe --setup` caused by models loaded as dicts instead of ModelConfig objects
-- Type errors in config loading and provider handling
-
-### Fixed
-
+- Duplicate model alias found in `VibeConfig` when multiple providers used same alias.
+- AttributeError in `revibe --setup` caused by models loaded as dicts instead of ModelConfig objects.
+- Type errors in config loading and provider handling.
+- Various TUI bug fixes and stability improvements.
 - Case-sensitivity issue when specifying tool format via CLI.
 - Type errors in backends when implementing `BackendLike` protocol (added missing `supported_formats`).
 - Typo in `XMLToolFormatHandler` name property.

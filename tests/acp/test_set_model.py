@@ -62,7 +62,7 @@ def acp_agent(backend: FakeBackend) -> VibeAcpAgent:
             except ValueError:
                 pass
 
-    patch("vibe.acp.acp_agent.VibeAgent", side_effect=PatchedAgent).start()
+    patch("revibe.acp.acp_agent.VibeAgent", side_effect=PatchedAgent).start()
 
     vibe_acp_agent: VibeAcpAgent | None = None
 
@@ -148,7 +148,7 @@ class TestACPSetModel:
         )
         session_id = session_response.sessionId
 
-        with patch("vibe.acp.acp_agent.VibeConfig.save_updates") as mock_save:
+        with patch("revibe.acp.acp_agent.VibeConfig.save_updates") as mock_save:
             response = await acp_agent.setSessionModel(
                 SetSessionModelRequest(sessionId=session_id, modelId="devstral-small")
             )
@@ -165,7 +165,7 @@ class TestACPSetModel:
         )
         session_id = session_response.sessionId
 
-        with patch("vibe.acp.acp_agent.VibeConfig.save_updates") as mock_save:
+        with patch("revibe.acp.acp_agent.VibeConfig.save_updates") as mock_save:
             response = await acp_agent.setSessionModel(
                 SetSessionModelRequest(
                     sessionId=session_id, modelId="non-existent-model"

@@ -928,8 +928,7 @@ class VibeApp(App):
                         display_context = self.config.auto_compact_threshold
 
                     self._context_progress.tokens = TokenState(
-                        max_tokens=display_context,
-                        current_tokens=current_tokens,
+                        max_tokens=display_context, current_tokens=current_tokens
                     )
                 else:
                     self._context_progress.tokens = TokenState()
@@ -1321,10 +1320,13 @@ class VibeApp(App):
         has_pending_user_message = any(
             msg.has_class("pending") for msg in self.query(UserMessage)
         )
-        return self._agent_running or (
-            self._agent_init_task
-            and not self._agent_init_task.done()
-            and has_pending_user_message
+        return bool(
+            self._agent_running
+            or (
+                self._agent_init_task
+                and not self._agent_init_task.done()
+                and has_pending_user_message
+            )
         )
 
     def action_interrupt(self) -> None:

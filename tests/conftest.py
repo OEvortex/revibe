@@ -45,13 +45,13 @@ def tmp_working_directory(
 def config_dir(
     monkeypatch: pytest.MonkeyPatch, tmp_path_factory: pytest.TempPathFactory
 ) -> Path:
-    tmp_path = tmp_path_factory.mktemp("vibe")
-    config_dir = tmp_path / ".vibe"
+    tmp_path = tmp_path_factory.mktemp("revibe")
+    config_dir = tmp_path / ".revibe"
     config_dir.mkdir(parents=True, exist_ok=True)
     config_file = config_dir / "config.toml"
     config_file.write_text(tomli_w.dumps(get_base_config()), encoding="utf-8")
 
-    monkeypatch.setattr(global_paths, "_DEFAULT_VIBE_HOME", config_dir)
+    monkeypatch.setattr(global_paths, "_DEFAULT_REVIBE_HOME", config_dir)
     return config_dir
 
 

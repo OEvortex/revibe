@@ -1,6 +1,6 @@
 # Grep Tool – Codebase Search Assistant
 
-Use `grep` for fast, recursive regex searches across the project. It automatically leverages `rg` (ripgrep) when available and falls back to GNU `grep` otherwise. It already ignores common junk directories (`.git`, `.venv`, `node_modules`, etc.) and respects `.gitignore` plus `.vibeignore` entries.
+Use `grep` for fast, recursive regex searches across the project. It automatically leverages `rg` (ripgrep) when available and falls back to GNU `grep` otherwise. It already ignores common junk directories (`.git`, `.venv`, `node_modules`, etc.) and respects `.gitignore` plus `.revibeignore` entries.
 
 ## Arguments
 - `pattern` *(str, required)* – Regex pattern (smart-case). Empty strings are rejected.

@@ -64,7 +64,7 @@ def deep_merge(target: dict, source: dict) -> None:
 
 def _create_vibe_home_dir(tmp_path: Path, *sections: dict[str, Any]) -> Path:
     """Create a temporary vibe home directory with a minimal config file."""
-    vibe_home = tmp_path / ".vibe"
+    vibe_home = tmp_path / ".revibe"
     vibe_home.mkdir()
 
     config_file = vibe_home / "config.toml"
@@ -198,7 +198,7 @@ async def get_acp_agent_process(
     env = dict(current_env)
     env.update(mock_env)
     env["MISTRAL_API_KEY"] = "mock"
-    env["VIBE_HOME"] = str(vibe_home)
+    env["REVIBE_HOME"] = str(vibe_home)
 
     process = await asyncio.create_subprocess_exec(
         *cmd,

@@ -408,6 +408,57 @@ def _get_available_skills_section(skill_manager: SkillManager | None) -> str:
     return "\n".join(lines)
 
 
+def _get_tool_prompts_section(
+    tool_manager: ToolManager, config: VibeConfig
+) -> str | None:
+    active_tools = get_active_tool_classes(tool_manager, config)
+
+    from revibe.core.config import ToolFormat
+
+    use_xml_prompts = config.tool_format == ToolFormat.XML
+
+    tool_prompts = [
+        tool_class.get_xml_tool_prompt()
+        if use_xml_prompts
+        else tool_class.get_tool_prompt()
+        for tool_class in active_tools
+    ]
+    tool_prompts = [p for p in tool_prompts if p]
+    return "\n---\n".join(tool_prompts) if tool_prompts else None
+
+
+def _get_xml_tool_section(tool_manager: ToolManager, config: VibeConfig) -> str | None:
+    from revibe.core.config import ToolFormat
+
+    if config.tool_format != ToolFormat.XML:
+        return None
+
+    from revibe import VIBE_ROOT
+    from revibe.core.llm.format import XMLToolFormatHandler
+
+    xml_handler = XMLToolFormatHandler()
+    tool_defs = xml_handler.get_tool_definitions_xml(tool_manager, config)
+    if not tool_defs:
+        return None
+
+    xml_prompt_path = (
+        VIBE_ROOT / "core" / "tools" / "builtins" / "prompts" / "xml_tools.md"
+    )
+    xml_prompt_template = xml_prompt_path.read_text(encoding="utf-8")
+    return xml_prompt_template.format(tool_definitions=tool_defs)
+
+
+def _get_project_context_section(config: VibeConfig) -> str:
+    is_dangerous, reason = is_dangerous_directory()
+    if is_dangerous:
+        template = UtilityPrompt.DANGEROUS_DIRECTORY.read()
+        return template.format(reason=reason.lower(), abs_path=Path(".").resolve())
+    else:
+        return ProjectContextProvider(
+            config=config.project_context, root_path=config.effective_workdir
+        ).get_full_context()
+
+
 def get_universal_system_prompt(
     tool_manager: ToolManager,
     config: VibeConfig,
@@ -423,23 +474,9 @@ def get_universal_system_prompt(
 
     if config.include_prompt_detail:
         sections.append(_get_os_system_prompt())
-        tool_prompts = []
-        active_tools = get_active_tool_classes(tool_manager, config)
-
-        # Import ToolFormat here to check format mode
-        from revibe.core.config import ToolFormat
-        use_xml_prompts = config.tool_format == ToolFormat.XML
-
-        for tool_class in active_tools:
-            # Use XML prompts when in XML mode, otherwise use standard prompts
-            if use_xml_prompts:
-                prompt = tool_class.get_xml_tool_prompt()
-            else:
-                prompt = tool_class.get_tool_prompt()
-            if prompt:
-                tool_prompts.append(prompt)
-        if tool_prompts:
-            sections.append("\n---\n".join(tool_prompts))
+        tool_section = _get_tool_prompts_section(tool_manager, config)
+        if tool_section:
+            sections.append(tool_section)
 
         user_instructions = config.instructions.strip() or _load_user_instructions()
         if user_instructions.strip():
@@ -449,32 +486,12 @@ def get_universal_system_prompt(
         if skills_section:
             sections.append(skills_section)
 
-    # Add XML tool definitions if using XML format
-    from revibe.core.config import ToolFormat
-    if config.tool_format == ToolFormat.XML:
-        from revibe import VIBE_ROOT
-        from revibe.core.llm.format import XMLToolFormatHandler
-        xml_handler = XMLToolFormatHandler()
-        tool_defs = xml_handler.get_tool_definitions_xml(tool_manager, config)
-        if tool_defs:
-            xml_prompt_path = VIBE_ROOT / "core" / "tools" / "builtins" / "prompts" / "xml_tools.md"
-            xml_prompt_template = xml_prompt_path.read_text(encoding="utf-8")
-            xml_prompt = xml_prompt_template.format(tool_definitions=tool_defs)
-            sections.append(xml_prompt)
+    xml_section = _get_xml_tool_section(tool_manager, config)
+    if xml_section:
+        sections.append(xml_section)
 
     if config.include_project_context:
-        is_dangerous, reason = is_dangerous_directory()
-        if is_dangerous:
-            template = UtilityPrompt.DANGEROUS_DIRECTORY.read()
-            context = template.format(
-                reason=reason.lower(), abs_path=Path(".").resolve()
-            )
-        else:
-            context = ProjectContextProvider(
-                config=config.project_context, root_path=config.effective_workdir
-            ).get_full_context()
-
-        sections.append(context)
+        sections.append(_get_project_context_section(config))
 
         project_doc = _load_project_doc(
             config.effective_workdir, config.project_context.max_doc_bytes

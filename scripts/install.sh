@@ -82,45 +82,27 @@ function install_vibe() {
     info "Installing revibe from GitHub repository using uv..."
     uv tool install revibe
 
-    success "REVIBE installed successfully! (commands: vibe, vibe-acp)"
+    success "REVIBE installed successfully! (commands: revibe, revibe-acp)"
 }
 
+# --- Main Script ---
+
 function main() {
-    echo
-    echo "██████████████████░░"
-    echo "██████████████████░░"
-    echo "████  ██████  ████░░"
-    echo "████    ██    ████░░"
-    echo "████          ████░░"
-    echo "████  ██  ██  ████░░"
-    echo "██      ██      ██░░"
-    echo "██████████████████░░"
-    echo "██████████████████░░"
-    echo
     echo "Starting REVIBE installation..."
-    echo
-
-    check_platform
-
-    check_uv_installed
-
-    if [[ "$UV_INSTALLED" == "false" ]]; then
-        install_uv
-    fi
-
+    
+    check_uv
     install_vibe
-
-    if command -v vibe &> /dev/null; then
-        success "Installation completed successfully!"
-        echo
-        echo "You can now run vibe with:"
-        echo "  vibe"
-        echo
-        echo "Or for ACP mode:"
-        echo "  vibe-acp"
+    
+    if command -v revibe &> /dev/null; then
+        echo ""
+        success "Installation complete!"
+        echo "You can now run revibe with:"
+        echo "  revibe"
+        echo ""
+        echo "Or start the ACP server for your IDE with:"
+        echo "  revibe-acp"
     else
-        error "Installation completed but 'vibe' command not found"
-        error "Please check your installation and PATH settings"
+        error "Installation completed but 'revibe' command not found"
         exit 1
     fi
 }

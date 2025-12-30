@@ -66,9 +66,9 @@ class GrepToolConfig(BaseToolConfig):
         ],
         description="List of glob patterns to exclude from search (dirs should end with /).",
     )
-    codeignore_file: str = Field(
-        default=".vibeignore",
-        description="Name of the file to read for additional exclusion patterns.",
+    ignore_file: str = Field(
+        default=".revibeignore",
+        description="Path to a file containing ignore patterns (glob format).",
     )
 
 

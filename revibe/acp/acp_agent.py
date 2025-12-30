@@ -118,14 +118,14 @@ class VibeAcpAgent(AcpAgent):
         auth_methods = (
             [
                 AuthMethod(
-                    id="vibe-setup",
+                    id="revibe-setup",
                     name="Register your API Key",
-                    description="Register your API Key inside Mistral Vibe",
+                    description="Register your API Key inside ReVibe",
                     field_meta={
                         "terminal-auth": {
                             "command": command,
                             "args": args,
-                            "label": "Mistral Vibe Setup",
+                            "label": "ReVibe Setup",
                         }
                     },
                 )
@@ -143,8 +143,8 @@ class VibeAcpAgent(AcpAgent):
             ),
             protocolVersion=PROTOCOL_VERSION,
             agentInfo=Implementation(
-                name="@mistralai/mistral-vibe",
-                title="Mistral Vibe",
+                name="@OEvortex/revibe",
+                title="ReVibe",
                 version=__version__,
             ),
             authMethods=auth_methods,

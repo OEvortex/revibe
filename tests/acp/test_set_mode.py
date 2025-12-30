@@ -33,7 +33,7 @@ def acp_agent(backend: FakeBackend) -> VibeAcpAgent:
             kwargs['backend'] = backend
             super().__init__(*args, **kwargs)
 
-    patch("vibe.acp.acp_agent.VibeAgent", side_effect=PatchedAgent).start()
+    patch("revibe.acp.acp_agent.VibeAgent", side_effect=PatchedAgent).start()
 
     vibe_acp_agent: VibeAcpAgent | None = None
 

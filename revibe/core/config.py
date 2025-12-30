@@ -404,7 +404,7 @@ class VibeConfig(BaseSettings):
     )
 
     model_config = SettingsConfigDict(
-        env_prefix="VIBE_", case_sensitive=False, extra="ignore"
+        env_prefix="REVIBE_", case_sensitive=False, extra="ignore"
     )
 
     @property
@@ -480,7 +480,7 @@ class VibeConfig(BaseSettings):
 
         Note: dotenv_settings is intentionally excluded. API keys and other
         non-config environment variables are stored in .env but loaded manually
-        into os.environ for use by providers. Only VIBE_* prefixed environment
+        into os.environ for use by providers. Only REVIBE_* prefixed environment
         variables (via env_settings) and TOML config are used for Pydantic settings.
         """
         return (
@@ -561,13 +561,15 @@ class VibeConfig(BaseSettings):
 
     @model_validator(mode="after")
     def _validate_model_uniqueness(self) -> VibeConfig:
-        seen_aliases: set[str] = set()
+        provider_aliases: dict[str, set[str]] = {}
         for model in self.models:
-            if model.alias in seen_aliases:
+            if model.provider not in provider_aliases:
+                provider_aliases[model.provider] = set()
+            if model.alias in provider_aliases[model.provider]:
                 raise ValueError(
-                    f"Duplicate model alias found: '{model.alias}'. Aliases must be unique."
+                    f"Duplicate model alias found for provider '{model.provider}': '{model.alias}'. Aliases must be unique within each provider."
                 )
-            seen_aliases.add(model.alias)
+            provider_aliases[model.provider].add(model.alias)
         return self
 
     @model_validator(mode="after")

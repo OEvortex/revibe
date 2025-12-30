@@ -15,14 +15,12 @@ from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 import json
-import os
 import types
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import httpx
 
 from revibe.core.llm.backend.qwen.oauth import QwenOAuthManager
-from revibe.core.llm.backend.qwen.types import QWEN_DEFAULT_BASE_URL
 from revibe.core.llm.exceptions import BackendErrorBuilder
 from revibe.core.types import (
     AvailableTool,
@@ -100,10 +98,7 @@ class ThinkingBlockParser:
 class QwenBackend:
     supported_formats: ClassVar[list[str]] = ["native", "xml"]
 
-    """Backend for Qwen Code API (Alibaba Cloud DashScope).
-
-    Supports both OAuth authentication (for Qwen CLI users) and
-    API key authentication (for direct DashScope access).
+    """Backend for Qwen Code API.
 
     Features:
     - OpenAI-compatible chat completions API
@@ -131,15 +126,8 @@ class QwenBackend:
         self._client: httpx.AsyncClient | None = None
         self._owns_client = True
 
-        # Determine authentication mode
-        self._api_key = (
-            os.getenv(provider.api_key_env_var) if provider.api_key_env_var else None
-        )
-
         # OAuth manager for Qwen CLI authentication
-        self._oauth_manager: QwenOAuthManager | None = None
-        if not self._api_key:
-            self._oauth_manager = QwenOAuthManager(oauth_path)
+        self._oauth_manager = QwenOAuthManager(oauth_path)
 
     async def __aenter__(self) -> QwenBackend:
         self._client = httpx.AsyncClient(
@@ -173,33 +161,24 @@ class QwenBackend:
         Args:
             force_refresh: If True, forces a token refresh for OAuth.
 
-        Returns headers with either API key or OAuth token.
+        Returns headers with OAuth token.
         """
         headers = {"Content-Type": "application/json"}
 
-        if self._api_key:
-            headers["Authorization"] = f"Bearer {self._api_key}"
-        elif self._oauth_manager:
-            access_token, _ = await self._oauth_manager.ensure_authenticated(
-                force_refresh=force_refresh
-            )
-            headers["Authorization"] = f"Bearer {access_token}"
+        access_token, _ = await self._oauth_manager.ensure_authenticated(
+            force_refresh=force_refresh
+        )
+        headers["Authorization"] = f"Bearer {access_token}"
 
         return headers
 
     async def _get_base_url(self) -> str:
         """Get the API base URL.
 
-        Returns URL from provider config, OAuth credentials, or default.
+        Returns URL from OAuth credentials or default.
         """
-        if self._api_key and self._provider.api_base:
-            return self._provider.api_base.rstrip("/")
-
-        if self._oauth_manager:
-            _, base_url = await self._oauth_manager.ensure_authenticated()
-            return base_url.rstrip("/")
-
-        return QWEN_DEFAULT_BASE_URL.rstrip("/")
+        _, base_url = await self._oauth_manager.ensure_authenticated()
+        return base_url.rstrip("/")
 
     def _prepare_messages(self, messages: list[LLMMessage]) -> list[dict[str, Any]]:
         """Convert LLMMessages to OpenAI-compatible format."""
@@ -276,7 +255,7 @@ class QwenBackend:
             extra_headers=extra_headers,
         )
 
-    async def _complete_with_retry(  # noqa: PLR0914, PLR0915
+    async def _complete_with_retry(  # noqa: PLR0914
         self,
         *,
         model: ModelConfig,
@@ -458,22 +437,22 @@ class QwenBackend:
             payload["tool_choice"] = self._prepare_tool_choice(tool_choice)
         if max_tokens is not None:
             payload["max_tokens"] = max_tokens
-        
+
         return payload
 
     def _parse_sse_line(self, line: str) -> tuple[str, str] | None:
         """Parse an SSE line and return (key, value) if valid."""
         if not line.strip():
             return None
-            
+
         if ":" not in line:
             return None
-            
+
         delim_index = line.find(":")
         key = line[:delim_index].strip()
         # Value starts after colon, with optional leading space
         value = line[delim_index + 1 :].lstrip()
-        
+
         return key, value
 
     def _handle_chunk_data(
@@ -544,7 +523,7 @@ class QwenBackend:
             ),
         )
 
-    async def _complete_streaming_with_retry(  # noqa: PLR0914, PLR0915, PLR1702
+    async def _complete_streaming_with_retry(  # noqa: PLR0914
         self,
         *,
         model: ModelConfig,
@@ -565,7 +544,9 @@ class QwenBackend:
         base_url = await self._get_base_url()
         url = f"{base_url}/chat/completions"
 
-        payload = self._build_streaming_payload(model, messages, temperature, tools, max_tokens, tool_choice)
+        payload = self._build_streaming_payload(
+            model, messages, temperature, tools, max_tokens, tool_choice
+        )
 
         thinking_parser = ThinkingBlockParser()
         full_content = ""
@@ -580,54 +561,28 @@ class QwenBackend:
             ) as response:
                 response.raise_for_status()
 
-                # Check if response is actually a streaming response
                 content_type = response.headers.get("content-type", "")
                 if "text/event-stream" not in content_type:
-                    # Non-streaming response - might be an error
-                    body = await response.aread()
-                    body_text = body.decode("utf-8")
-                    if body_text:
-                        try:
-                            error_data = json.loads(body_text)
-                            error_msg = (
-                                error_data.get("error", {}).get("message")
-                                or error_data.get("message")
-                                or error_data.get("detail")
-                                or str(error_data)
-                            )
-                            raise ValueError(f"API returned error: {error_msg}")
-                        except json.JSONDecodeError:
-                            raise ValueError(
-                                f"Unexpected API response: {body_text[:200]}"
-                            )
+                    await self._handle_non_streaming_response(response)
                     return
 
                 async for line in response.aiter_lines():
                     parsed = self._parse_sse_line(line)
                     if not parsed:
                         continue
-                    
+
                     key, value = parsed
                     if key != "data":
                         continue
                     if not value or value == "[DONE]":
                         continue
 
-                    try:
-                        chunk_data = json.loads(value)
-                    except json.JSONDecodeError:
-                        # Skip malformed JSON lines
+                    chunk_data = self._parse_chunk_data(value)
+                    if chunk_data is None:
                         continue
 
-                    # Check for error in the chunk
                     if "error" in chunk_data:
-                        error_info = chunk_data["error"]
-                        error_msg = (
-                            error_info.get("message")
-                            if isinstance(error_info, dict)
-                            else str(error_info)
-                        )
-                        raise ValueError(f"API error: {error_msg}")
+                        self._handle_chunk_error(chunk_data)
 
                     choices = chunk_data.get("choices", [])
                     delta = choices[0].get("delta", {}) if choices else {}
@@ -636,11 +591,13 @@ class QwenBackend:
                     content, reasoning_content, tool_calls = self._handle_chunk_data(
                         chunk_data, delta, usage, thinking_parser, full_content
                     )
-                    
+
                     if delta.get("content"):
                         full_content = delta["content"]
 
-                    yield self._create_llm_chunk(content, reasoning_content, tool_calls, usage)
+                    yield self._create_llm_chunk(
+                        content, reasoning_content, tool_calls, usage
+                    )
 
         except httpx.HTTPStatusError as e:
             # Retry once with fresh token on 401 Unauthorized
@@ -683,6 +640,41 @@ class QwenBackend:
                 has_tools=bool(tools),
                 tool_choice=tool_choice,
             ) from e
+
+    async def _handle_non_streaming_response(self, response: httpx.Response) -> None:
+        """Handle non-streaming response, raising appropriate errors."""
+        body = await response.aread()
+        body_text = body.decode("utf-8")
+        if not body_text:
+            return
+        try:
+            error_data = json.loads(body_text)
+            error_msg = (
+                error_data.get("error", {}).get("message")
+                or error_data.get("message")
+                or error_data.get("detail")
+                or str(error_data)
+            )
+            raise ValueError(f"API returned error: {error_msg}")
+        except json.JSONDecodeError:
+            raise ValueError(f"Unexpected API response: {body_text[:200]}")
+
+    def _parse_chunk_data(self, value: str) -> dict[str, Any] | None:
+        """Parse chunk data from SSE value, returning None on JSON error."""
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return None
+
+    def _handle_chunk_error(self, chunk_data: dict[str, Any]) -> None:
+        """Handle error in chunk data."""
+        error_info = chunk_data["error"]
+        error_msg = (
+            error_info.get("message")
+            if isinstance(error_info, dict)
+            else str(error_info)
+        )
+        raise ValueError(f"API error: {error_msg}")
 
     async def count_tokens(
         self,

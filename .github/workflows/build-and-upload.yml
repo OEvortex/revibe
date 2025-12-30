@@ -16,7 +16,7 @@ jobs:
       - name: Set matrix
         id: set-matrix
         run: |
-          if [[ "${{ github.repository }}" == "revibe-ai/revibe" ]]; then
+          if [[ "${{ github.repository }}" == "OEvortex/revibe" ]]; then
             matrix='{
               "include": [
                 {"runner": "ubuntu-22.04", "os": "linux", "arch": "x86_64"},
@@ -117,7 +117,7 @@ jobs:
               chmod +x "$dir/revibe-acp"
               zip -j "release-assets/${name}.zip" "$dir/revibe-acp"
             elif [ -f "$dir/revibe-acp.exe" ]; then
-              zip -j "release-assets/${name}.zip" "$dir/vibe-acp.exe"
+              zip -j "release-assets/${name}.zip" "$dir/revibe-acp.exe"
             fi
           done
 

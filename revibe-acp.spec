@@ -5,16 +5,15 @@ a = Analysis(
     ['revibe/acp/entrypoint.py'],
     pathex=[],
     binaries=[],
-    datas=[
-        # By default, pyinstaller doesn't include the .md files
-        ('revibe/core/prompts/*.md', 'revibe/core/prompts'),
-        ('vibe/core/tools/builtins/prompts/*.md', 'vibe/core/tools/builtins/prompts'),
-        # We also need to add all setup files
-        ('vibe/setup/*', 'vibe/setup'),
-        # This is necessary because tools are dynamically called in vibe, meaning there is no static reference to those files
-        ('vibe/core/tools/builtins/*.py', 'vibe/core/tools/builtins'),
-        ('vibe/acp/tools/builtins/*.py', 'vibe/acp/tools/builtins'),
-    ],
+datas=[
+    ('revibe/core/prompts/*.md', 'revibe/core/prompts'),
+    ('revibe/core/tools/builtins/prompts/*.md', 'revibe/core/tools/builtins/prompts'),
+    ('revibe/setup/onboarding/app.tcss', 'revibe/setup/onboarding'),
+    ('revibe/setup/*', 'revibe/setup'),
+    # This is necessary because tools are dynamically called in revibe, meaning there is no static reference to those files
+    ('revibe/core/tools/builtins/*.py', 'revibe/core/tools/builtins'),
+    ('revibe/acp/tools/builtins/*.py', 'revibe/acp/tools/builtins'),
+],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

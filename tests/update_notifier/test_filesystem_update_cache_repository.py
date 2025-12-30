@@ -37,7 +37,7 @@ async def test_returns_none_when_cache_file_is_missing(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_returns_none_when_cache_file_is_corrupted(tmp_path: Path) -> None:
-    cache_dir = tmp_path / ".vibe"
+    cache_dir = tmp_path / ".revibe"
     cache_dir.mkdir()
     (cache_dir / "update_cache.json").write_text("{not-json")
     repository = FileSystemUpdateCacheRepository(base_path=tmp_path)
@@ -66,7 +66,7 @@ async def test_overwrites_existing_cache(tmp_path: Path) -> None:
 
 @pytest.mark.asyncio
 async def test_silently_ignores_errors_when_writing_cache_fails(tmp_path: Path) -> None:
-    cache_dir = tmp_path / ".vibe"
+    cache_dir = tmp_path / ".revibe"
     cache_dir.mkdir()
     (cache_dir / "update_cache.json").mkdir()
     repository = FileSystemUpdateCacheRepository(base_path=tmp_path)

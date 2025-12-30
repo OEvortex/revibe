@@ -83,7 +83,7 @@ def parse_arguments() -> argparse.Namespace:
         "--agent",
         metavar="NAME",
         default=None,
-        help="Load agent configuration from ~/.vibe/agents/NAME.toml",
+        help="Load agent configuration from ~/.revibe/agents/NAME.toml",
     )
     parser.add_argument(
         "--setup",
@@ -119,7 +119,7 @@ def parse_arguments() -> argparse.Namespace:
 
 def check_and_resolve_trusted_folder() -> None:
     cwd = Path.cwd()
-    if not (cwd / ".vibe").exists() or cwd.resolve() == Path.home().resolve():
+    if not (cwd / ".revibe").exists() or cwd.resolve() == Path.home().resolve():
         return
 
     is_folder_trusted = trusted_folders_manager.is_trusted(cwd)
