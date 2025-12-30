@@ -61,6 +61,7 @@ class TestApiKeyScreen:
         # Should not have exited
         assert not exit_called
         # Provider should be set
+        assert screen.provider is not None
         assert screen.provider.name == "openai"
 
     @pytest.mark.parametrize("provider_name", ["ollama", "llamacpp", "qwencode"])

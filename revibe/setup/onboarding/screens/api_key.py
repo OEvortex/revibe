@@ -123,10 +123,9 @@ class ApiKeyScreen(OnboardingScreen):
                 with Center():
                     with Vertical(id="api-key-content"):
                         yield Static(
-                            f"{self.provider.name.capitalize()} does not require an API key.",
+                            f"[dim]{self.provider.name.capitalize()} does not require an API key. Press Enter to exit.[/]",
                             id="no-api-key-message",
                         )
-                        yield Static("[dim]Press Enter to exit.[/]", id="continue-hint")
                         yield Static("", id="feedback")
                 yield Static("", classes="spacer")
                 yield Vertical(
