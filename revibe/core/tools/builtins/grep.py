@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from revibe.core.types import ToolCallEvent, ToolResultEvent
 
 
-class GrepBackend(StrEnum):
+class FindBackend(StrEnum):
     RIPGREP = auto()
     GNU_GREP = auto()
 
@@ -95,20 +95,20 @@ class GrepResult(BaseModel):
     )
 
 
-class Grep(
+class Find(
     BaseTool[GrepArgs, GrepResult, GrepToolConfig, GrepState],
     ToolUIData[GrepArgs, GrepResult],
 ):
     description: ClassVar[str] = (
         "Recursively search files for a regex pattern using ripgrep (rg) or grep. "
-        "Respects .gitignore and .codeignore files by default when using ripgrep."
+        "Respects .gitignore and .ignore files by default when using ripgrep."
     )
 
-    def _detect_backend(self) -> GrepBackend:
+    def _detect_backend(self) -> FindBackend:
         if shutil.which("rg"):
-            return GrepBackend.RIPGREP
+            return FindBackend.RIPGREP
         if shutil.which("grep"):
-            return GrepBackend.GNU_GREP
+            return FindBackend.GNU_GREP
         raise ToolError(
             "Neither ripgrep (rg) nor grep is installed. "
             "Please install ripgrep: https://github.com/BurntSushi/ripgrep#installation"
@@ -141,7 +141,7 @@ class Grep(
     def _collect_exclude_patterns(self) -> list[str]:
         patterns = list(self.config.exclude_patterns)
 
-        codeignore_path = self.config.effective_workdir / self.config.codeignore_file
+        codeignore_path = self.config.effective_workdir / self.config.ignore_file
         if codeignore_path.is_file():
             patterns.extend(self._load_codeignore_patterns(codeignore_path))
 
@@ -161,9 +161,9 @@ class Grep(
         return patterns
 
     def _build_command(
-        self, args: GrepArgs, exclude_patterns: list[str], backend: GrepBackend
+        self, args: GrepArgs, exclude_patterns: list[str], backend: FindBackend
     ) -> list[str]:
-        if backend == GrepBackend.RIPGREP:
+        if backend == FindBackend.RIPGREP:
             return self._build_ripgrep_command(args, exclude_patterns)
         return self._build_gnu_grep_command(args, exclude_patterns)
 
@@ -274,14 +274,14 @@ class Grep(
     @classmethod
     def get_call_display(cls, event: ToolCallEvent) -> ToolCallDisplay:
         if not isinstance(event.args, GrepArgs):
-            return ToolCallDisplay(summary="Grep")
+            return ToolCallDisplay(summary="Find")
 
         MAX_PATTERN_DISPLAY_LENGTH = 20
         pattern = event.args.pattern
         if len(pattern) > MAX_PATTERN_DISPLAY_LENGTH:
-            pattern = pattern[:MAX_PATTERN_DISPLAY_LENGTH - 3] + "..."
+            pattern = pattern[: MAX_PATTERN_DISPLAY_LENGTH - 3] + "..."
 
-        summary = f"Grep ({pattern})"
+        summary = f"Find ({pattern})"
         return ToolCallDisplay(summary=summary)
 
     @classmethod
@@ -303,4 +303,4 @@ class Grep(
 
     @classmethod
     def get_status_text(cls) -> str:
-        return "Searching files"
+        return "Finding files"
