@@ -290,8 +290,8 @@ class TestAcpSearchReplaceSessionUpdates:
                 assert content_item.newText == "new text"
         assert hasattr(update, "locations")
         if hasattr(update, "locations") and update.locations is not None:
-            assert len(update.locations) == 1
-            if len(update.locations) > 0:
+            assert len(update.locations) == 1  # type: ignore[union-attr]
+            if len(update.locations) > 0:  # type: ignore[union-attr]
                 location = update.locations[0]
                 assert hasattr(location, "path")
                 assert location.path == "/tmp/test.txt"
@@ -340,9 +340,9 @@ class TestAcpSearchReplaceSessionUpdates:
         assert update.status == "completed"
         assert hasattr(update, "content")
         if hasattr(update, "content") and update.content is not None:
-            assert len(update.content) == 1
+            assert len(update.content) == 1  # type: ignore[union-attr]
             # Check if content supports indexing before accessing
-            if len(update.content) > 0:
+            if len(update.content) > 0:  # type: ignore[union-attr]
                 content_item = update.content[0]
                 assert hasattr(content_item, "type")
                 assert content_item.type == "diff"
@@ -354,8 +354,8 @@ class TestAcpSearchReplaceSessionUpdates:
                 assert content_item.newText == "new text"
         assert hasattr(update, "locations")
         if hasattr(update, "locations") and update.locations is not None:
-            assert len(update.locations) == 1
-            if len(update.locations) > 0:
+            assert len(update.locations) == 1  # type: ignore[union-attr]
+            if len(update.locations) > 0:  # type: ignore[union-attr]
                 location = update.locations[0]
                 assert hasattr(location, "path")
                 assert location.path == "/tmp/test.txt"

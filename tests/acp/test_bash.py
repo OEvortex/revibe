@@ -333,10 +333,10 @@ class TestAcpBashTimeout:
         async def failing_kill(self) -> None:
             raise RuntimeError("Kill failed")
 
-        custom_handle.kill = cast(
+        custom_handle.kill = cast(  # type: ignore[assignment]
             Callable[[], Coroutine[Any, Any, None]],
             MethodType(failing_kill, custom_handle),
-        )  # type: ignore[assignment]
+        )
 
         tool = Bash(
             config=BashToolConfig(),
@@ -399,10 +399,10 @@ class TestAcpBashEmbedding:
         async def failing_session_update(self, notification) -> None:
             raise RuntimeError("Session update failed")
 
-        mock_connection.sessionUpdate = cast(
+        mock_connection.sessionUpdate = cast(  # type: ignore[assignment]
             Callable[..., Coroutine[Any, Any, None]],
             MethodType(failing_session_update, mock_connection),
-        )  # type: ignore[assignment]
+        )
 
         tool = Bash(
             config=BashToolConfig(),
@@ -525,10 +525,10 @@ class TestAcpBashCleanup:
         async def failing_release(self) -> None:
             raise RuntimeError("Release failed")
 
-        custom_handle.release = cast(
+        custom_handle.release = cast(  # type: ignore[assignment]
             Callable[[], Coroutine[Any, Any, None]],
             MethodType(failing_release, custom_handle),
-        )  # type: ignore[assignment]
+        )
         mock_connection._terminal_handle = custom_handle
 
         tool = Bash(
