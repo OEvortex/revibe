@@ -4,15 +4,16 @@ import os
 from typing import ClassVar
 
 from dotenv import set_key
+from pydantic import TypeAdapter
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
 from textual.containers import Center, Horizontal, Vertical
-from textual.events import MouseUp
+from textual.timer import Timer
 from textual.validation import Length
-from textual.widgets import Input, Link, Static
+from textual.widgets import Button, Input, Link, Static
 
-from revibe.cli.clipboard import copy_selection_to_clipboard
-from revibe.core.config import VibeConfig
+from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfigUnion, VibeConfig
+from revibe.core.model_config import DEFAULT_MODELS, ModelConfig
 from revibe.core.paths.global_paths import GLOBAL_ENV_FILE
 from revibe.setup.onboarding.base import OnboardingScreen
 
@@ -21,10 +22,17 @@ PROVIDER_HELP = {
     "openai": ("https://platform.openai.com/api-keys", "OpenAI Platform"),
     "anthropic": ("https://console.anthropic.com/settings/keys", "Anthropic Console"),
     "groq": ("https://console.groq.com/keys", "Groq Console"),
+    "huggingface": ("https://huggingface.co/settings/tokens", "Hugging Face Settings"),
+    "cerebras": (
+        "https://cloud.cerebras.ai/platform/api-keys",
+        "Cerebras Cloud Platform",
+    ),
 }
-CONFIG_DOCS_URL = (
-    "https://github.com/OEvortex/revibe?tab=readme-ov-file#configuration"
-)
+CONFIG_DOCS_URL = "https://github.com/OEvortex/revibe?tab=readme-ov-file#configuration"
+
+
+MODEL_CONFIG_ADAPTER = TypeAdapter(list[ModelConfig])
+PROVIDER_ADAPTER = TypeAdapter(list[ProviderConfigUnion])
 
 
 def _save_api_key_to_env_file(env_key: str, api_key: str) -> None:
@@ -32,10 +40,33 @@ def _save_api_key_to_env_file(env_key: str, api_key: str) -> None:
     set_key(GLOBAL_ENV_FILE.path, env_key, api_key)
 
 
+GRADIENT_COLORS = [
+    "#ff6b00",
+    "#ff7b00",
+    "#ff8c00",
+    "#ff9d00",
+    "#ffae00",
+    "#ffbf00",
+    "#ffae00",
+    "#ff9d00",
+    "#ff8c00",
+    "#ff7b00",
+]
+
+
+def _apply_gradient(text: str, offset: int) -> str:
+    result = []
+    for i, char in enumerate(text):
+        color = GRADIENT_COLORS[(i + offset) % len(GRADIENT_COLORS)]
+        result.append(f"[bold {color}]{char}[/]")
+    return "".join(result)
+
+
 class ApiKeyScreen(OnboardingScreen):
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("ctrl+c", "cancel", "Cancel", show=False),
         Binding("escape", "cancel", "Cancel", show=False),
+        Binding("enter", "finish", "Finish", show=False),
     ]
 
     NEXT_SCREEN = None
@@ -44,6 +75,8 @@ class ApiKeyScreen(OnboardingScreen):
         super().__init__()
         # Provider will be loaded when screen is shown
         self.provider = None
+        self._gradient_offset = 0
+        self._gradient_timer: Timer | None = None
 
     def _load_config(self) -> VibeConfig:
         """Load config, handling missing API key since we're in setup.
@@ -54,6 +87,25 @@ class ApiKeyScreen(OnboardingScreen):
         from revibe.core.config import TomlFileSettingsSource
 
         toml_data = TomlFileSettingsSource(VibeConfig).toml_data
+
+        if "models" in toml_data:
+            toml_data["models"] = [ModelConfig(**item) for item in toml_data["models"]]
+        else:
+            toml_data["models"] = list(DEFAULT_MODELS)
+
+        # Merge default models if not present
+        existing_keys = {(m.name, m.provider) for m in toml_data["models"]}
+        for m in DEFAULT_MODELS:
+            if (m.name, m.provider) not in existing_keys:
+                toml_data["models"].append(m)
+
+        if "providers" in toml_data:
+            toml_data["providers"] = PROVIDER_ADAPTER.validate_python(
+                toml_data["providers"]
+            )
+        else:
+            toml_data["providers"] = list(DEFAULT_PROVIDERS)
+
         return VibeConfig.model_construct(**toml_data)
 
     def on_show(self) -> None:
@@ -84,6 +136,21 @@ class ApiKeyScreen(OnboardingScreen):
             classes="link-row",
         )
 
+    def _compose_no_api_key_content(self) -> ComposeResult:
+        if not self.provider:
+            return
+        yield Static(
+            f"{self.provider.name.capitalize()} does not require an API key.",
+            id="no-api-key-message",
+        )
+        if self.provider.name == "qwencode":
+            yield Static(
+                "Please install qwen-code if not installed: `npm install -g @qwen-code/qwen-code@latest`\n"
+                "then use `/auth` in qwen to authenticate, then you can close qwen and use qwencode provider in ReVibe",
+                id="qwen-instructions",
+            )
+        yield Static("", id="feedback")
+
     def compose(self) -> ComposeResult:
         # Ensure provider is loaded (in case on_show hasn't been called yet)
         if self.provider is None:
@@ -91,7 +158,16 @@ class ApiKeyScreen(OnboardingScreen):
             active_model = config.get_active_model()
             self.provider = config.get_provider_for_model(active_model)
 
-        provider_name = self.provider.name.capitalize()
+        # Skip API key input for providers that don't require it
+        if not getattr(self.provider, "api_key_env_var", ""):
+            with Vertical(id="api-key-outer"):
+                yield Static("", classes="spacer")
+                yield Center(Static("", id="api-key-title"))
+                with Center():
+                    with Vertical(id="api-key-content"):
+                        yield from self._compose_no_api_key_content()
+                yield Static("", classes="spacer")
+            return
 
         self.input_widget = Input(
             password=True,
@@ -105,20 +181,32 @@ class ApiKeyScreen(OnboardingScreen):
             yield Center(Static("One last thing...", id="api-key-title"))
             with Center():
                 with Vertical(id="api-key-content"):
-                    yield from self._compose_provider_link(provider_name)
-                    yield Static(
-                        "...and paste it below to finish the setup:", id="paste-hint"
-                    )
-                    yield Center(Horizontal(self.input_widget, id="input-box"))
-                    yield Static("", id="feedback")
+                    yield from self._compose_no_api_key_content()
             yield Static("", classes="spacer")
             yield Vertical(
                 Vertical(*self._compose_config_docs(), id="config-docs-group"),
                 id="config-docs-section",
             )
 
+    def _start_gradient_animation(self) -> None:
+        self._gradient_timer = self.set_interval(0.08, self._animate_gradient)
+
+    def _animate_gradient(self) -> None:
+        self._gradient_offset = (self._gradient_offset + 1) % len(GRADIENT_COLORS)
+        title_widget = self.query_one("#api-key-title", Static)
+        title_widget.update(self._render_title())
+
+    def _render_title(self) -> str:
+        title = "Setup Completed"
+        return _apply_gradient(title, self._gradient_offset)
+
     def on_mount(self) -> None:
-        self.input_widget.focus()
+        title_widget = self.query_one("#api-key-title", Static)
+        if title_widget:
+            title_widget.update(self._render_title())
+            self._start_gradient_animation()
+        if hasattr(self, "input_widget") and self.input_widget:
+            self.input_widget.focus()
 
     def on_input_changed(self, event: Input.Changed) -> None:
         feedback = self.query_one("#feedback", Static)
@@ -157,5 +245,9 @@ class ApiKeyScreen(OnboardingScreen):
             return
         self.app.exit("completed")
 
-    def on_mouse_up(self, event: MouseUp) -> None:
-        copy_selection_to_clipboard(self.app)
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        if event.button.id == "continue-button":
+            self.app.exit("completed")
+
+    def action_finish(self) -> None:
+        self.app.exit("completed")

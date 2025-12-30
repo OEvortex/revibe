@@ -52,4 +52,5 @@ def run_onboarding(app: App | None = None) -> None:
                 f"You may need to set it manually in {GLOBAL_ENV_FILE.path}[/]\n"
             )
         case "completed":
-            pass
+            rprint("\n[green]Setup completed![/]")
+            rprint("[dim]Use 'revibe' to start using ReVibe.[/]")

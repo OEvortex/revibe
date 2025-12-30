@@ -56,26 +56,25 @@ class TrustFolderDialog(CenterMiddle):
                 id="trust-dialog-path",
                 classes="trust-dialog-path",
             )
-            yield Static(
-                "A .vibe/ directory was found here. Should Vibe load custom configuration and tools from it?",
-                id="trust-dialog-message",
-                classes="trust-dialog-message",
-            )
+        yield Static(
+            "A .revibe/ directory was found here. Should ReVibe load custom configuration and tools from it?",
+            id="title",
+        )
 
-            with Horizontal(id="trust-options-container"):
-                options = ["Yes", "No"]
-                for idx, text in enumerate(options):
-                    widget = Static(f"  {idx + 1}. {text}", classes="trust-option")
-                    self.option_widgets.append(widget)
-                    yield widget
+        with Horizontal(id="trust-options-container"):
+            options = ["Yes", "No"]
+            for idx, text in enumerate(options):
+                widget = Static(f"  {idx + 1}. {text}", classes="trust-option")
+                self.option_widgets.append(widget)
+                yield widget
 
-            yield Static("← → navigate  Enter select", classes="trust-dialog-help")
+        yield Static("← → navigate  Enter select", classes="trust-dialog-help")
 
-            yield Static(
-                f"Setting will be saved in: {TRUSTED_FOLDERS_FILE.path}",
-                id="trust-dialog-save-info",
-                classes="trust-dialog-save-info",
-            )
+        yield Static(
+            f"Setting will be saved in: {TRUSTED_FOLDERS_FILE.path}",
+            id="trust-dialog-save-info",
+            classes="trust-dialog-save-info",
+        )
 
     async def on_mount(self) -> None:
         self.selected_option = 1  # Default to "No"

@@ -29,7 +29,7 @@ def test_run_programmatic_preload_streaming_is_batched(
 ) -> None:
     spy = SpyStreamingFormatter()
     monkeypatch.setattr(
-        "vibe.core.programmatic.create_formatter", lambda *_args, **_kwargs: spy
+        "revibe.core.programmatic.create_formatter", lambda *_args, **_kwargs: spy
     )
 
     with mock_backend_factory(
@@ -94,7 +94,7 @@ def test_run_programmatic_ignores_system_messages_in_previous(
 ) -> None:
     spy = SpyStreamingFormatter()
     monkeypatch.setattr(
-        "vibe.core.programmatic.create_formatter", lambda *_args, **_kwargs: spy
+        "revibe.core.programmatic.create_formatter", lambda *_args, **_kwargs: spy
     )
 
     with mock_backend_factory(

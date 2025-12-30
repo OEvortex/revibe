@@ -1,6 +1,17 @@
 # Todo Tool – XML Format Guide
 
-Use the `todo` tool to track multi-step assignments with a live checklist.
+Create and manage structured task lists for complex coding sessions.
+
+## When to Use
+- Task has 3+ steps or multiple components
+- User requests a todo list explicitly
+- Breaking down user requirements into actionable items
+- Tracking progress on multi-step implementations
+
+## When NOT to Use
+- Single, trivial tasks
+- Purely informational queries
+- Tasks completable in <3 steps
 
 ## XML Tool Call Format
 
@@ -36,8 +47,15 @@ Use the `todo` tool to track multi-step assignments with a live checklist.
 | ----- | ---- | ----- |
 | `id` | str | Unique identifier |
 | `content` | str | Clear, actionable description |
-| `status` | `pending` \| `in_progress` \| `completed` \| `cancelled` | Default `pending` |
+| `status` | `pending` \| `in_progress` \| `completed` \| `cancelled` | Only one `in_progress` |
 | `priority` | `low` \| `medium` \| `high` | Default `medium` |
+
+## Best Practices
+- Initialize todos early after understanding requirements
+- Keep only one task `in_progress` at a time
+- Update todos as you discover new subtasks
+- Mark tasks `completed` only when fully done
+- Use clear descriptions with file names/modules
 
 ## Example XML Calls
 
@@ -76,9 +94,3 @@ Use the `todo` tool to track multi-step assignments with a live checklist.
 </parameters>
 </tool_call>
 ```
-
-## Best Practices
-- Initialize todos early after understanding requirements
-- Keep only one task `in_progress` at a time
-- Update todos as you discover new subtasks
-- Mark tasks `completed` only when fully done

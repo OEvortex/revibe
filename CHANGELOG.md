@@ -14,23 +14,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `XMLToolFormatHandler` for robust parsing of XML tool calls and generation of XML tool results.
 - `supported_formats` field in `ModelConfig` and backend implementations to manage compatibility.
 - Dynamic tool prompt resolution in `BaseTool` allowing automatic fallback to standard prompts if XML version is missing.
-- First public release of ReVibe with all core functionality
+- First public release of ReVibe with all core functionality.
+- New models added to Hugging Face provider.
+- Animated "ReVibe" text logo in setup completion screen with gradient colors.
+- Provider help URLs for all API key requiring providers (Hugging Face, Cerebras).
 
 ### Changed
 
+- ReVibe configuration and data now saved in `.revibe` directory (migrated from `.vibe`).
+- Setup TUI improvements:
+  - Skip API key input screen for providers that don't require API keys (ollama, llamacpp, qwencode)
+  - Display setup completion screen with "Press Enter to exit" instruction
+  - Hide configuration documentation links from completion screen
+  - Show usage message "Use 'revibe' to start using ReVibe" after setup completion
 - TUI Visual & Functional Enhancements:
   - Added `redact_xml_tool_calls(text)` utility in `revibe/core/utils.py` to remove raw `<tool_call>...<tool_call>` blocks from assistant output stream
   - Refactored `StreamingMessageBase` in `revibe/cli/textual_ui/widgets/messages.py` to track `_displayed_content` for smart UI updates
   - Enhanced premium tool summaries in chat history:
-    * Grep now shows as `Grep (pattern)` instead of `grep: 'pattern'`
+    * Find now shows as `Find (pattern)` instead of `grep: 'pattern'`
     * Bash now shows as `Bash (command)` instead of raw command string
     * Read File now shows as `Read (filename)` with cleaner summary
     * Write File now shows as `Write (filename)`
     * Search & Replace now shows as `Patch (filename)`
   - Applied redaction logic to `ReasoningMessage` in `revibe/cli/textual_ui/widgets/messages.py` to hide raw XML in reasoning blocks
+- Model alias validation now allows same aliases for different providers while maintaining uniqueness within each provider.
 
 ### Fixed
 
+- Duplicate model alias found in `VibeConfig` when multiple providers used same alias.
+- AttributeError in `revibe --setup` caused by models loaded as dicts instead of ModelConfig objects.
+- Type errors in config loading and provider handling.
+- Various TUI bug fixes and stability improvements.
 - Case-sensitivity issue when specifying tool format via CLI.
 - Type errors in backends when implementing `BackendLike` protocol (added missing `supported_formats`).
 - Typo in `XMLToolFormatHandler` name property.

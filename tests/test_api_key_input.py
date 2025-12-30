@@ -11,9 +11,7 @@ from revibe.core.paths.global_paths import GLOBAL_ENV_FILE
 
 def test_api_key_input_widget_exists() -> None:
     provider = ProviderConfig(
-        name="test",
-        api_base="https://example.com",
-        api_key_env_var="TEST_API_KEY",
+        name="test", api_base="https://example.com", api_key_env_var="TEST_API_KEY"
     )
     widget = ApiKeyInput(provider)
     assert widget.provider.name == "test"
@@ -22,9 +20,7 @@ def test_api_key_input_widget_exists() -> None:
 
 def test_api_key_input_messages() -> None:
     provider = ProviderConfig(
-        name="groq",
-        api_base="https://api.groq.com",
-        api_key_env_var="GROQ_API_KEY",
+        name="groq", api_base="https://api.groq.com", api_key_env_var="GROQ_API_KEY"
     )
     widget = ApiKeyInput(provider)
 
@@ -47,9 +43,7 @@ def temp_env_file(tmp_path: Path) -> Path:
 
 def test_save_api_key_to_env_file(temp_env_file: Path) -> None:
     provider = ProviderConfig(
-        name="groq",
-        api_base="https://api.groq.com",
-        api_key_env_var="GROQ_API_KEY",
+        name="groq", api_base="https://api.groq.com", api_key_env_var="GROQ_API_KEY"
     )
 
     # Ensure env file doesn't exist initially
@@ -88,24 +82,14 @@ def test_update_existing_api_key(temp_env_file: Path) -> None:
     assert "old-key-123" not in content
 
 
-def test_append_new_api_key(temp_env_file: Path) -> None:
+def test_api_key_input_handles_no_env_var_provider() -> None:
     provider = ProviderConfig(
-        name="anthropic",
-        api_base="https://api.anthropic.com",
-        api_key_env_var="ANTHROPIC_API_KEY",
+        name="ollama",
+        api_base="http://127.0.0.1:11434/v1",
+        api_key_env_var="",  # No API key required
     )
+    widget = ApiKeyInput(provider)
 
-    # Create env file with one existing key
-    initial_content = "OPENAI_API_KEY=sk-test-123\n"
-    temp_env_file.write_text(initial_content, encoding="utf-8")
-
-    # Append new key
-    new_key = "sk-ant-test-456"
-    env_var_line = f"{provider.api_key_env_var}={new_key}"
-    existing_content = temp_env_file.read_text(encoding="utf-8")
-    temp_env_file.write_text(existing_content + env_var_line + "\n", encoding="utf-8")
-
-    # Verify both keys are present
-    content = temp_env_file.read_text(encoding="utf-8")
-    assert "OPENAI_API_KEY=sk-test-123" in content
-    assert "ANTHROPIC_API_KEY=sk-ant-test-456" in content
+    # Check that the provider is set correctly
+    assert widget.provider.name == "ollama"
+    assert widget.provider.api_key_env_var == ""

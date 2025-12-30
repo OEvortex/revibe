@@ -1,35 +1,53 @@
-# Grep Tool – Codebase Search Assistant
+# 🔍 FIND TOOL - Your Primary Search Command
 
-Use `grep` for fast, recursive regex searches across the project. It automatically leverages `rg` (ripgrep) when available and falls back to GNU `grep` otherwise. It already ignores common junk directories (`.git`, `.venv`, `node_modules`, etc.) and respects `.gitignore` plus `.vibeignore` entries.
+## 🚫 CRITICAL: NEVER USE BASH FOR SEARCHING
+
+**DO NOT use `bash` tool with `grep`, `find`, `rg`, `ack`, or any shell search commands.** This `find` tool is specifically designed for all search operations and is far superior to shell commands.
+
+## Why Use This Tool (NOT Bash)
+- ✅ **Cross-platform** - Works identically on Windows, macOS, Linux
+- ✅ **Smart ignores** - Automatically respects `.gitignore`, `.revibeignore`
+- ✅ **Fast & safe** - Uses ripgrep when available, with built-in timeouts
+- ✅ **Structured output** - Returns clean, parseable results
+- ✅ **No shell injection risks** - Safe parameter handling
+- ✅ **Better error handling** - Clear error messages and truncation detection
 
 ## Arguments
-- `pattern` *(str, required)* – Regex pattern (smart-case). Empty strings are rejected.
-- `path` *(str, default ".")* – File or directory to search.
-- `max_matches` *(int | None)* – Cap the number of matches (default 100). Request a larger window if needed.
-- `use_default_ignore` *(bool, default True)* – Set to `false` to bypass `.gitignore`/`.ignore` rules.
+- `pattern` *(str, required)* – Regex pattern to search for
+- `path` *(str, default ".")* – Directory/file to search in
+- `max_matches` *(int, default 100)* – Maximum results to return
+- `use_default_ignore` *(bool, default True)* – Respect .gitignore rules
 
-## When to Use
-- Locate function or class definitions before editing.
-- See how a symbol, constant, or error string is used across the repo.
-- Discover todos, feature flags, or configuration references.
-- Investigate build/test failures by searching logs or stack traces.
+## When to Use This Tool
+**ALWAYS use this tool for:**
+- Finding function/class definitions
+- Searching for variable or method usage
+- Looking for TODO comments or error messages
+- Finding configuration references
+- Searching log files or test outputs
+- Any text search across files
 
-## Tips for Better Results
-1. Narrow `path` when possible (`src/feature`, `tests/unit`).
-2. Use anchors or word boundaries for precision (e.g., `pattern="\bMyClass\b"`).
-3. If output is truncated (`was_truncated=True`), rerun with a higher `max_matches` or narrower `path`.
-4. Disable default ignore rules (`use_default_ignore=False`) only when you truly need to search generated or vendored code.
-
-## Example Calls
+## Common Search Patterns
 ```python
-# Find all usages of a helper
-grep(pattern="def build_payload", path="revibe/core")
+# Find a function definition
+find(pattern=r"def my_function", path="src")
 
-# Search entire repo for TODOs, including ignored files
-grep(pattern="TODO", path=".", use_default_ignore=False)
+# Search for class usage with word boundaries
+find(pattern=r"\bMyClass\b", path=".")
 
-# Look for specific error messages with more results
-grep(pattern="ConnectionError", path="logs", max_matches=250)
+# Find all TODO comments
+find(pattern="TODO", path=".", max_matches=50)
+
+# Search for error messages in logs
+find(pattern="ERROR.*connection", path="logs")
+
+# Find configuration keys
+find(pattern="API_KEY", path="config")
 ```
 
-`grep` returns `matches`, `match_count`, and `was_truncated`. If `was_truncated` is true, adjust your query and search again.
+## Output Format
+Returns: `matches` (string), `match_count` (int), `was_truncated` (bool)
+
+If `was_truncated=True`, increase `max_matches` or narrow the search path.
+
+## ⚠️ Reminder: This tool replaces ALL bash search commands

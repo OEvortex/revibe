@@ -11,7 +11,7 @@ from typing import Any
 from textual.theme import Theme
 
 try:
-    import select
+    import select  # noqa: F401
 
     _UNIX_AVAILABLE = True
 except ImportError:

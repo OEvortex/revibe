@@ -50,10 +50,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/revibe-ai/revibe"
-Repository = "https://github.com/revibe-ai/revibe"
-Issues = "https://github.com/revibe-ai/revibe/issues"
-Documentation = "https://github.com/revibe-ai/revibe#readme"
+Homepage = "https://github.com/OEvortex/revibe"
+Repository = "https://github.com/OEvortex/revibe"
+Issues = "https://github.com/OEvortex/revibe/issues"
+Documentation = "https://github.com/OEvortex/revibe#readme"
 
 
 [build-system]

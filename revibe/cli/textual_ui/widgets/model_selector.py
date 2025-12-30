@@ -112,6 +112,98 @@ class ModelSelector(Container):
             if not found_active and self._filtered_models:
                 option_list.highlighted = 0
 
+    def _build_provider_map(self) -> dict[str, ProviderConfigUnion]:
+        """Build a merged provider map from defaults and user config."""
+        from revibe.core.config import DEFAULT_PROVIDERS
+        
+        providers_map: dict[str, ProviderConfigUnion] = {}
+        for p in DEFAULT_PROVIDERS:
+            providers_map[p.name] = p
+        for p in self.config.providers:
+            providers_map[p.name] = p
+        return providers_map
+
+    def _get_providers_to_query(self, providers_map: dict[str, ProviderConfigUnion]) -> list[ProviderConfigUnion]:
+        """Determine which providers to query for dynamic models."""
+        import os
+        
+        providers_to_query: list[ProviderConfigUnion] = []
+        
+        if self.provider_filter:
+            provider = providers_map.get(self.provider_filter)
+            if provider:
+                # Only fetch dynamic models for ollama and llamacpp
+                if provider.backend not in {Backend.OLLAMA, Backend.LLAMACPP}:
+                    return []
+
+                # If provider requires an API key and none is set, show a helpful message
+                if provider.api_key_env_var and not os.getenv(provider.api_key_env_var):
+                    self._missing_api_key_message = f"API key required: set {provider.api_key_env_var} to list models for {provider.name}"
+                    # Clear any models we had filtered earlier
+                    self.models = [
+                        m for m in self.models if m.provider != provider.name
+                    ]
+                    return []
+                providers_to_query.append(provider)
+        else:
+            # Query only ollama and llamacpp providers for dynamic models
+            # Skip providers that require API keys but don't have one set
+            for p in providers_map.values():
+                if p.backend not in {Backend.OLLAMA, Backend.LLAMACPP}:
+                    continue
+                if p.api_key_env_var and not os.getenv(p.api_key_env_var):
+                    continue
+                providers_to_query.append(p)
+        
+        return providers_to_query
+
+    async def _fetch_models_from_provider(
+        self, provider: ProviderConfigUnion, existing_names: set[tuple[str, str]]
+    ) -> bool:
+        """Fetch models from a single provider. Returns True if any models were added."""
+        from revibe.core.llm.backend.factory import BACKEND_FACTORY
+        
+        try:
+            backend_cls = BACKEND_FACTORY.get(provider.backend)
+            if not backend_cls:
+                return False
+                
+            model_names = await backend_cls(provider=provider).list_models()
+            if not model_names:
+                return False
+                
+            added_any = False
+            for name in model_names:
+                key = (provider.name, name)
+                if key not in existing_names:
+                    self.models.append(
+                        ModelConfig(
+                            name=name,
+                            provider=provider.name,
+                            alias=name,
+                        )
+                    )
+                    existing_names.add(key)
+                    added_any = True
+                    
+            return added_any
+        except Exception:
+            # Ignore failures per-provider so one bad provider doesn't block others
+            return False
+
+    async def _fetch_models_from_providers(
+        self, providers_to_query: list[ProviderConfigUnion]
+    ) -> bool:
+        """Fetch models from the specified providers. Returns True if any models were added."""
+        existing_names = {(m.provider, m.name) for m in self.models}
+        added_any = False
+
+        for provider in providers_to_query:
+            if await self._fetch_models_from_provider(provider, existing_names):
+                added_any = True
+        
+        return added_any
+
     async def _fetch_dynamic_models(self) -> None:
         """Fetch models from provider backends. Only fetches dynamically for ollama and llamacpp,
         other providers use hardcoded DEFAULT_MODELS.
@@ -121,86 +213,14 @@ class ModelSelector(Container):
         self._update_list(self.query_one("#model-selector-filter", Input).value)
 
         try:
-            from revibe.core.config import DEFAULT_PROVIDERS
-            from revibe.core.llm.backend.factory import BACKEND_FACTORY
-
-            # Build a merged provider map (defaults + user config)
-            providers_map: dict[str, ProviderConfigUnion] = {}
-            for p in DEFAULT_PROVIDERS:
-                providers_map[p.name] = p
-            for p in self.config.providers:
-                providers_map[p.name] = p
-
-            providers_to_query: list[ProviderConfigUnion] = []
-
-            import os
-
-            if self.provider_filter:
-                provider = providers_map.get(self.provider_filter)
-                if provider:
-                    # Only fetch dynamic models for ollama and llamacpp
-                    if provider.backend not in {Backend.OLLAMA, Backend.LLAMACPP}:
-                        # Use hardcoded models for other providers
-                        self.loading = False
-                        self._update_list(
-                            self.query_one("#model-selector-filter", Input).value
-                        )
-                        return
-
-                    # If provider requires an API key and none is set, show a helpful message
-                    if provider.api_key_env_var and not os.getenv(
-                        provider.api_key_env_var
-                    ):
-                        self._missing_api_key_message = f"API key required: set {provider.api_key_env_var} to list models for {provider.name}"
-                        # Clear any models we had filtered earlier
-                        self.models = [
-                            m for m in self.models if m.provider != provider.name
-                        ]
-                        self.loading = False
-                        self._update_list(
-                            self.query_one("#model-selector-filter", Input).value
-                        )
-                        return
-                    providers_to_query.append(provider)
-            else:
-                # Query only ollama and llamacpp providers for dynamic models
-                # Skip providers that require API keys but don't have one set
-                for p in providers_map.values():
-                    if p.backend not in {Backend.OLLAMA, Backend.LLAMACPP}:
-                        continue
-                    if p.api_key_env_var and not os.getenv(p.api_key_env_var):
-                        continue
-                    providers_to_query.append(p)
-
-            existing_names = {(m.provider, m.name) for m in self.models}
-            added_any = False
-
-            for provider in providers_to_query:
-                try:
-                    backend_cls = BACKEND_FACTORY.get(provider.backend)
-                    if backend_cls:
-                        async with backend_cls(provider=provider) as backend:
-                            model_names = await backend.list_models()
-                            if model_names:
-                                for name in model_names:
-                                    key = (provider.name, name)
-                                    if key not in existing_names:
-                                        self.models.append(
-                                            ModelConfig(
-                                                name=name,
-                                                provider=provider.name,
-                                                alias=name,
-                                            )
-                                        )
-                                        existing_names.add(key)
-                                        added_any = True
-                except Exception:
-                    # Ignore failures per-provider so one bad provider doesn't block others
-                    continue
-
-            if added_any:
-                # Sort models by provider then name for stable display
-                self.models.sort(key=lambda x: (x.provider, x.name))
+            providers_map = self._build_provider_map()
+            providers_to_query = self._get_providers_to_query(providers_map)
+            
+            if providers_to_query:
+                added_any = await self._fetch_models_from_providers(providers_to_query)
+                if added_any:
+                    # Sort models by provider then name for stable display
+                    self.models.sort(key=lambda x: (x.provider, x.name))
         finally:
             self.loading = False
             self._update_list(self.query_one("#model-selector-filter", Input).value)
