@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from revibe.cli.textual_ui.widgets.api_key_input import ApiKeyInput
-from revibe.core.config import ProviderConfig
+from revibe.core.config import GenericProviderConfig as ProviderConfig
 from revibe.core.paths.global_paths import GLOBAL_ENV_FILE
 
 

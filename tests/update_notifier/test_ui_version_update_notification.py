@@ -37,6 +37,7 @@ async def _wait_for_notification(
         await pilot.pause(interval)
 
     pytest.fail("Notification not displayed")
+    raise RuntimeError("Unreachable")
 
 
 async def _assert_no_notifications(

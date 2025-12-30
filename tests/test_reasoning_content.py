@@ -9,13 +9,13 @@ import respx
 
 from revibe.core.agent import Agent
 from revibe.core.config import (
+    GenericProviderConfig,
     ModelConfig,
-    ProviderConfig,
     SessionLoggingConfig,
     VibeConfig,
 )
-from revibe.core.llm.backend.generic import GenericBackend
 from revibe.core.llm.backend.mistral import MistralMapper, ParsedContent
+from revibe.core.llm.backend.openai import OpenAIBackend as GenericBackend
 from revibe.core.llm.format import APIToolFormatHandler
 from revibe.core.types import AssistantEvent, LLMMessage, ReasoningEvent, Role
 from tests.mock.utils import mock_llm_chunk
@@ -202,7 +202,7 @@ class TestGenericBackendReasoningContent:
             mock_api.post("/v1/chat/completions").mock(
                 return_value=httpx.Response(status_code=200, json=json_response)
             )
-            provider = ProviderConfig(
+            provider = GenericProviderConfig(
                 name="test", api_base=f"{base_url}/v1", api_key_env_var="API_KEY"
             )
             backend = GenericBackend(provider=provider)
@@ -240,7 +240,7 @@ class TestGenericBackendReasoningContent:
                     headers={"Content-Type": "text/event-stream"},
                 )
             )
-            provider = ProviderConfig(
+            provider = GenericProviderConfig(
                 name="test", api_base=f"{base_url}/v1", api_key_env_var="API_KEY"
             )
             backend = GenericBackend(provider=provider)

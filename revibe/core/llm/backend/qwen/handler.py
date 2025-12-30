@@ -21,9 +21,8 @@ from typing import TYPE_CHECKING, Any
 
 import httpx
 
-
 from revibe.core.llm.backend.qwen.oauth import QwenOAuthManager
-from revibe.core.llm.backend.qwen.types import QWEN_DEFAULT_BASE_URL, HTTP_OK
+from revibe.core.llm.backend.qwen.types import QWEN_DEFAULT_BASE_URL
 from revibe.core.llm.exceptions import BackendErrorBuilder
 from revibe.core.types import (
     AvailableTool,

@@ -118,6 +118,7 @@ def load_session(
             sys.exit(1)
 
     try:
+        assert session_to_load is not None
         loaded_messages, _ = InteractionLogger.load_session(session_to_load)
         return loaded_messages
     except Exception as e:
@@ -156,6 +157,7 @@ def run_cli(args: argparse.Namespace) -> None:
             )
 
             try:
+                assert programmatic_prompt is not None
                 final_response = run_programmatic(
                     config=config,
                     prompt=programmatic_prompt,

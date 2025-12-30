@@ -233,9 +233,7 @@ class Bash(BaseTool[BashArgs, BashResult, BashToolConfig, BaseToolState]):
         proc = None
         try:
             # start_new_session is Unix-only, on Windows it's ignored
-            kwargs: dict[Literal["start_new_session"], bool] = (
-                {} if is_windows() else {"start_new_session": True}
-            )
+            start_new_session: Literal[True] | None = None if is_windows() else True
 
             proc = await asyncio.create_subprocess_shell(
                 args.command,
@@ -244,7 +242,7 @@ class Bash(BaseTool[BashArgs, BashResult, BashToolConfig, BaseToolState]):
                 stdin=asyncio.subprocess.DEVNULL,
                 cwd=self.config.effective_workdir,
                 env=_get_base_env(),
-                **kwargs,
+                start_new_session=start_new_session,
             )
 
             try:

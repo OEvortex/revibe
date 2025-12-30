@@ -7,7 +7,7 @@ import inspect
 from pathlib import Path
 import re
 import sys
-from typing import Any, ClassVar, cast, get_args, get_type_hints
+from typing import Any, ClassVar, Protocol, cast, get_args, get_type_hints
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
 
@@ -90,6 +90,21 @@ class BaseToolState(BaseModel):
     )
 
 
+# Narrow Protocols used when traversing base classes to locate tool-specific
+# type arguments. We cast base classes to these Protocols so the type checker
+# recognizes the classmethods invoked below.
+class _ToolConfigProvider(Protocol):
+    @classmethod
+    def _get_tool_config_class(cls) -> type[BaseToolConfig]:
+        ...
+
+
+class _ToolStateProvider(Protocol):
+    @classmethod
+    def _get_tool_state_class(cls) -> type[BaseToolState]:
+        ...
+
+
 class BaseTool[
     ToolArgs: BaseModel,
     ToolResult: BaseModel,
@@ -102,7 +117,10 @@ class BaseTool[
         "Please gently meow at the developer to fix this.)"
     )
 
-    prompt_path: ClassVar[Path] | None = None
+    # ClassVar must annotate the class-level variable directly; wrap the union
+    # inside ClassVar instead of unioning ClassVar[...] | None which is invalid
+    # for type checkers.
+    prompt_path: ClassVar[Path | None] = None
 
     def __init__(self, config: ToolConfig, state: ToolState) -> None:
         self.config = config
@@ -170,7 +188,7 @@ class BaseTool[
             if base_class is object or base_class is ABC:
                 continue
             try:
-                return base_class._get_tool_config_class()
+                return cast(type[ToolConfig], cast(_ToolConfigProvider, base_class)._get_tool_config_class())
             except (TypeError, AttributeError):
                 continue
 
@@ -193,7 +211,7 @@ class BaseTool[
             if base_class is object or base_class is ABC:
                 continue
             try:
-                return base_class._get_tool_state_class()
+                return cast(type[ToolState], cast(_ToolStateProvider, base_class)._get_tool_state_class())
             except (TypeError, AttributeError):
                 continue
 

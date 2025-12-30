@@ -47,6 +47,15 @@ from revibe.cli.textual_ui.widgets.path_display import PathDisplay
 from revibe.cli.textual_ui.widgets.provider_selector import ProviderSelector
 from revibe.cli.textual_ui.widgets.tools import ToolCallMessage, ToolResultMessage
 from revibe.cli.textual_ui.widgets.welcome import WelcomeBanner
+from revibe.cli.update_notifier import (
+    FileSystemUpdateCacheRepository,
+    PyPIVersionUpdateGateway,
+    UpdateCacheRepository,
+    VersionUpdateAvailability,
+    VersionUpdateError,
+    VersionUpdateGateway,
+    get_update_if_available,
+)
 from revibe.core.agent import Agent
 from revibe.core.autocompletion.path_prompt_adapter import render_path_prompt
 from revibe.core.config import ProviderConfigUnion, VibeConfig
@@ -59,15 +68,6 @@ from revibe.core.utils import (
     get_user_cancellation_message,
     is_dangerous_directory,
     logger,
-)
-from revibe.cli.update_notifier import (
-    FileSystemUpdateCacheRepository,
-    PyPIVersionUpdateGateway,
-    UpdateCacheRepository,
-    VersionUpdateAvailability,
-    VersionUpdateError,
-    VersionUpdateGateway,
-    get_update_if_available,
 )
 
 

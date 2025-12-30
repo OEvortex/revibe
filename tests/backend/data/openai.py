@@ -125,7 +125,7 @@ STREAMED_TOOL_CONVERSATION_PARAMS: list[tuple[Url, list[Chunk], list[ResultData]
         "https://api.openai.com",
         [
             b'data: {"id":"chatcmpl-123456789","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4-0613","choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null}]}',
-            b'data: {"id":"chatcmpl-123456789","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4-0613","choices":[{"index":0,"delta":{"content":"I'll"},"finish_reason":null}]}',
+            b'data: {"id":"chatcmpl-123456789","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4-0613","choices":[{"index":0,"delta":{"content":"I\'ll"},"finish_reason":null}]}',
             b'data: {"id":"chatcmpl-123456789","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4-0613","choices":[{"index":0,"delta":{"content":" help"},"finish_reason":null}]}',
             b'data: {"id":"chatcmpl-123456789","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4-0613","choices":[{"index":0,"delta":{"content": " with"},"finish_reason":null}]}',
             b'data: {"id":"chatcmpl-123456789","object":"chat.completion.chunk","created":1234567890,"model":"gpt-4-0613","choices":[{"index":0,"delta":{"content": " that"},"finish_reason":null}]}',

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Literal
+from typing import Any, ClassVar, Literal, cast
 
 from textual import events
 from textual.binding import Binding
@@ -204,7 +204,7 @@ class ChatTextArea(TextArea):
             and not self.text
             and self._input_mode == self.DEFAULT_MODE
         ):
-            self._set_mode(event.character)
+            self._set_mode(cast(InputMode, event.character))
             event.prevent_default()
             event.stop()
             return

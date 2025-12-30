@@ -2,15 +2,19 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import dataclass
+import io
 import sys
 
 from revibe import __version__
 from revibe.core.paths.config_paths import unlock_config_paths
 
 # Configure line buffering for subprocess communication
-sys.stdout.reconfigure(line_buffering=True)  # pyright: ignore[reportAttributeAccessIssue]
-sys.stderr.reconfigure(line_buffering=True)  # pyright: ignore[reportAttributeAccessIssue]
-sys.stdin.reconfigure(line_buffering=True)  # pyright: ignore[reportAttributeAccessIssue]
+if isinstance(sys.stdout, io.TextIOWrapper):
+    sys.stdout.reconfigure(line_buffering=True)
+if isinstance(sys.stderr, io.TextIOWrapper):
+    sys.stderr.reconfigure(line_buffering=True)
+if isinstance(sys.stdin, io.TextIOWrapper):
+    sys.stdin.reconfigure(line_buffering=True)
 
 
 @dataclass

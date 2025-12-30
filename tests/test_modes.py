@@ -139,7 +139,7 @@ class TestModeConfig:
     def test_mode_config_frozen(self) -> None:
         config = ModeConfig(display_name="Test", description="Test mode")
         with pytest.raises(AttributeError):
-            config.display_name = "Changed"  # pyright: ignore[reportAttributeAccessIssue]
+            config.display_name = "Changed"
 
 
 class TestAgentSwitchMode:

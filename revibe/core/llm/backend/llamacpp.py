@@ -6,6 +6,8 @@ import httpx
 
 from revibe.core.llm.backend.openai import OpenAIBackend
 
+HTTP_OK = 200
+
 if TYPE_CHECKING:
     from revibe.core.config import ProviderConfigUnion
 
@@ -23,7 +25,7 @@ class LlamaCppBackend(OpenAIBackend):
             base_url = self._provider.api_base.replace("/v1", "").rstrip("/")
             async with httpx.AsyncClient(timeout=5.0) as client:
                 response = await client.get(f"{base_url}/props")
-                if response.status_code == 200:
+                if response.status_code == HTTP_OK:
                     data = response.json()
                     # Some versions return filename or alias
                     if "default_generation_settings" in data:

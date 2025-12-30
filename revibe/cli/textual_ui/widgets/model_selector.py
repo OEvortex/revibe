@@ -139,7 +139,7 @@ class ModelSelector(Container):
                 provider = providers_map.get(self.provider_filter)
                 if provider:
                     # Only fetch dynamic models for ollama and llamacpp
-                    if provider.backend not in (Backend.OLLAMA, Backend.LLAMACPP):
+                    if provider.backend not in {Backend.OLLAMA, Backend.LLAMACPP}:
                         # Use hardcoded models for other providers
                         self.loading = False
                         self._update_list(
@@ -166,7 +166,7 @@ class ModelSelector(Container):
                 # Query only ollama and llamacpp providers for dynamic models
                 # Skip providers that require API keys but don't have one set
                 for p in providers_map.values():
-                    if p.backend not in (Backend.OLLAMA, Backend.LLAMACPP):
+                    if p.backend not in {Backend.OLLAMA, Backend.LLAMACPP}:
                         continue
                     if p.api_key_env_var and not os.getenv(p.api_key_env_var):
                         continue
@@ -218,7 +218,7 @@ class ModelSelector(Container):
             return
 
         # If we are here, focus is likely on the search Input.
-        if event.key in ("up", "down", "pageup", "pagedown"):
+        if event.key in {"up", "down", "pageup", "pagedown"}:
             if event.key == "up":
                 option_list.action_cursor_up()
             elif event.key == "down":

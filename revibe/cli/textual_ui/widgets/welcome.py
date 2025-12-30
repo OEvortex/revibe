@@ -112,7 +112,7 @@ class WelcomeBanner(Static):
 
         # Footer with "pill" style commands
         self._static_line7 = Text.from_markup(
-            f"[dim]Press[/] [b reverse] /help [/] [dim]or[/] [b reverse] /terminal-setup [/] [dim]to begin[/]",
+            "[dim]Press[/] [b reverse] /help [/] [dim]or[/] [b reverse] /terminal-setup [/] [dim]to begin[/]",
             justify="center",
         )
 

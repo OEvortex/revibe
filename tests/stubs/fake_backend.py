@@ -1,10 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import AsyncGenerator, Callable, Iterable
-from typing import cast
+import types
+from typing import TYPE_CHECKING, cast
 
 from revibe.core.types import LLMChunk, LLMMessage, Role
 from tests.mock.utils import mock_llm_chunk
+
+if TYPE_CHECKING:
+    from revibe.core.config import ModelConfig
+    from revibe.core.llm.types import BackendLike
+    from revibe.core.types import AvailableTool, StrToolChoice
 
 
 class FakeBackend:
@@ -69,22 +75,27 @@ class FakeBackend:
     def _default_token_counter(messages: list[LLMMessage]) -> int:
         return 1
 
-    async def __aenter__(self):
-        return self
+    async def __aenter__(self) -> BackendLike:
+        return cast("BackendLike", self)
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
         return None
 
     async def complete(
         self,
         *,
-        model,
-        messages,
-        temperature,
-        tools,
-        tool_choice,
-        extra_headers,
-        max_tokens,
+        model: ModelConfig,
+        messages: list[LLMMessage],
+        temperature: float,
+        tools: list[AvailableTool] | None,
+        tool_choice: StrToolChoice | AvailableTool | None,
+        extra_headers: dict[str, str] | None,
+        max_tokens: int | None,
     ) -> LLMChunk:
         if self._exception_to_raise:
             raise self._exception_to_raise
@@ -101,39 +112,45 @@ class FakeBackend:
 
         return mock_llm_chunk(content="")
 
-    async def complete_streaming(
+    def complete_streaming(
         self,
         *,
-        model,
-        messages,
-        temperature,
-        tools,
-        tool_choice,
-        extra_headers,
-        max_tokens,
-    ) -> AsyncGenerator[LLMChunk]:
-        if self._exception_to_raise:
-            raise self._exception_to_raise
+        model: ModelConfig,
+        messages: list[LLMMessage],
+        temperature: float,
+        tools: list[AvailableTool] | None,
+        tool_choice: StrToolChoice | AvailableTool | None,
+        extra_headers: dict[str, str] | None,
+        max_tokens: int | None,
+    ) -> AsyncGenerator[LLMChunk, None]:
+        async def _generator():
+            if self._exception_to_raise:
+                raise self._exception_to_raise
 
-        self._requests_messages.append(messages)
-        self._requests_extra_headers.append(extra_headers)
+            self._requests_messages.append(messages)
+            self._requests_extra_headers.append(extra_headers)
 
-        if self._streams:
-            stream = list(self._streams.pop(0))
-        else:
-            stream = [mock_llm_chunk(content="")]
-        for chunk in stream:
-            yield chunk
+            if self._streams:
+                stream = list(self._streams.pop(0))
+            else:
+                stream = [mock_llm_chunk(content="")]
+            for chunk in stream:
+                yield chunk
+
+        return _generator()
 
     async def count_tokens(
         self,
         *,
-        model,
-        messages,
-        temperature=0.0,
-        tools,
-        tool_choice=None,
-        extra_headers,
+        model: ModelConfig,
+        messages: list[LLMMessage],
+        temperature: float = 0.0,
+        tools: list[AvailableTool] | None,
+        tool_choice: StrToolChoice | AvailableTool | None = None,
+        extra_headers: dict[str, str] | None,
     ) -> int:
         self._count_tokens_calls.append(list(messages))
         return self._token_counter(messages)
+
+    async def list_models(self) -> list[str]:
+        return ["fake-model"]

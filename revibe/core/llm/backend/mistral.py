@@ -5,7 +5,7 @@ import json
 import os
 import re
 import types
-from typing import TYPE_CHECKING, NamedTuple, cast
+from typing import TYPE_CHECKING, NamedTuple
 
 import httpx
 import mistralai
@@ -94,7 +94,7 @@ class MistralMapper:
         self, tool_choice: StrToolChoice | AvailableTool
     ) -> mistralai.ChatCompletionStreamRequestToolChoice:
         if isinstance(tool_choice, str):
-            return cast(mistralai.ToolChoiceEnum, tool_choice)
+            return tool_choice
 
         return mistralai.ToolChoice(
             type="function",

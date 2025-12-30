@@ -126,10 +126,13 @@ guidelines:
     description: >
       We use uv to manage our python environment. You should nevery try to run a bare python commands.
       Always run commands using `uv` instead of invoking `python` or `pip` directly.
-      For example, use `uv add package` and `uv run script.py` rather than `pip install package` or `python script.py`.
+      For example, use `uv pip install package` and `uv run script.py` rather than `pip install package` or `python script.py`.
       This practice helps avoid environment drift and leverages modern Python packaging best practices.
       Useful uv commands are:
-      - uv add/remove <package> to manage dependencies
+      - uv pip install/uninstall <package> to manage dependencies
       - uv sync to install dependencies declared in pyproject.toml and uv.lock
       - uv run script.py to run a script within the uv environment
       - uv run pytest (or any other python tool) to run the tool within the uv environment
+      - uvx ty check <file>.py / uvx ty check . for running type checks
+      - uvx ruff check <file>.py / uvx ruff check . for running ruff checks
+      - Always run ruff and ty checks after doing code changes to ensure compliance with linting and type checking standards.

@@ -73,7 +73,7 @@ class ProviderSelector(Container):
 
         # If we are here, focus is likely elsewhere in the widget (e.g. container).
         # Proxy navigation keys to the OptionList.
-        if event.key in ("up", "down", "pageup", "pagedown"):
+        if event.key in {"up", "down", "pageup", "pagedown"}:
             if event.key == "up":
                 option_list.action_cursor_up()
             elif event.key == "down":

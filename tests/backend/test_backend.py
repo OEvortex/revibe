@@ -18,10 +18,14 @@ import httpx
 import pytest
 import respx
 
-from revibe.core.config import Backend, ModelConfig, ProviderConfig
+from revibe.core.config import (
+    Backend,
+    GenericProviderConfig,
+    ModelConfig,
+)
 from revibe.core.llm.backend.factory import BACKEND_FACTORY
-from revibe.core.llm.backend.generic import GenericBackend
 from revibe.core.llm.backend.mistral import MistralBackend
+from revibe.core.llm.backend.openai import OpenAIBackend as GenericBackend
 from revibe.core.llm.exceptions import BackendError
 from revibe.core.llm.types import BackendLike
 from revibe.core.types import LLMChunk, LLMMessage, Role, ToolCall
@@ -59,7 +63,7 @@ class TestBackend:
             mock_api.post("/v1/chat/completions").mock(
                 return_value=httpx.Response(status_code=200, json=json_response)
             )
-            provider = ProviderConfig(
+            provider = GenericProviderConfig(
                 name="provider_name",
                 api_base=f"{base_url}/v1",
                 api_key_env_var="API_KEY",
@@ -131,7 +135,7 @@ class TestBackend:
                     headers={"Content-Type": "text/event-stream"},
                 )
             )
-            provider = ProviderConfig(
+            provider = GenericProviderConfig(
                 name="provider_name",
                 api_base=f"{base_url}/v1",
                 api_key_env_var="API_KEY",
@@ -224,7 +228,7 @@ class TestBackend:
     ):
         with respx.mock(base_url=base_url) as mock_api:
             mock_api.post("/v1/chat/completions").mock(return_value=response)
-            provider = ProviderConfig(
+            provider = GenericProviderConfig(
                 name="provider_name",
                 api_base=f"{base_url}/v1",
                 api_key_env_var="API_KEY",
@@ -274,7 +278,7 @@ class TestBackend:
                     headers={"Content-Type": "text/event-stream"},
                 )
             )
-            provider = ProviderConfig(
+            provider = GenericProviderConfig(
                 name=provider_name, api_base=f"{base_url}/v1", api_key_env_var="API_KEY"
             )
             backend = GenericBackend(provider=provider)
@@ -333,7 +337,7 @@ class TestBackend:
                 return_value=httpx.Response(status_code=200, json=json_response)
             )
 
-            provider = ProviderConfig(
+            provider = GenericProviderConfig(
                 name="provider_name",
                 api_base=f"{base_url}/v1",
                 api_key_env_var="API_KEY",
@@ -373,7 +377,7 @@ class TestBackend:
             )
             mock_api.post("/v1/chat/completions").mock(return_value=mock_response)
 
-            provider = ProviderConfig(
+            provider = GenericProviderConfig(
                 name="provider_name",
                 api_base=f"{base_url}/v1",
                 api_key_env_var="API_KEY",

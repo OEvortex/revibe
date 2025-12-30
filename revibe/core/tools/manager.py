@@ -7,7 +7,7 @@ from logging import getLogger
 from pathlib import Path
 import re
 import sys
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from revibe.core.paths.config_paths import resolve_local_tools_dir
 from revibe.core.paths.global_paths import DEFAULT_TOOL_DIR, GLOBAL_TOOLS_DIR
@@ -142,9 +142,13 @@ class ToolManager:
             for srv in self._config.mcp_servers:
                 match srv.transport:
                     case "http" | "streamable-http":
-                        http_count += await self._register_http_server(srv)
+                        http_count += await self._register_http_server(
+                            cast("MCPHttp | MCPStreamableHttp", srv)
+                        )
                     case "stdio":
-                        stdio_count += await self._register_stdio_server(srv)
+                        stdio_count += await self._register_stdio_server(
+                            cast("MCPStdio", srv)
+                        )
                     case _:
                         logger.warning("Unsupported MCP transport: %r", srv.transport)
 

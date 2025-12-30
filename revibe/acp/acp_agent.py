@@ -35,9 +35,11 @@ from acp.schema import (
     AllowedOutcome,
     AuthenticateResponse,
     AuthMethod,
+    EmbeddedResourceContentBlock,
     Implementation,
     ModelInfo,
     PromptCapabilities,
+    ResourceContentBlock,
     SessionModelState,
     SessionModeState,
     TextContentBlock,
@@ -373,45 +375,44 @@ class VibeAcpAgent(AcpAgent):
         text_prompt = ""
         for block in acp_prompt:
             separator = "\n\n" if text_prompt else ""
-            match block.type:
-                # NOTE: ACP supports annotations, but we don't use them here yet.
-                case "text":
-                    text_prompt = f"{text_prompt}{separator}{block.text}"
-                case "resource":
-                    block_content = (
-                        block.resource.text
-                        if isinstance(block.resource, TextResourceContents)
-                        else block.resource.blob
-                    )
-                    fields = {"path": block.resource.uri, "content": block_content}
-                    parts = [
-                        f"{k}: {v}"
-                        for k, v in fields.items()
-                        if v is not None and (v or isinstance(v, (int, float)))
-                    ]
-                    block_prompt = "\n".join(parts)
-                    text_prompt = f"{text_prompt}{separator}{block_prompt}"
-                case "resource_link":
-                    # NOTE: we currently keep more information than just the URI
-                    # making it more detailed than the output of the read_file tool.
-                    # This is OK, but might be worth testing how it affect performance.
-                    fields = {
-                        "uri": block.uri,
-                        "name": block.name,
-                        "title": block.title,
-                        "description": block.description,
-                        "mimeType": block.mimeType,
-                        "size": block.size,
-                    }
-                    parts = [
-                        f"{k}: {v}"
-                        for k, v in fields.items()
-                        if v is not None and (v or isinstance(v, (int, float)))
-                    ]
-                    block_prompt = "\n".join(parts)
-                    text_prompt = f"{text_prompt}{separator}{block_prompt}"
-                case _:
-                    raise ValueError(f"Unsupported content block type: {block.type}")
+            # NOTE: ACP supports annotations, but we don't use them here yet.
+            if isinstance(block, TextContentBlock):
+                text_prompt = f"{text_prompt}{separator}{block.text}"
+            elif isinstance(block, EmbeddedResourceContentBlock):
+                block_content = (
+                    block.resource.text
+                    if isinstance(block.resource, TextResourceContents)
+                    else block.resource.blob
+                )
+                fields = {"path": block.resource.uri, "content": block_content}
+                parts = [
+                    f"{k}: {v}"
+                    for k, v in fields.items()
+                    if v is not None and (v or isinstance(v, (int, float)))
+                ]
+                block_prompt = "\n".join(parts)
+                text_prompt = f"{text_prompt}{separator}{block_prompt}"
+            elif isinstance(block, ResourceContentBlock):
+                # NOTE: we currently keep more information than just the URI
+                # making it more detailed than the output of the read_file tool.
+                # This is OK, but might be worth testing how it affect performance.
+                fields = {
+                    "uri": block.uri,
+                    "name": block.name,
+                    "title": block.title,
+                    "description": block.description,
+                    "mimeType": block.mimeType,
+                    "size": block.size,
+                }
+                parts = [
+                    f"{k}: {v}"
+                    for k, v in fields.items()
+                    if v is not None and (v or isinstance(v, (int, float)))
+                ]
+                block_prompt = "\n".join(parts)
+                text_prompt = f"{text_prompt}{separator}{block_prompt}"
+            else:
+                raise ValueError(f"Unsupported content block type: {block}")
         return text_prompt
 
     async def _run_agent_loop(
