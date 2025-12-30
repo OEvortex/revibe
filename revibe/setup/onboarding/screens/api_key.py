@@ -128,10 +128,6 @@ class ApiKeyScreen(OnboardingScreen):
                         )
                         yield Static("", id="feedback")
                 yield Static("", classes="spacer")
-                yield Vertical(
-                    Vertical(*self._compose_config_docs(), id="config-docs-group"),
-                    id="config-docs-section",
-                )
             return
 
         provider_name = self.provider.name.capitalize()
