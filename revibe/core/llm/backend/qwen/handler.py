@@ -276,7 +276,7 @@ class QwenBackend:
             extra_headers=extra_headers,
         )
 
-    async def _complete_with_retry(
+    async def _complete_with_retry(  # noqa: PLR0914, PLR0915
         self,
         *,
         model: ModelConfig,
@@ -434,7 +434,117 @@ class QwenBackend:
         ):
             yield chunk
 
-    async def _complete_streaming_with_retry(
+    def _build_streaming_payload(
+        self,
+        model: ModelConfig,
+        messages: list[LLMMessage],
+        temperature: float,
+        tools: list[AvailableTool] | None,
+        max_tokens: int | None,
+        tool_choice: StrToolChoice | AvailableTool | None,
+    ) -> dict[str, Any]:
+        """Build the payload for streaming requests."""
+        payload: dict[str, Any] = {
+            "model": model.name,
+            "messages": self._prepare_messages(messages),
+            "temperature": temperature,
+            "stream": True,
+            "stream_options": {"include_usage": True},
+        }
+
+        if tools:
+            payload["tools"] = self._prepare_tools(tools)
+        if tool_choice:
+            payload["tool_choice"] = self._prepare_tool_choice(tool_choice)
+        if max_tokens is not None:
+            payload["max_tokens"] = max_tokens
+        
+        return payload
+
+    def _parse_sse_line(self, line: str) -> tuple[str, str] | None:
+        """Parse an SSE line and return (key, value) if valid."""
+        if not line.strip():
+            return None
+            
+        if ":" not in line:
+            return None
+            
+        delim_index = line.find(":")
+        key = line[:delim_index].strip()
+        # Value starts after colon, with optional leading space
+        value = line[delim_index + 1 :].lstrip()
+        
+        return key, value
+
+    def _handle_chunk_data(
+        self,
+        chunk_data: dict[str, Any],
+        delta: dict[str, Any],
+        usage: dict[str, Any] | None,
+        thinking_parser: ThinkingBlockParser,
+        full_content: str,
+    ) -> tuple[str, str, list[ToolCall] | None]:
+        """Handle chunk data and extract content, reasoning, and tool calls."""
+        content = ""
+        reasoning_content = ""
+        tool_calls = None
+
+        # Handle content with potential thinking blocks
+        if delta.get("content"):
+            new_text = delta["content"]
+
+            # Handle cumulative content (some providers send full content)
+            if new_text.startswith(full_content):
+                new_text = new_text[len(full_content) :]
+
+            if new_text:
+                # Parse thinking blocks
+                regular, thinking = thinking_parser.parse(new_text)
+                content = regular
+                reasoning_content = thinking
+
+        # Handle native reasoning_content field
+        if delta.get("reasoning_content"):
+            reasoning_content = delta["reasoning_content"]
+
+        # Parse tool calls
+        if delta.get("tool_calls"):
+            tool_calls = [
+                ToolCall(
+                    id=tc.get("id"),
+                    index=tc.get("index"),
+                    function=FunctionCall(
+                        name=tc.get("function", {}).get("name"),
+                        arguments=tc.get("function", {}).get("arguments"),
+                    ),
+                )
+                for tc in delta["tool_calls"]
+            ]
+
+        return content, reasoning_content, tool_calls
+
+    def _create_llm_chunk(
+        self,
+        content: str,
+        reasoning_content: str,
+        tool_calls: list[ToolCall] | None,
+        usage: dict[str, Any] | None,
+    ) -> LLMChunk:
+        """Create an LLMChunk from the parsed data."""
+        return LLMChunk(
+            message=LLMMessage(
+                role=Role.assistant,
+                content=content if content else None,
+                reasoning_content=reasoning_content if reasoning_content else None,
+                tool_calls=tool_calls,
+            ),
+            usage=LLMUsage(
+                prompt_tokens=usage.get("prompt_tokens", 0) if usage else 0,
+                completion_tokens=usage.get("completion_tokens", 0) if usage else 0,
+            ),
+        )
+
+    async def _complete_streaming_with_retry(  # noqa: PLR0914, PLR0915, PLR1702
         self,
         *,
         model: ModelConfig,
@@ -455,20 +565,7 @@ class QwenBackend:
         base_url = await self._get_base_url()
         url = f"{base_url}/chat/completions"
 
-        payload: dict[str, Any] = {
-            "model": model.name,
-            "messages": self._prepare_messages(messages),
-            "temperature": temperature,
-            "stream": True,
-            "stream_options": {"include_usage": True},
-        }
-
-        if tools:
-            payload["tools"] = self._prepare_tools(tools)
-        if tool_choice:
-            payload["tool_choice"] = self._prepare_tool_choice(tool_choice)
-        if max_tokens is not None:
-            payload["max_tokens"] = max_tokens
+        payload = self._build_streaming_payload(model, messages, temperature, tools, max_tokens, tool_choice)
 
         thinking_parser = ThinkingBlockParser()
         full_content = ""
@@ -506,32 +603,11 @@ class QwenBackend:
                     return
 
                 async for line in response.aiter_lines():
-                    if not line.strip():
+                    parsed = self._parse_sse_line(line)
+                    if not parsed:
                         continue
-
-                    # SSE format: "field: value" - colon followed by optional space
-                    if ":" not in line:
-                        # Could be a raw JSON error response
-                        try:
-                            error_data = json.loads(line)
-                            if "error" in error_data or "message" in error_data:
-                                error_msg = (
-                                    error_data.get("error", {}).get("message")
-                                    if isinstance(error_data.get("error"), dict)
-                                    else error_data.get("error")
-                                    or error_data.get("message")
-                                    or str(error_data)
-                                )
-                                raise ValueError(f"API error: {error_msg}")
-                        except json.JSONDecodeError:
-                            pass
-                        continue
-
-                    delim_index = line.find(":")
-                    key = line[:delim_index].strip()
-                    # Value starts after colon, with optional leading space
-                    value = line[delim_index + 1 :].lstrip()
-
+                    
+                    key, value = parsed
                     if key != "data":
                         continue
                     if not value or value == "[DONE]":
@@ -557,59 +633,14 @@ class QwenBackend:
                     delta = choices[0].get("delta", {}) if choices else {}
                     usage = chunk_data.get("usage")
 
-                    content = ""
-                    reasoning_content = ""
-
-                    # Handle content with potential thinking blocks
+                    content, reasoning_content, tool_calls = self._handle_chunk_data(
+                        chunk_data, delta, usage, thinking_parser, full_content
+                    )
+                    
                     if delta.get("content"):
-                        new_text = delta["content"]
-
-                        # Handle cumulative content (some providers send full content)
-                        if new_text.startswith(full_content):
-                            new_text = new_text[len(full_content) :]
                         full_content = delta["content"]
 
-                        if new_text:
-                            # Parse thinking blocks
-                            regular, thinking = thinking_parser.parse(new_text)
-                            content = regular
-                            reasoning_content = thinking
-
-                    # Handle native reasoning_content field
-                    if delta.get("reasoning_content"):
-                        reasoning_content = delta["reasoning_content"]
-
-                    # Parse tool calls
-                    tool_calls = None
-                    if delta.get("tool_calls"):
-                        tool_calls = [
-                            ToolCall(
-                                id=tc.get("id"),
-                                index=tc.get("index"),
-                                function=FunctionCall(
-                                    name=tc.get("function", {}).get("name"),
-                                    arguments=tc.get("function", {}).get("arguments"),
-                                ),
-                            )
-                            for tc in delta["tool_calls"]
-                        ]
-
-                    yield LLMChunk(
-                        message=LLMMessage(
-                            role=Role.assistant,
-                            content=content if content else None,
-                            reasoning_content=reasoning_content
-                            if reasoning_content
-                            else None,
-                            tool_calls=tool_calls,
-                        ),
-                        usage=LLMUsage(
-                            prompt_tokens=usage.get("prompt_tokens", 0) if usage else 0,
-                            completion_tokens=usage.get("completion_tokens", 0)
-                            if usage
-                            else 0,
-                        ),
-                    )
+                    yield self._create_llm_chunk(content, reasoning_content, tool_calls, usage)
 
         except httpx.HTTPStatusError as e:
             # Retry once with fresh token on 401 Unauthorized

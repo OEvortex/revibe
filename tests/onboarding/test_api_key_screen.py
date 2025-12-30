@@ -71,7 +71,6 @@ class TestApiKeyScreen:
         # These providers have empty api_key_env_var in DEFAULT_PROVIDERS
         from revibe.core.config import DEFAULT_PROVIDERS
 
-        provider = next(p for p in DEFAULT_PROVIDERS if p.name == provider_name)
         model = ModelConfig(
             name="test-model", provider=provider_name, alias="test-model"
         )

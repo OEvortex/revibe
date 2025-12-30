@@ -276,9 +276,10 @@ class Grep(
         if not isinstance(event.args, GrepArgs):
             return ToolCallDisplay(summary="Grep")
 
+        MAX_PATTERN_DISPLAY_LENGTH = 20
         pattern = event.args.pattern
-        if len(pattern) > 20:
-            pattern = pattern[:17] + "..."
+        if len(pattern) > MAX_PATTERN_DISPLAY_LENGTH:
+            pattern = pattern[:MAX_PATTERN_DISPLAY_LENGTH - 3] + "..."
 
         summary = f"Grep ({pattern})"
         return ToolCallDisplay(summary=summary)

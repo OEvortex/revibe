@@ -157,37 +157,50 @@ class ModelSelector(Container):
         
         return providers_to_query
 
+    async def _fetch_models_from_provider(
+        self, provider: ProviderConfigUnion, existing_names: set[tuple[str, str]]
+    ) -> bool:
+        """Fetch models from a single provider. Returns True if any models were added."""
+        from revibe.core.llm.backend.factory import BACKEND_FACTORY
+        
+        try:
+            backend_cls = BACKEND_FACTORY.get(provider.backend)
+            if not backend_cls:
+                return False
+                
+            model_names = await backend_cls(provider=provider).list_models()
+            if not model_names:
+                return False
+                
+            added_any = False
+            for name in model_names:
+                key = (provider.name, name)
+                if key not in existing_names:
+                    self.models.append(
+                        ModelConfig(
+                            name=name,
+                            provider=provider.name,
+                            alias=name,
+                        )
+                    )
+                    existing_names.add(key)
+                    added_any = True
+                    
+            return added_any
+        except Exception:
+            # Ignore failures per-provider so one bad provider doesn't block others
+            return False
+
     async def _fetch_models_from_providers(
         self, providers_to_query: list[ProviderConfigUnion]
     ) -> bool:
         """Fetch models from the specified providers. Returns True if any models were added."""
-        from revibe.core.llm.backend.factory import BACKEND_FACTORY
-        
         existing_names = {(m.provider, m.name) for m in self.models}
         added_any = False
 
         for provider in providers_to_query:
-            try:
-                backend_cls = BACKEND_FACTORY.get(provider.backend)
-                if backend_cls:
-                    async with backend_cls(provider=provider) as backend:
-                        model_names = await backend.list_models()
-                        if model_names:
-                            for name in model_names:
-                                key = (provider.name, name)
-                                if key not in existing_names:
-                                    self.models.append(
-                                        ModelConfig(
-                                            name=name,
-                                            provider=provider.name,
-                                            alias=name,
-                                        )
-                                    )
-                                    existing_names.add(key)
-                                    added_any = True
-            except Exception:
-                # Ignore failures per-provider so one bad provider doesn't block others
-                continue
+            if await self._fetch_models_from_provider(provider, existing_names):
+                added_any = True
         
         return added_any
 
