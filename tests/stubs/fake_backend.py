@@ -14,8 +14,6 @@ if TYPE_CHECKING:
 
 
 class FakeBackend:
-    supported_formats: list[str] = ["native", "xml"]
-
     """Minimal async backend stub to drive Agent.act without network.
 
     Provide a finite sequence of LLMResult objects to be returned by
@@ -41,6 +39,7 @@ class FakeBackend:
         A sequence of sequences of chunks is considered a list of streams: each completion
         will output a stream (either streaming or in an aggregated way)
         """
+        self.supported_formats = ["native", "xml"]
         self._requests_messages: list[list[LLMMessage]] = []
         self._requests_extra_headers: list[dict[str, str] | None] = []
         self._count_tokens_calls: list[list[LLMMessage]] = []

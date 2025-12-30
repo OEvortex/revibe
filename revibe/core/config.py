@@ -9,7 +9,7 @@ import tomllib
 from typing import Annotated, Any, Literal
 
 from dotenv import dotenv_values
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, TypeAdapter, field_validator, model_validator
 from pydantic.fields import FieldInfo
 from pydantic_core import to_jsonable_python
 from pydantic_settings import (
@@ -206,6 +206,7 @@ ProviderConfigUnion = Annotated[
 
 
 type ProviderConfig = ProviderConfigUnion
+PROVIDER_CONFIG_ADAPTER = TypeAdapter(ProviderConfigUnion)
 
 
 class _MCPBase(BaseModel):
@@ -424,26 +425,47 @@ class VibeConfig(BaseSettings):
 
     def get_active_model(self) -> ModelConfig:
         for model in self.models:
-            if model.alias == self.active_model:
-                return model
+            # Handle both ModelConfig objects and dicts (can happen with model_construct)
+            m_alias = (
+                model.alias if isinstance(model, ModelConfig) else model.get("alias")
+            )
+            if m_alias == self.active_model:
+                return (
+                    model
+                    if isinstance(model, ModelConfig)
+                    else ModelConfig.model_validate(model)
+                )
         raise ValueError(
             f"Active model '{self.active_model}' not found in configuration."
         )
 
     def get_provider_for_model(self, model: ModelConfig) -> ProviderConfigUnion:
         # Merge DEFAULT_PROVIDERS with configured providers
-        providers_map: dict[str, ProviderConfigUnion] = {}
+        providers_map: dict[str, Any] = {}
         for p in DEFAULT_PROVIDERS:
             providers_map[p.name] = p
         for p in self.providers:
-            providers_map[p.name] = p
+            p_name = p.name if not isinstance(p, dict) else p.get("name")
+            providers_map[p_name] = p
 
-        provider = providers_map.get(model.provider)
+        m_provider = (
+            model.provider if isinstance(model, ModelConfig) else model.get("provider")
+        )
+        provider = providers_map.get(m_provider)
+
         if provider is None:
-            raise ValueError(
-                f"Provider '{model.provider}' for model '{model.name}' not found in configuration."
+            m_name = getattr(model, "name", None) or (
+                model.get("name") if isinstance(model, dict) else "unknown"
             )
-        return provider
+            raise ValueError(
+                f"Provider '{m_provider}' for model '{m_name}' not found in configuration."
+            )
+
+        return (
+            provider
+            if not isinstance(provider, dict)
+            else PROVIDER_CONFIG_ADAPTER.validate_python(provider)
+        )
 
     @classmethod
     def settings_customise_sources(
@@ -513,21 +535,12 @@ class VibeConfig(BaseSettings):
             return []
         return [Path(p).expanduser().resolve() for p in v]
 
-    @field_validator("workdir", mode="before")
+    @field_validator("models", mode="before")
     @classmethod
-    def _expand_workdir(cls, v: Any) -> Path | None:
-        if v is None or (isinstance(v, str) and not v.strip()):
-            return None
-
-        if isinstance(v, str):
-            v = Path(v).expanduser().resolve()
-        elif isinstance(v, Path):
-            v = v.expanduser().resolve()
-        if not v.is_dir():
-            raise ValueError(
-                f"Tried to set {v} as working directory, path doesn't exist"
-            )
-        return v
+    def _validate_models(cls, v: Any) -> list[ModelConfig]:
+        if not isinstance(v, list):
+            return list(DEFAULT_MODELS)
+        return [ModelConfig.model_validate(item) for item in v]
 
     @field_validator("tools", mode="before")
     @classmethod

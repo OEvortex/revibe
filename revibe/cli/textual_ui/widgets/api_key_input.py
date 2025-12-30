@@ -20,7 +20,8 @@ class ApiKeyInput(Container):
     can_focus_children = True
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("escape", "cancel", "Cancel", show=False)
+        Binding("escape", "cancel", "Cancel", show=False),
+        Binding("enter", "submit", "Submit", show=False),
     ]
 
     class ApiKeySubmitted(Message):
@@ -41,6 +42,24 @@ class ApiKeyInput(Container):
 
     def compose(self) -> ComposeResult:
         with Vertical(id="api-key-content"):
+            if not self.provider.api_key_env_var:
+                self.title_widget = Static(
+                    f"{self.provider.name.capitalize()} does not require an API key",
+                    classes="settings-title",
+                )
+                yield self.title_widget
+                yield Static("")
+                yield Static(
+                    "This provider works without an API key. No further setup needed.",
+                    classes="settings-help",
+                )
+                yield Static("")
+                self.help_widget = Static(
+                    "Enter to continue  ESC cancel", classes="settings-help"
+                )
+                yield self.help_widget
+                return
+
             self.title_widget = Static(
                 f"Enter API Key for {self.provider.name}", classes="settings-title"
             )
@@ -85,8 +104,11 @@ class ApiKeyInput(Container):
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         api_key = event.value.strip()
-        if api_key:
+        if api_key or not self.provider.api_key_env_var:
             self.post_message(self.ApiKeySubmitted(self.provider.name, api_key))
 
     def action_cancel(self) -> None:
         self.post_message(self.ApiKeyCancelled())
+
+    def action_submit(self) -> None:
+        self.post_message(self.ApiKeySubmitted(self.provider.name, ""))
