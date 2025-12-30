@@ -136,6 +136,21 @@ class ApiKeyScreen(OnboardingScreen):
             classes="link-row",
         )
 
+    def _compose_no_api_key_content(self) -> ComposeResult:
+        if not self.provider:
+            return
+        yield Static(
+            f"{self.provider.name.capitalize()} does not require an API key.",
+            id="no-api-key-message",
+        )
+        if self.provider.name == "qwencode":
+            yield Static(
+                "Please install qwen-code if not installed: `npm install -g @qwen-code/qwen-code@latest`\n"
+                "then use `/auth` in qwen to authenticate, then you can close qwen and use qwencode provider in ReVibe",
+                id="qwen-instructions",
+            )
+        yield Static("", id="feedback")
+
     def compose(self) -> ComposeResult:
         # Ensure provider is loaded (in case on_show hasn't been called yet)
         if self.provider is None:
@@ -150,15 +165,9 @@ class ApiKeyScreen(OnboardingScreen):
                 yield Center(Static("", id="api-key-title"))
                 with Center():
                     with Vertical(id="api-key-content"):
-                        yield Static(
-                            f"{self.provider.name.capitalize()} does not require an API key.",
-                            id="no-api-key-message",
-                        )
-                        yield Static("", id="feedback")
+                        yield from self._compose_no_api_key_content()
                 yield Static("", classes="spacer")
             return
-
-        provider_name = self.provider.name.capitalize()
 
         self.input_widget = Input(
             password=True,
@@ -172,12 +181,7 @@ class ApiKeyScreen(OnboardingScreen):
             yield Center(Static("One last thing...", id="api-key-title"))
             with Center():
                 with Vertical(id="api-key-content"):
-                    yield from self._compose_provider_link(provider_name)
-                    yield Static(
-                        "...and paste it below to finish the setup:", id="paste-hint"
-                    )
-                    yield Center(Horizontal(self.input_widget, id="input-box"))
-                    yield Static("", id="feedback")
+                    yield from self._compose_no_api_key_content()
             yield Static("", classes="spacer")
             yield Vertical(
                 Vertical(*self._compose_config_docs(), id="config-docs-group"),
@@ -193,12 +197,8 @@ class ApiKeyScreen(OnboardingScreen):
         title_widget.update(self._render_title())
 
     def _render_title(self) -> str:
-        prefix = "Setup Complete! "
-        revibe = "ReVibe"
-        suffix = " Setup Complete! Press Enter to exit."
-
-        animated_revibe = _apply_gradient(revibe, self._gradient_offset)
-        return f"{prefix}{animated_revibe}{suffix}"
+        title = "Setup Completed"
+        return _apply_gradient(title, self._gradient_offset)
 
     def on_mount(self) -> None:
         title_widget = self.query_one("#api-key-title", Static)

@@ -64,12 +64,12 @@ ReVibe manages API keys in `~/.revibe/.env`. You can also set them directly in y
 | **Groq** | `GROQ_API_KEY` | API Key |
 | **Cerebras** | `CEREBRAS_API_KEY` | API Key |
 | **Hugging Face** | `HUGGINGFACE_API_KEY` | API Key |
-| **Qwen** | *None (Default)* | **OAuth** (via `qwen-code auth login`) |
+| **Qwen** | *None (Default)* | **OAuth** (via `/auth` in qwen CLI) |
 | **Ollama** | *Not Required* | Local (Default: `http://localhost:11434`) |
 | **Llama.cpp** | *Not Required* | Local (Default: `http://localhost:8080`) |
 
 > [!TIP]
-> For Qwen, ReVibe defaults to OAuth integration used by the Qwen CLI. ensure you are logged in using `qwen-code auth login` to use this provider.
+> For Qwen, install qwen-code if not installed: `npm install -g @qwen-code/qwen-code@latest`, then use `/auth` in qwen to authenticate, then you can close qwen and use qwencode provider in ReVibe.
 
 ## 📖 Usage
 
