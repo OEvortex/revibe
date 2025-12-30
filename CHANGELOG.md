@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2025-12-31
+
+### Added
+
+- Support for XML-based tool calling via `--tool-format xml` flag.
+- XML-specific prompts for all built-in tools (`bash`, `grep`, `read_file`, `write_file`, `search_replace`, `todo`).
+- `XMLToolFormatHandler` for robust parsing of XML tool calls and generation of XML tool results.
+- `supported_formats` field in `ModelConfig` and backend implementations to manage compatibility.
+- Dynamic tool prompt resolution in `BaseTool` allowing automatic fallback to standard prompts if XML version is missing.
+
+### Fixed
+
+- Case-sensitivity issue when specifying tool format via CLI.
+- Type errors in backends when implementing `BackendLike` protocol (added missing `supported_formats`).
+- Typo in `XMLToolFormatHandler` name property.
+
 ## [1.5.0] - 2025-12-30
 
 ### Added
