@@ -194,7 +194,7 @@ ProviderConfigUnion = Annotated[
 ]
 
 
-ProviderConfig: TypeAlias = ProviderConfigUnion
+type ProviderConfig = ProviderConfigUnion
 
 
 class _MCPBase(BaseModel):

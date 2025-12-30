@@ -1,199 +1,75 @@
-Use the `todo` tool to manage a simple task list. This tool helps you track tasks and their progress.
+# Todo Tool – Lightweight Task Tracker
 
-## How it works
+Use the `todo` tool to capture, update, and report progress on multi-step assignments. Maintaining a live checklist demonstrates planning discipline and makes it easy to resume work after interruptions.
 
-- **Reading:** Use `action: "read"` to view the current todo list
-- **Writing:** Use `action: "write"` with the complete `todos` list to update. You must provide the ENTIRE list - this replaces everything.
+## Interface Recap
+- `action: "read"` – Return the current todo list.
+- `action: "write"` – Replace the entire list with the provided `todos` array. You **must** send every task you want to keep; omissions are treated as deletions.
 
-## Todo Structure
-Each todo item has:
-- `id`: A unique string identifier (e.g., "1", "2", "task-a")
-- `content`: The task description
-- `status`: One of: "pending", "in_progress", "completed", "cancelled"
-- `priority`: One of: "high", "medium", "low"
+Each todo entry requires:
+| Field | Type | Notes |
+| ----- | ---- | ----- |
+| `id` | str | Unique identifier ("1", "setup", etc.). |
+| `content` | str | Clear, actionable description. |
+| `status` | `pending` \| `in_progress` \| `completed` \| `cancelled` | Default `pending`. Only one task should be `in_progress`. |
+| `priority` | `low` \| `medium` \| `high` | Default `medium`. |
 
-## When to Use This Tool
+## When to Create / Update Todos
+- User provides multiple requirements or a numbered list.
+- Work spans more than a couple of straightforward steps.
+- You need to track investigations, blockers, or follow-ups.
+- After finishing a task to log completion and next actions.
 
-**Use proactively for:**
-- Complex multi-step tasks (3+ distinct steps)
-- Non-trivial tasks requiring careful planning
-- Multiple tasks provided by the user (numbered or comma-separated)
-- Tracking progress on ongoing work
-- After receiving new instructions - immediately capture requirements
-- When starting work - mark task as in_progress BEFORE beginning
-- After completing work - mark as completed and add any follow-up tasks discovered
-
-**Skip this tool for:**
-- Single, straightforward tasks
-- Trivial operations (< 3 simple steps)
-- Purely conversational or informational requests
-- Tasks that provide no organizational benefit
-
-## Task Management Best Practices
-
-1. **Status Management:**
-   - Only ONE task should be `in_progress` at a time
-   - Mark tasks `in_progress` BEFORE starting work on them
-   - Mark tasks `completed` IMMEDIATELY after finishing
-   - Keep tasks `in_progress` if blocked or encountering errors
-
-2. **Task Completion Rules:**
-   - ONLY mark as `completed` when FULLY accomplished
-   - Never mark complete if tests are failing, implementation is partial, or errors are unresolved
-   - When blocked, create a new task describing what needs resolution
-
-3. **Task Organization:**
-   - Create specific, actionable items
-   - Break complex tasks into manageable steps
-   - Use clear, descriptive task names
-   - Remove irrelevant tasks entirely (don't just mark cancelled)
+## Good Habits
+1. **Initialize early:** After understanding the request, capture the major steps before diving into code.
+2. **One task in progress:** Switch statuses proactively as you start/finish work.
+3. **Reflect reality:** If you discover new subtasks or blockers, add them immediately.
+4. **Keep descriptions precise:** Include file names, modules, or acceptance criteria so the intent is clear to reviewers.
+5. **Close the loop:** Mark tasks `completed` only when changes are merged/tested according to the acceptance criteria.
 
 ## Examples
-
-**Example 1: Reading todos**
+### Reading current list
 ```json
 {
   "action": "read"
 }
 ```
 
-**Example 2: Initial task creation (user requests multiple features)**
+### Creating a plan
 ```json
 {
   "action": "write",
   "todos": [
-    {
-      "id": "1",
-      "content": "Add dark mode toggle to settings",
-      "status": "pending",
-      "priority": "high"
-    },
-    {
-      "id": "2",
-      "content": "Implement theme context/state management",
-      "status": "pending",
-      "priority": "high"
-    },
-    {
-      "id": "3",
-      "content": "Update components for theme switching",
-      "status": "pending",
-      "priority": "medium"
-    },
-    {
-      "id": "4",
-      "content": "Run tests and verify build",
-      "status": "pending",
-      "priority": "medium"
-    }
+    {"id": "1", "content": "Audit builtin tool prompts", "status": "pending", "priority": "high"},
+    {"id": "2", "content": "Improve bash + grep prompts", "status": "pending", "priority": "high"},
+    {"id": "3", "content": "Update remaining tool prompts", "status": "pending", "priority": "medium"}
   ]
 }
 ```
 
-**Example 3: Starting work (marking one task in_progress)**
+### Marking progress and adding discoveries
 ```json
 {
   "action": "write",
   "todos": [
-    {
-      "id": "1",
-      "content": "Add dark mode toggle to settings",
-      "status": "in_progress",
-      "priority": "high"
-    },
-    {
-      "id": "2",
-      "content": "Implement theme context/state management",
-      "status": "pending",
-      "priority": "high"
-    },
-    {
-      "id": "3",
-      "content": "Update components for theme switching",
-      "status": "pending",
-      "priority": "medium"
-    },
-    {
-      "id": "4",
-      "content": "Run tests and verify build",
-      "status": "pending",
-      "priority": "medium"
-    }
+    {"id": "1", "content": "Audit builtin tool prompts", "status": "completed", "priority": "high"},
+    {"id": "2", "content": "Improve bash + grep prompts", "status": "in_progress", "priority": "high"},
+    {"id": "3", "content": "Update remaining tool prompts", "status": "pending", "priority": "medium"},
+    {"id": "4", "content": "Document testing expectations", "status": "pending", "priority": "medium"}
   ]
 }
 ```
 
-**Example 4: Completing task and adding discovered subtask**
+### Wrapping up
 ```json
 {
   "action": "write",
   "todos": [
-    {
-      "id": "1",
-      "content": "Add dark mode toggle to settings",
-      "status": "completed",
-      "priority": "high"
-    },
-    {
-      "id": "2",
-      "content": "Implement theme context/state management",
-      "status": "in_progress",
-      "priority": "high"
-    },
-    {
-      "id": "3",
-      "content": "Update components for theme switching",
-      "status": "pending",
-      "priority": "medium"
-    },
-    {
-      "id": "4",
-      "content": "Fix TypeScript errors in theme types",
-      "status": "pending",
-      "priority": "high"
-    },
-    {
-      "id": "5",
-      "content": "Run tests and verify build",
-      "status": "pending",
-      "priority": "medium"
-    }
+    {"id": "2", "content": "Improve bash + grep prompts", "status": "completed", "priority": "high"},
+    {"id": "3", "content": "Update remaining tool prompts", "status": "completed", "priority": "medium"},
+    {"id": "4", "content": "Document testing expectations", "status": "completed", "priority": "medium"}
   ]
 }
 ```
 
-**Example 5: Handling blockers (keeping task in_progress)**
-```json
-{
-  "action": "write",
-  "todos": [
-    {
-      "id": "1",
-      "content": "Deploy to production",
-      "status": "in_progress",
-      "priority": "high"
-    },
-    {
-      "id": "2",
-      "content": "BLOCKER: Fix failing deployment pipeline",
-      "status": "pending",
-      "priority": "high"
-    },
-    {
-      "id": "3",
-      "content": "Update documentation",
-      "status": "pending",
-      "priority": "low"
-    }
-  ]
-}
-```
-
-## Common Scenarios
-
-**Multi-file refactoring:** Create todos for each file that needs updating
-**Performance optimization:** List specific bottlenecks as individual tasks
-**Bug fixing:** Track reproduction, diagnosis, fix, and verification as separate tasks
-**Feature implementation:** Break down into UI, logic, tests, and documentation tasks
-
-Remember: When writing, you must include ALL todos you want to keep. Any todo not in the list will be removed. Be proactive with task management to demonstrate thoroughness and ensure all requirements are completed successfully.
+Maintain this list diligently to show deliberate planning and ensure no requirement is overlooked.

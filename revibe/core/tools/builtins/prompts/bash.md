@@ -1,68 +1,50 @@
-Use the `bash` tool to run one-off shell commands.
+# Bash Tool Quick Guide
 
-**Key characteristics:**
-- **Stateless**: Each command runs independently in a fresh environment
+Use the `bash` tool **only** for shell-level introspection or commands that have no dedicated tool equivalent. Every invocation runs in a clean, non-interactive environment, so commands cannot rely on previous shell state.
 
-**IMPORTANT: Use dedicated tools if available instead of these bash commands:**
+## When to Reach for Bash
+- System context: `pwd`, `whoami`, `env | grep VAR`, `uname -a`, `date`
+- Repository insight: `ls -la`, `tree`, `git status`, `git log --oneline -20`, `git diff --stat`
+- Diagnostics: `ps aux`, `top -b -n 1`, `ping -c 1 <host>`, `curl -I <url>`
+- Lightweight text utilities that **do not** read or mutate project files (e.g., `wc -l file.txt`, `stat file.txt`)
 
-**File Operations - DO NOT USE:**
-- `cat filename` → Use `read_file(path="filename")`
-- `head -n 20 filename` → Use `read_file(path="filename", limit=20)`
-- `tail -n 20 filename` → Read with offset: `read_file(path="filename", offset=<line_number>, limit=20)`
-- `sed -n '100,200p' filename` → Use `read_file(path="filename", offset=99, limit=101)`
-- `less`, `more`, `vim`, `nano` → Use `read_file` with offset/limit for navigation
-- `echo "content" > file` → Use `write_file(path="file", content="content")`
-- `echo "content" >> file` → Read first, then `write_file` with overwrite=true
+## Hard Rules
+1. **Prefer purpose-built tools:**
+   - Reading files ➜ `read_file`
+   - Searching ➜ `grep`
+   - Editing ➜ `search_replace`
+   - Creating/overwriting files ➜ `write_file`
+2. **Never** spawn interactive editors, REPLs, shells, or background daemons.
+3. Commands are truncated to the configured timeout (default 30s). Long-running jobs will be canceled.
+4. Output is capped. If you need large data, use the specific tool designed for that task.
 
-**Search Operations - DO NOT USE:**
-- `grep -r "pattern" .` → Use `grep(pattern="pattern", path=".")`
-- `find . -name "*.py"` → Use `bash("ls -la")` for current dir or `grep` with appropriate pattern
-- `ag`, `ack`, `rg` commands → Use the `grep` tool
-- `locate` → Use `grep` tool
+## Disallowed / Redirected Examples
+| Instead of… | Use… |
+| ----------- | ---- |
+| `bash("cat src/app.py")` | `read_file(path="src/app.py")` |
+| `bash("grep -r 'TODO' src")` | `grep(pattern="TODO", path="src")` |
+| `bash("sed -i 's/foo/bar/' file")` | `search_replace` with SEARCH/REPLACE block |
+| `bash("echo 'text' > file")` | `write_file(path="file", content="text", overwrite=True)` |
 
-**File Modification - DO NOT USE:**
-- `sed -i 's/old/new/g' file` → Use `search_replace` tool
-- `awk` for file editing → Use `search_replace` tool
-- Any in-place file editing → Use `search_replace` tool
+## Command Construction Checklist
+- Keep commands single-purpose and idempotent.
+- Chain commands (`&`, `&&`, `|`) only when each piece is safe and non-interactive.
+- Use absolute or project-relative paths; avoid `~` expansions when possible.
+- Confirm the command is **not** on the denylist (interactive editors, shells, debuggers, package managers that mutate state, etc.).
 
-**APPROPRIATE bash uses:**
-- System information: `pwd`, `whoami`, `date`, `uname -a`
-- Directory listings: `ls -la`, `tree` (if available)
-- Git operations: `git status`, `git log --oneline -10`, `git diff`
-- Process info: `ps aux | grep process`, `top -n 1`
-- Network checks: `ping -c 1 google.com`, `curl -I https://example.com`
-- Package management: `pip list`, `npm list`
-- Environment checks: `env | grep VAR`, `which python`
-- File metadata: `stat filename`, `file filename`, `wc -l filename`
-
-**Example: Reading a large file efficiently**
-
-WRONG:
-```bash
-bash("cat large_file.txt")  # May hit size limits
-bash("head -1000 large_file.txt")  # Inefficient
-```
-
-RIGHT:
+## Example Calls
 ```python
-# First chunk
-read_file(path="large_file.txt", limit=1000)
-# If was_truncated=true, read next chunk
-read_file(path="large_file.txt", offset=1000, limit=1000)
+# Inspect current repository state
+bash(command="git status -sb")
+
+# Show last 5 commits
+bash(command="git log --oneline -5")
+
+# Check a single file's metadata
+bash(command="stat revibe/core/tools/base.py")
+
+# Quick network probe
+bash(command="curl -I https://example.com")
 ```
 
-**Example: Searching for patterns**
-
-WRONG:
-```bash
-bash("grep -r 'TODO' src/")  # Don't use bash for grep
-bash("find . -type f -name '*.py' | xargs grep 'import'")  # Too complex
-```
-
-RIGHT:
-```python
-grep(pattern="TODO", path="src/")
-grep(pattern="import", path=".")
-```
-
-**Remember:** Bash is best for quick system checks and git operations. For file operations, searching, and editing, always use the dedicated tools when they are available.
+Remember: bash is the tool of last resort. If a higher-level tool exists, you are expected to use it to keep the workflow safe, auditable, and reproducible.

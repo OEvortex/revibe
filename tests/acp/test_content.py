@@ -34,7 +34,8 @@ def backend() -> FakeBackend:
 def acp_agent(backend: FakeBackend) -> VibeAcpAgent:
     class PatchedAgent(Agent):
         def __init__(self, *args, **kwargs) -> None:
-            super().__init__(*args, **kwargs, backend=backend)
+            kwargs["backend"] = backend
+            super().__init__(*args, **kwargs)
 
     patch("vibe.acp.acp_agent.VibeAgent", side_effect=PatchedAgent).start()
 
@@ -46,7 +47,8 @@ def acp_agent(backend: FakeBackend) -> VibeAcpAgent:
         return vibe_acp_agent
 
     FakeAgentSideConnection(_create_agent)
-    return vibe_acp_agent  # pyright: ignore[reportReturnType]
+    assert vibe_acp_agent is not None
+    return vibe_acp_agent
 
 
 class TestACPContent:

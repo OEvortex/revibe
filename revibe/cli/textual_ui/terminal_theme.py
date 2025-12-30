@@ -16,9 +16,11 @@ try:
 
     _UNIX_AVAILABLE = True
 except ImportError:
-    select = None  # type: ignore[assignment]
-    termios: Any = None
     _UNIX_AVAILABLE = False
+
+# Use aliases to avoid platform-specific type errors and invalid-assignment
+_sel: Any = sys.modules.get("select")
+_term: Any = sys.modules.get("termios")
 
 TERMINAL_THEME_NAME = "terminal"
 
@@ -116,22 +118,25 @@ _COLOR_QUERIES, _OSC_TO_FIELD = _build_color_queries()
 @contextmanager
 def _raw_mode(fd: int) -> Iterator[None]:
     """Context manager to temporarily set terminal to raw mode."""
-    assert termios is not None  # Only called on Unix so typing doesn't freak out
-    try:
-        old_settings = termios.tcgetattr(fd)
-    except termios.error:
+    if not _UNIX_AVAILABLE or _term is None:
         yield
         return
 
     try:
-        new_settings = termios.tcgetattr(fd)
-        new_settings[3] &= ~(termios.ECHO | termios.ICANON)
-        termios.tcsetattr(fd, termios.TCSADRAIN, new_settings)
+        old_settings = _term.tcgetattr(fd)
+    except _term.error:
+        yield
+        return
+
+    try:
+        new_settings = _term.tcgetattr(fd)
+        new_settings[3] &= ~(_term.ECHO | _term.ICANON)
+        _term.tcsetattr(fd, _term.TCSADRAIN, new_settings)
         yield
     finally:
         try:
-            termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
-        except termios.error:
+            _term.tcsetattr(fd, _term.TCSADRAIN, old_settings)
+        except _term.error:
             pass
 
 
@@ -159,10 +164,11 @@ def _read_responses(fd: int, timeout: float = 1.0) -> bytes:
     respond in order, receiving the DA1 response means all color responses
     (if any) have been received.
     """
-    assert select is not None  # Only called on Unix so typing doesn't freak out
+    if not _UNIX_AVAILABLE or _sel is None:
+        return b""
     response = bytearray()
     while True:
-        ready, _, _ = select.select([fd], [], [], timeout)
+        ready, _, _ = _sel.select([fd], [], [], timeout)
         if not ready:
             break
         chunk = os.read(fd, 4096)

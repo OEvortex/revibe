@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable, Coroutine
+from types import MethodType
+from typing import Any, cast
 
 from acp.schema import TerminalOutputResponse, WaitForTerminalExitResponse
 import pytest
@@ -327,10 +330,13 @@ class TestAcpBashTimeout:
         )
         mock_connection._terminal_handle = custom_handle
 
-        async def failing_kill() -> None:
+        async def failing_kill(self) -> None:
             raise RuntimeError("Kill failed")
 
-        custom_handle.kill = failing_kill
+        custom_handle.kill = cast(
+            Callable[[], Coroutine[Any, Any, None]],
+            MethodType(failing_kill, custom_handle),
+        )  # type: ignore[assignment]
 
         tool = Bash(
             config=BashToolConfig(),
@@ -390,10 +396,13 @@ class TestAcpBashEmbedding:
         self, mock_connection: MockConnection
     ) -> None:
         # Make sessionUpdate raise an exception
-        async def failing_session_update(notification) -> None:
+        async def failing_session_update(self, notification) -> None:
             raise RuntimeError("Session update failed")
 
-        mock_connection.sessionUpdate = failing_session_update
+        mock_connection.sessionUpdate = cast(
+            Callable[..., Coroutine[Any, Any, None]],
+            MethodType(failing_session_update, mock_connection),
+        )  # type: ignore[assignment]
 
         tool = Bash(
             config=BashToolConfig(),
@@ -449,11 +458,11 @@ class TestAcpBashCleanup:
 
         release_called = False
 
-        async def mock_release() -> None:
+        async def mock_release(self) -> None:
             nonlocal release_called
             release_called = True
 
-        custom_handle.release = mock_release
+        custom_handle.release = MethodType(mock_release, custom_handle)  # type: ignore[assignment]
 
         tool = Bash(
             config=BashToolConfig(),
@@ -483,11 +492,11 @@ class TestAcpBashCleanup:
 
         release_called = False
 
-        async def mock_release() -> None:
+        async def mock_release(self) -> None:
             nonlocal release_called
             release_called = True
 
-        custom_handle.release = mock_release
+        custom_handle.release = MethodType(mock_release, custom_handle)  # type: ignore[assignment]
 
         tool = Bash(
             config=BashToolConfig(),
@@ -513,10 +522,13 @@ class TestAcpBashCleanup:
     ) -> None:
         custom_handle = MockTerminalHandle(terminal_id="release_failure_terminal")
 
-        async def failing_release() -> None:
+        async def failing_release(self) -> None:
             raise RuntimeError("Release failed")
 
-        custom_handle.release = failing_release
+        custom_handle.release = cast(
+            Callable[[], Coroutine[Any, Any, None]],
+            MethodType(failing_release, custom_handle),
+        )  # type: ignore[assignment]
         mock_connection._terminal_handle = custom_handle
 
         tool = Bash(

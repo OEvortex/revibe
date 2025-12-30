@@ -9,7 +9,7 @@ from textual.widgets import Static
 class CompletionPopup(Static):
     def __init__(self, **kwargs: Any) -> None:
         super().__init__("", id="completion-popup", **kwargs)
-        self.styles.display = "none"
+        self.display = "none"
         self.can_focus = False
 
     def update_suggestions(
@@ -37,7 +37,7 @@ class CompletionPopup(Static):
 
     def hide(self) -> None:
         self.update("")
-        self.styles.display = "none"
+        self.display = "none"
 
     def show(self) -> None:
-        self.styles.display = "block"
+        self.display = "block"

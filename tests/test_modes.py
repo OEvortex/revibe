@@ -139,7 +139,8 @@ class TestModeConfig:
     def test_mode_config_frozen(self) -> None:
         config = ModeConfig(display_name="Test", description="Test mode")
         with pytest.raises(AttributeError):
-            config.display_name = "Changed"
+            # Try to set a property that should be read-only
+            object.__setattr__(config, 'display_name', "Changed")
 
 
 class TestAgentSwitchMode:

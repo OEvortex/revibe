@@ -1,43 +1,59 @@
-Use `search_replace` to make targeted changes to files using SEARCH/REPLACE blocks. This tool finds exact text matches and replaces them.
+# Search & Replace Tool – Structured File Editing
 
-Arguments:
-- `file_path`: The path to the file to modify
-- `content`: The SEARCH/REPLACE blocks defining the changes
+Use `search_replace` for deterministic file edits. Provide one or more SEARCH/REPLACE blocks that exactly match the existing content. The tool validates each block and reports precise errors if the search text is missing or ambiguous.
 
-The content format is:
+## Arguments
+- `file_path` *(str)* – Target file (relative or absolute within project).
+- `content` *(str)* – Concatenated SEARCH/REPLACE blocks.
 
+## Block Format
 ```
 <<<<<<< SEARCH
-[exact text to find in the file]
+<exact text to replace>
 =======
-[exact text to replace it with]
+<new text>
 >>>>>>> REPLACE
 ```
+- Use at least five `<`/`=`/`>` characters (already enforced by tool regexes).
+- Multiple blocks can be stacked in a single `content` payload; they execute sequentially.
+- Blocks may be wrapped in fenced code blocks ```…```; both styles are accepted.
 
-You can include multiple SEARCH/REPLACE blocks to make multiple changes to the same file:
+## Guarantees & Behavior
+- **Exact match required:** Whitespace, indentation, and newlines must align with the file.
+- **Single replacement per block:** If the search text appears multiple times, only the **first** occurrence is replaced and a warning is emitted so you can disambiguate later.
+- **Fuzzy diagnostics:** If no exact match is found, the tool surfaces nearby context and a diff of the closest match to help you adjust the block.
+- **Safety rails:**
+  - Rejects empty file paths or content.
+  - Enforces `max_content_size` (default 100 KB).
+  - Can create backups when `create_backup=True` in config.
 
-```
+## Workflow Tips
+1. **Inspect first** – Always call `read_file` to capture the current text before crafting blocks.
+2. **Keep blocks tight** – Include only the code you need to change plus sufficient neighboring lines to ensure uniqueness.
+3. **One concern per block** – Separate unrelated edits into different blocks for clearer diffs and easier retries.
+4. **Order matters** – Later blocks operate on the already-modified content from earlier blocks.
+5. **Line endings** – Ensure your block uses the same `\n`/`\r\n` style as the file.
+
+## Example Payload
+```python
+search_replace(
+  file_path="revibe/core/tools/base.py",
+  content="""
 <<<<<<< SEARCH
-def old_function():
-    return "old value"
+class ToolError(Exception):
+    """Raised when the tool encounters an unrecoverable problem."""
 =======
-def new_function():
-    return "new value"
+class ToolError(Exception):
+    """Raised when a tool encounters an unrecoverable problem."""
 >>>>>>> REPLACE
 
 <<<<<<< SEARCH
-import os
+ARGS_COUNT = 4
 =======
-import os
-import sys
+ARGS_COUNT = 4  # (<ToolArgs, ToolResult, ToolConfig, ToolState>)
 >>>>>>> REPLACE
+"""
+)
 ```
 
-IMPORTANT:
-
-- The SEARCH text must match EXACTLY (including whitespace, indentation, and line endings)
-- The SEARCH text must appear exactly once in the file - if it appears multiple times, the tool will error
-- Use at least 5 equals signs (=====) between SEARCH and REPLACE sections
-- The tool will provide detailed error messages showing context if search text is not found
-- Each search/replace block is applied in order, so later blocks see the results of earlier ones
-- Be careful with escape sequences in string literals - use \n not \\n for newlines in code
+If a block fails, the exception message includes troubleshooting hints. Adjust the block and retry until all intended replacements succeed.

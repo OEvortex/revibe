@@ -192,9 +192,14 @@ class TestAcpWriteFileSessionUpdates:
 
         update = WriteFile.tool_call_session_update(event)
         assert update is not None
+        # Use hasattr to check for attributes before accessing them
+        assert hasattr(update, 'sessionUpdate')
         assert update.sessionUpdate == "tool_call"
+        assert hasattr(update, 'toolCallId')
         assert update.toolCallId == "test_call_123"
+        assert hasattr(update, 'kind')
         assert update.kind == "edit"
+        assert hasattr(update, 'title')
         assert update.title is not None
         # Use type narrowing to handle the union type
         if hasattr(update, 'content') and update.content is not None:
@@ -255,8 +260,12 @@ class TestAcpWriteFileSessionUpdates:
 
         update = WriteFile.tool_result_session_update(event)
         assert update is not None
+        # Use hasattr to check for attributes before accessing them
+        assert hasattr(update, 'sessionUpdate')
         assert update.sessionUpdate == "tool_call_update"
+        assert hasattr(update, 'toolCallId')
         assert update.toolCallId == "test_call_123"
+        assert hasattr(update, 'status')
         assert update.status == "completed"
         if hasattr(update, 'content') and update.content is not None:
             content = update.content

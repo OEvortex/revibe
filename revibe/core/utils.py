@@ -264,8 +264,11 @@ def run_sync[T](coro: Coroutine[Any, Any, T]) -> T:
     """
     try:
         asyncio.get_running_loop()
+        def _run() -> T:
+            return asyncio.run(coro)
+
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(asyncio.run, coro)
+            future = executor.submit(_run)
             return future.result()
     except RuntimeError:
         return asyncio.run(coro)

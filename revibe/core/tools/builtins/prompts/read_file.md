@@ -1,13 +1,37 @@
-Use `read_file` to read the content of a file. It's designed to handle large files safely.
+# Read File Tool – Safe File Inspection
 
-- By default, it reads from the beginning of the file.
-- Use `offset` (line number) and `limit` (number of lines) to read specific parts or chunks of a file. This is efficient for exploring large files.
-- The result includes `was_truncated: true` if the file content was cut short due to size limits.
+`read_file` is the safest way to inspect file contents. It streams UTF-8 text with size guards so large files will not overwhelm the model. Prefer this tool instead of `bash cat`, `head`, or `tail`.
 
-**Strategy for large files:**
+## Arguments
+- `path` *(str, required)* – Relative or absolute file path inside the project.
+- `offset` *(int, default 0)* – 0-based line to start reading from.
+- `limit` *(int | None)* – Maximum lines to return. `None` reads until truncated by byte budget.
 
-1. Call `read_file` with a `limit` (e.g., 1000 lines) to get the start of the file.
-2. If `was_truncated` is true, you know the file is large.
-3. To read the next chunk, call `read_file` again with an `offset`. For example, `offset=1000, limit=1000`.
+## Output
+- `content` – Raw text chunk.
+- `lines_read` – Number of lines returned.
+- `was_truncated` – `True` when the byte limit was reached so more content remains.
 
-This is more efficient than using `bash` with `cat` or `wc`.
+## Usage Patterns
+1. **Whole file preview (small files):**
+   ```python
+   read_file(path="revibe/core/tools/base.py")
+   ```
+2. **Paged reading for large files:**
+   ```python
+   chunk = read_file(path="logs/run.log", limit=500)
+   if chunk.was_truncated:
+       read_file(path="logs/run.log", offset=500, limit=500)
+   ```
+3. **Targeted slices:**
+   ```python
+   read_file(path="src/service.py", offset=120, limit=80)
+   ```
+
+## Best Practices
+- Always inspect a file with `read_file` before modifying it via `search_replace` or `write_file`.
+- Set `offset`/`limit` to keep responses concise; default chunk size is roughly 64 KB.
+- If a file is binary or encoded differently, `read_file` will strip unreadable bytes; plan accordingly.
+- Respect denylist/allowlist rules configured in the tool—requests outside the workspace will be rejected.
+
+`read_file` maintains a short history of recently accessed files, helping future guardrails know which files you've inspected.

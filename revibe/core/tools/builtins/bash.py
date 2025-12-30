@@ -5,7 +5,7 @@ import os
 import re
 import signal
 import sys
-from typing import ClassVar, Literal, final
+from typing import ClassVar, final
 
 from pydantic import BaseModel, Field
 
@@ -233,7 +233,7 @@ class Bash(BaseTool[BashArgs, BashResult, BashToolConfig, BaseToolState]):
         proc = None
         try:
             # start_new_session is Unix-only, on Windows it's ignored
-            start_new_session: Literal[True] | None = None if is_windows() else True
+            start_new_session = False if is_windows() else True
 
             proc = await asyncio.create_subprocess_shell(
                 args.command,

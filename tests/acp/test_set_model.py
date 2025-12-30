@@ -51,7 +51,9 @@ def acp_agent(backend: FakeBackend) -> VibeAcpAgent:
 
     class PatchedAgent(Agent):
         def __init__(self, *args, **kwargs) -> None:
-            super().__init__(*args, **{**kwargs, "backend": backend})
+            # Update kwargs with backend to avoid duplicate parameter
+            kwargs['backend'] = backend
+            super().__init__(*args, **kwargs)
             self.config = config
             try:
                 active_model = config.get_active_model()
@@ -70,7 +72,12 @@ def acp_agent(backend: FakeBackend) -> VibeAcpAgent:
         return vibe_acp_agent
 
     FakeAgentSideConnection(_create_agent)
-    return vibe_acp_agent  # pyright: ignore[reportReturnType]
+    # Ensure vibe_acp_agent is not None before returning
+    if vibe_acp_agent is None:
+        # Create a default instance if not set
+        fake_connection = FakeAgentSideConnection(lambda conn: None)
+        vibe_acp_agent = VibeAcpAgent(fake_connection)
+    return vibe_acp_agent
 
 
 class TestACPSetModel:

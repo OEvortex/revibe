@@ -23,7 +23,7 @@ def acp_agent() -> VibeAcpAgent:
         return vibe_acp_agent
 
     FakeAgentSideConnection(_create_agent)
-    return vibe_acp_agent  # pyright: ignore[reportReturnType]
+    return vibe_acp_agent  # type: ignore[return-value]
 
 
 class TestACPInitialize:
