@@ -8,6 +8,7 @@ from textual.widgets import Markdown, Static
 from textual.widgets._markdown import MarkdownStream
 
 from revibe.cli.textual_ui.widgets.spinner import SpinnerMixin, SpinnerType
+from revibe.core.utils import redact_xml_tool_calls
 
 
 class NonSelectableStatic(Static):
@@ -63,6 +64,7 @@ class StreamingMessageBase(Static):
     def __init__(self, content: str) -> None:
         super().__init__()
         self._content = content
+        self._displayed_content = ""
         self._markdown: Markdown | None = None
         self._stream: MarkdownStream | None = None
 
@@ -84,13 +86,35 @@ class StreamingMessageBase(Static):
 
         self._content += content
         if self._should_write_content():
+            await self._update_display()
+
+    async def _update_display(self) -> None:
+        new_displayed = self._process_content_for_display(self._content)
+
+        if len(new_displayed) > len(self._displayed_content):
+            # Append new content to stream
+            diff = new_displayed[len(self._displayed_content) :]
             stream = self._ensure_stream()
-            await stream.write(content)
+            await stream.write(diff)
+            self._displayed_content = new_displayed
+        elif len(new_displayed) < len(self._displayed_content):
+            # Content shrunk (e.g. tag started), reset and re-render
+            if self._stream:
+                await self._stream.stop()
+                self._stream = None
+            if self._markdown:
+                await self._markdown.update("")
+            self._displayed_content = ""
+            # Recursively update with the now empty displayed content
+            await self._update_display()
+
+    def _process_content_for_display(self, content: str) -> str:
+        """Process content before it is shown in the UI. Overridden by subclasses."""
+        return content
 
     async def write_initial_content(self) -> None:
         if self._content and self._should_write_content():
-            stream = self._ensure_stream()
-            await stream.write(self._content)
+            await self._update_display()
 
     async def stop_stream(self) -> None:
         if self._stream is None:
@@ -115,6 +139,9 @@ class AssistantMessage(StreamingMessageBase):
                 markdown = Markdown("")
                 self._markdown = markdown
                 yield markdown
+
+    def _process_content_for_display(self, content: str) -> str:
+        return redact_xml_tool_calls(content)
 
 
 class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
@@ -176,8 +203,11 @@ class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
                     await self._stream.stop()
                     self._stream = None
                 await self._markdown.update("")
-                stream = self._ensure_stream()
-                await stream.write(self._content)
+                self._displayed_content = ""
+                await self._update_display()
+
+    def _process_content_for_display(self, content: str) -> str:
+        return redact_xml_tool_calls(content)
 
 
 class UserCommandMessage(Static):

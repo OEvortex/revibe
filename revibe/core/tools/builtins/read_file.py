@@ -177,17 +177,10 @@ class ReadFile(
     @classmethod
     def get_call_display(cls, event: ToolCallEvent) -> ToolCallDisplay:
         if not isinstance(event.args, ReadFileArgs):
-            return ToolCallDisplay(summary="read_file")
+            return ToolCallDisplay(summary="Read")
 
-        summary = f"read_file: {event.args.path}"
-        if event.args.offset > 0 or event.args.limit is not None:
-            parts = []
-            if event.args.offset > 0:
-                parts.append(f"from line {event.args.offset}")
-            if event.args.limit is not None:
-                parts.append(f"limit {event.args.limit} lines")
-            summary += f" ({', '.join(parts)})"
-
+        path = Path(event.args.path).name
+        summary = f"Read ({path})"
         return ToolCallDisplay(summary=summary)
 
     @classmethod

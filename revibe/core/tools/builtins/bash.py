@@ -5,7 +5,10 @@ import os
 import re
 import signal
 import sys
-from typing import ClassVar, final
+from typing import TYPE_CHECKING, ClassVar, final
+
+if TYPE_CHECKING:
+    from revibe.core.types import ToolCallEvent, ToolResultEvent
 
 from pydantic import BaseModel, Field
 
@@ -16,6 +19,7 @@ from revibe.core.tools.base import (
     ToolError,
     ToolPermission,
 )
+from revibe.core.tools.ui import ToolCallDisplay, ToolResultDisplay, ToolUIData
 from revibe.core.utils import is_windows
 
 
@@ -163,8 +167,33 @@ class BashResult(BaseModel):
     returncode: int
 
 
-class Bash(BaseTool[BashArgs, BashResult, BashToolConfig, BaseToolState]):
+class Bash(
+    BaseTool[BashArgs, BashResult, BashToolConfig, BaseToolState],
+    ToolUIData[BashArgs, BashResult],
+):
     description: ClassVar[str] = "Run a one-off bash command and capture its output."
+
+    @classmethod
+    def get_call_display(cls, event: ToolCallEvent) -> ToolCallDisplay:
+        if not isinstance(event.args, BashArgs):
+            return ToolCallDisplay(summary="Bash")
+
+        command = event.args.command.strip()
+        if len(command) > 30:
+            command = command[:27] + "..."
+
+        summary = f"Bash ({command})"
+        return ToolCallDisplay(summary=summary)
+
+    @classmethod
+    def get_result_display(cls, event: ToolResultEvent) -> ToolResultDisplay:
+        if event.error:
+            return ToolResultDisplay(success=False, message=event.error)
+        return ToolResultDisplay(success=True, message="Completed")
+
+    @classmethod
+    def get_status_text(cls) -> str:
+        return "Running command"
 
     def check_allowlist_denylist(self, args: BashArgs) -> ToolPermission | None:
         command_parts = re.split(r"(?:&&|\|\||;|\|)", args.command)

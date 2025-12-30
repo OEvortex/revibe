@@ -80,15 +80,11 @@ class SearchReplace(
     @classmethod
     def get_call_display(cls, event: ToolCallEvent) -> ToolCallDisplay:
         if not isinstance(event.args, SearchReplaceArgs):
-            return ToolCallDisplay(summary="Invalid arguments")
+            return ToolCallDisplay(summary="Patch")
 
-        args = event.args
-        blocks = cls._parse_search_replace_blocks(args.content)
-
-        return ToolCallDisplay(
-            summary=f"Patching {args.file_path} ({len(blocks)} blocks)",
-            content=args.content,
-        )
+        path = Path(event.args.file_path).name
+        summary = f"Patch ({path})"
+        return ToolCallDisplay(summary=summary, content=event.args.content)
 
     @classmethod
     def get_result_display(cls, event: ToolResultEvent) -> ToolResultDisplay:
