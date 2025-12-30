@@ -264,6 +264,7 @@ def run_sync[T](coro: Coroutine[Any, Any, T]) -> T:
     """
     try:
         asyncio.get_running_loop()
+
         def _run() -> T:
             return asyncio.run(coro)
 
@@ -276,3 +277,26 @@ def run_sync[T](coro: Coroutine[Any, Any, T]) -> T:
 
 def is_windows() -> bool:
     return sys.platform == "win32"
+
+
+def redact_xml_tool_calls(text: str) -> str:
+    """Remove <tool_call>...</tool_call> blocks from text.
+
+    Supports partially written tags by hiding everything from the start of an open
+    <tool_call tag until it is closed.
+    """
+    if not text:
+        return ""
+
+    # Remove all complete <tool_call> blocks
+    processed = re.sub(r"<tool_call\b[^>]*>.*?</tool_call>", "", text, flags=re.DOTALL)
+
+    # Hide any trailing open <tool_call tag
+    if "<tool_call" in processed:
+        # Find the start of the last <tool_call
+        last_open = processed.rfind("<tool_call")
+        # If there's no closing tag after it, hide everything from there to the end
+        if "</tool_call>" not in processed[last_open:]:
+            processed = processed[:last_open]
+
+    return processed

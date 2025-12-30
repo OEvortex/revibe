@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
 
 class FakeBackend:
+    supported_formats: list[str] = ["native", "xml"]
+
     """Minimal async backend stub to drive Agent.act without network.
 
     Provide a finite sequence of LLMResult objects to be returned by

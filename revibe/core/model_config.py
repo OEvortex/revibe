@@ -2,10 +2,18 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 
 class ModelConfig(BaseModel):
+    """Configuration for an LLM model.
+
+    Attributes:
+        supported_formats: List of supported tool calling formats.
+            - "native": Uses API's native function/tool calling
+            - "xml": Uses XML-based tool calling in prompts
+            Models default to supporting both formats.
+    """
     name: str
     provider: str
     alias: str
@@ -14,6 +22,7 @@ class ModelConfig(BaseModel):
     output_price: float = 0.0
     context: int = 128000
     max_output: int = 32000
+    supported_formats: list[str] = Field(default_factory=lambda: ["native", "xml"])
 
     @model_validator(mode="before")
     @classmethod
@@ -135,7 +144,7 @@ DEFAULT_MODELS = [
         context=1000000,
         max_output=32768,
     ),
-    ### Groq models
+    # Groq models
     ModelConfig(
         name="moonshotai/kimi-k2-instruct-0905",
         provider="groq",
@@ -177,7 +186,7 @@ DEFAULT_MODELS = [
         provider="huggingface",
         alias="glm-4.7",
     ),
-    ### Cerebras models
+    # Cerebras models
     ModelConfig(
         name="zai-glm-4.6",
         provider="cerebras",
@@ -223,7 +232,7 @@ DEFAULT_MODELS = [
         context=131072,
         max_output=40960,
     ),
-    ### Qwen Code models
+    # Qwen Code models
     ModelConfig(
         name="qwen3-coder-plus",
         provider="qwencode",
@@ -243,4 +252,3 @@ DEFAULT_MODELS = [
         max_output=65536,
     )
 ]
-

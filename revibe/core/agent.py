@@ -9,10 +9,14 @@ from uuid import uuid4
 
 from pydantic import BaseModel
 
-from revibe.core.config import VibeConfig
+from revibe.core.config import ToolFormat, VibeConfig
 from revibe.core.interaction_logger import InteractionLogger
 from revibe.core.llm.backend.factory import BACKEND_FACTORY
-from revibe.core.llm.format import APIToolFormatHandler, ResolvedMessage
+from revibe.core.llm.format import (
+    APIToolFormatHandler,
+    ResolvedMessage,
+    XMLToolFormatHandler,
+)
 from revibe.core.llm.types import BackendLike
 from revibe.core.middleware import (
     AutoCompactMiddleware,
@@ -106,7 +110,12 @@ class Agent:
 
         self.tool_manager = ToolManager(config)
         self.skill_manager = SkillManager(config)
-        self.format_handler = APIToolFormatHandler()
+
+        # Select format handler based on config
+        if config.tool_format == ToolFormat.XML:
+            self.format_handler: APIToolFormatHandler | XMLToolFormatHandler = XMLToolFormatHandler()
+        else:
+            self.format_handler = APIToolFormatHandler()
 
         self.backend_factory = lambda: backend or self._select_backend()
         self.backend = self.backend_factory()
@@ -269,7 +278,7 @@ class Agent:
                     yield event
 
                 last_message = self.messages[-1]
-                should_break_loop = last_message.role != Role.tool
+                should_break_loop = not self.format_handler.is_tool_response(last_message)
 
                 self._flush_new_messages()
 

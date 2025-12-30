@@ -274,16 +274,13 @@ class Grep(
     @classmethod
     def get_call_display(cls, event: ToolCallEvent) -> ToolCallDisplay:
         if not isinstance(event.args, GrepArgs):
-            return ToolCallDisplay(summary="grep")
+            return ToolCallDisplay(summary="Grep")
 
-        summary = f"grep: '{event.args.pattern}'"
-        if event.args.path != ".":
-            summary += f" in {event.args.path}"
-        if event.args.max_matches:
-            summary += f" (max {event.args.max_matches} matches)"
-        if not event.args.use_default_ignore:
-            summary += " [no-ignore]"
+        pattern = event.args.pattern
+        if len(pattern) > 20:
+            pattern = pattern[:17] + "..."
 
+        summary = f"Grep ({pattern})"
         return ToolCallDisplay(summary=summary)
 
     @classmethod

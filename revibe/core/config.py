@@ -6,7 +6,7 @@ from pathlib import Path
 import re
 import shlex
 import tomllib
-from typing import Annotated, Any, Literal, TypeAlias
+from typing import Annotated, Any, Literal
 
 from dotenv import dotenv_values
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -135,6 +135,17 @@ class Backend(StrEnum):
     OLLAMA = auto()
     LLAMACPP = auto()
     QWEN = auto()
+
+
+class ToolFormat(StrEnum):
+    """Tool calling format for LLM interactions.
+
+    NATIVE: Use the API's native function/tool calling mechanism
+    XML: Use XML-based tool calling embedded in prompts (for models without native support)
+    """
+
+    NATIVE = auto()
+    XML = auto()
 
 
 class _ProviderBase(BaseModel):
@@ -380,6 +391,14 @@ class VibeConfig(BaseSettings):
         description=(
             "Additional directories to search for skills. "
             "Each path may be absolute or relative to the current working directory."
+        ),
+    )
+
+    tool_format: ToolFormat = Field(
+        default=ToolFormat.NATIVE,
+        description=(
+            "Tool calling format: 'native' uses the API's function calling mechanism, "
+            "'xml' embeds tool definitions in the system prompt for models without native support."
         ),
     )
 

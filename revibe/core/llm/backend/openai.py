@@ -164,6 +164,8 @@ class OpenAIAdapter(APIAdapter):
 
 
 class OpenAIBackend:
+    supported_formats: ClassVar[list[str]] = ["native", "xml"]
+
     def __init__(
         self,
         provider: ProviderConfigUnion,

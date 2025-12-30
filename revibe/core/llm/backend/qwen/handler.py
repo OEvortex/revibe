@@ -17,7 +17,7 @@ from collections.abc import AsyncGenerator
 import json
 import os
 import types
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import httpx
 
@@ -74,7 +74,7 @@ class ThinkingBlockParser:
                 end_idx = self._buffer.find("</think>")
                 if end_idx != -1:
                     reasoning_content += self._buffer[:end_idx]
-                    self._buffer = self._buffer[end_idx + 8:]  # len("</think>") = 8
+                    self._buffer = self._buffer[end_idx + 8 :]  # len("</think>") = 8
                     self._in_thinking_block = False
                 else:
                     # Still in thinking block, emit all as reasoning
@@ -86,7 +86,7 @@ class ThinkingBlockParser:
                 start_idx = self._buffer.find("<think>")
                 if start_idx != -1:
                     regular_content += self._buffer[:start_idx]
-                    self._buffer = self._buffer[start_idx + 7:]  # len("<think>") = 7
+                    self._buffer = self._buffer[start_idx + 7 :]  # len("<think>") = 7
                     self._in_thinking_block = True
                 else:
                     # No thinking block, emit all as regular content
@@ -98,6 +98,8 @@ class ThinkingBlockParser:
 
 
 class QwenBackend:
+    supported_formats: ClassVar[list[str]] = ["native", "xml"]
+
     """Backend for Qwen Code API (Alibaba Cloud DashScope).
 
     Supports both OAuth authentication (for Qwen CLI users) and
@@ -199,9 +201,7 @@ class QwenBackend:
 
         return QWEN_DEFAULT_BASE_URL.rstrip("/")
 
-    def _prepare_messages(
-        self, messages: list[LLMMessage]
-    ) -> list[dict[str, Any]]:
+    def _prepare_messages(self, messages: list[LLMMessage]) -> list[dict[str, Any]]:
         """Convert LLMMessages to OpenAI-compatible format."""
         return [msg.model_dump(exclude_none=True) for msg in messages]
 
@@ -313,9 +313,7 @@ class QwenBackend:
         try:
             client = self._get_client()
             response = await client.post(
-                url,
-                headers=headers,
-                content=json.dumps(payload).encode("utf-8"),
+                url, headers=headers, content=json.dumps(payload).encode("utf-8")
             )
             response.raise_for_status()
 
@@ -323,9 +321,7 @@ class QwenBackend:
                 data = response.json()
             except json.JSONDecodeError as e:
                 body_text = response.text[:200] if response.text else "(empty response)"
-                raise ValueError(
-                    f"Invalid JSON response from API: {body_text}"
-                ) from e
+                raise ValueError(f"Invalid JSON response from API: {body_text}") from e
 
             # Parse response
             choices = data.get("choices", [])
@@ -504,7 +500,9 @@ class QwenBackend:
                             )
                             raise ValueError(f"API returned error: {error_msg}")
                         except json.JSONDecodeError:
-                            raise ValueError(f"Unexpected API response: {body_text[:200]}")
+                            raise ValueError(
+                                f"Unexpected API response: {body_text[:200]}"
+                            )
                     return
 
                 async for line in response.aiter_lines():
@@ -532,7 +530,7 @@ class QwenBackend:
                     delim_index = line.find(":")
                     key = line[:delim_index].strip()
                     # Value starts after colon, with optional leading space
-                    value = line[delim_index + 1:].lstrip()
+                    value = line[delim_index + 1 :].lstrip()
 
                     if key != "data":
                         continue
@@ -568,7 +566,7 @@ class QwenBackend:
 
                         # Handle cumulative content (some providers send full content)
                         if new_text.startswith(full_content):
-                            new_text = new_text[len(full_content):]
+                            new_text = new_text[len(full_content) :]
                         full_content = delta["content"]
 
                         if new_text:
@@ -600,12 +598,16 @@ class QwenBackend:
                         message=LLMMessage(
                             role=Role.assistant,
                             content=content if content else None,
-                            reasoning_content=reasoning_content if reasoning_content else None,
+                            reasoning_content=reasoning_content
+                            if reasoning_content
+                            else None,
                             tool_calls=tool_calls,
                         ),
                         usage=LLMUsage(
                             prompt_tokens=usage.get("prompt_tokens", 0) if usage else 0,
-                            completion_tokens=usage.get("completion_tokens", 0) if usage else 0,
+                            completion_tokens=usage.get("completion_tokens", 0)
+                            if usage
+                            else 0,
                         ),
                     )
 

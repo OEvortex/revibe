@@ -5,7 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.4.0] - 2025-12-25
+## [0.2.0] - 2025-12-30
+
+### Added
+
+- Support for XML-based tool calling via `--tool-format xml` flag.
+- XML-specific prompts for all built-in tools (`bash`, `grep`, `read_file`, `write_file`, `search_replace`, `todo`).
+- `XMLToolFormatHandler` for robust parsing of XML tool calls and generation of XML tool results.
+- `supported_formats` field in `ModelConfig` and backend implementations to manage compatibility.
+- Dynamic tool prompt resolution in `BaseTool` allowing automatic fallback to standard prompts if XML version is missing.
+- First public release of ReVibe with all core functionality
+
+### Changed
+
+- TUI Visual & Functional Enhancements:
+  - Added `redact_xml_tool_calls(text)` utility in `revibe/core/utils.py` to remove raw `<tool_call>...<tool_call>` blocks from assistant output stream
+  - Refactored `StreamingMessageBase` in `revibe/cli/textual_ui/widgets/messages.py` to track `_displayed_content` for smart UI updates
+  - Enhanced premium tool summaries in chat history:
+    * Grep now shows as `Grep (pattern)` instead of `grep: 'pattern'`
+    * Bash now shows as `Bash (command)` instead of raw command string
+    * Read File now shows as `Read (filename)` with cleaner summary
+    * Write File now shows as `Write (filename)`
+    * Search & Replace now shows as `Patch (filename)`
+  - Applied redaction logic to `ReasoningMessage` in `revibe/cli/textual_ui/widgets/messages.py` to hide raw XML in reasoning blocks
+
+### Fixed
+
+- Case-sensitivity issue when specifying tool format via CLI.
+- Type errors in backends when implementing `BackendLike` protocol (added missing `supported_formats`).
+- Typo in `XMLToolFormatHandler` name property.
+
+## [0.1.5.1] - 2025-12-30
+
+### Added
+
+- Support for XML-based tool calling via `--tool-format xml` flag.
+- XML-specific prompts for all built-in tools (`bash`, `grep`, `read_file`, `write_file`, `search_replace`, `todo`).
+- `XMLToolFormatHandler` for robust parsing of XML tool calls and generation of XML tool results.
+- `supported_formats` field in `ModelConfig` and backend implementations to manage compatibility.
+- Dynamic tool prompt resolution in `BaseTool` allowing automatic fallback to standard prompts if XML version is missing.
+
+### Fixed
+
+- Case-sensitivity issue when specifying tool format via CLI.
+- Type errors in backends when implementing `BackendLike` protocol (added missing `supported_formats`).
+- Typo in `XMLToolFormatHandler` name property.
+
+## [0.1.5.0] - 2025-12-30
+
+### Added
+
+- Support for XML-based tool calling via `--tool-format xml` flag.
+- XML-specific prompts for all built-in tools (`bash`, `grep`, `read_file`, `write_file`, `search_replace`, `todo`).
+- `XMLToolFormatHandler` for robust parsing of XML tool calls and generation of XML tool results.
+- `supported_formats` field in `ModelConfig` and backend implementations to manage compatibility.
+- Dynamic tool prompt resolution in `BaseTool` allowing automatic fallback to standard prompts if XML version is missing.
+
+### Fixed
+
+- Case-sensitivity issue when specifying tool format via CLI.
+- Type errors in backends when implementing `BackendLike` protocol (added missing `supported_formats`).
+- Typo in `XMLToolFormatHandler` name property.
+
+## [0.1.4.0] - 2025-12-25
 
 ### Added
 
@@ -35,7 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove conflicting default `api_base` for Qwen provider to allow proper endpoint auto-detection
 - Enhance Qwen backend robustness with improved SSE parsing and graceful JSON error handling
 
-## [1.3.0] - 2025-12-23
+## [0.1.3.0] - 2025-12-23
 
 ### Added
 
@@ -57,7 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix crash when switching mode
 - Fix some cases where clipboard copy didn't work
 
-## [1.2.2] - 2025-12-22
+## [0.1.2.2] - 2025-12-22
 
 ### Fixed
 
@@ -65,14 +127,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix artefacts automatically attached to the release
 - Refactor agent post streaming
 
-## [1.2.1] - 2025-12-18
+## [0.1.2.1] - 2025-12-18
 
 ### Fixed
 
 - Improve error message when running in home dir
 - Do not show trusted folder workflow in home dir
 
-## [1.2.0] - 2025-12-18
+## [0.1.2.0] - 2025-12-18
 
 ### Added
 
@@ -94,7 +156,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Prevent segmentation fault on exit by shutting down thread pools
 - Fix extra spacing with assistant message
 
-## [1.1.3] - 2025-12-12
+## [0.1.1.3] - 2025-12-12
 
 ### Added
 
@@ -115,20 +177,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix security issue: prevent command injection in GitHub Action prompt handling
 - Fix issues with vLLM
 
-## [1.1.2] - 2025-12-11
+## [0.1.1.2] - 2025-12-11
 
 ### Changed
 
 - add `terminal-auth` auth method to ACP agent only if the client supports it
 - fix `user-agent` header when using Mistral backend, using SDK hook
 
-## [1.1.1] - 2025-12-10
+## [0.1.1.1] - 2025-12-10
 
 ### Changed
 
 - added `include_commit_signature` in `config.toml` to disable signing commits
 
-## [1.1.0] - 2025-12-10
+## [0.1.1.0] - 2025-12-10
 
 ### Fixed
 
@@ -138,7 +200,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - improved context length from 100k to 200k
 
-## [1.0.6] - 2025-12-10
+## [0.1.0.6] - 2025-12-10
 
 ### Fixed
 
@@ -154,13 +216,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - update default system prompt reference
   - document MCP tool permission configuration
 
-## [1.0.5] - 2025-12-10
+## [0.1.0.5] - 2025-12-10
 
 ### Fixed
 
 - Fix streaming with OpenAI adapter
 
-## [1.0.4] - 2025-12-09
+## [0.1.0.4] - 2025-12-09
 
 ### Changed
 
@@ -174,25 +236,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Remove .envrc file
 
-## [1.0.3] - 2025-12-09
+## [0.1.0.3] - 2025-12-09
 
 ### Added
 
 - Add LICENCE symlink in distribution/zed for compatibility with zed extension release process
 
-## [1.0.2] - 2025-12-09
+## [0.1.0.2] - 2025-12-09
 
 ### Fixed
 
 - Fix setup flow for vibe-acp builds
 
-## [1.0.1] - 2025-12-09
+## [0.1.0.1] - 2025-12-09
 
 ### Fixed
 
 - Fix update notification
 
-## [1.0.0] - 2025-12-09
+## [0.1.0.0] - 2025-12-09
 
 ### Added
 

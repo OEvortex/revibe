@@ -12,7 +12,6 @@ from textual.theme import Theme
 
 try:
     import select
-    import termios
 
     _UNIX_AVAILABLE = True
 except ImportError:

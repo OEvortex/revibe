@@ -278,4 +278,3 @@ class QwenOAuthManager:
         await self.ensure_authenticated()
         assert self._credentials is not None
         return self._credentials
-

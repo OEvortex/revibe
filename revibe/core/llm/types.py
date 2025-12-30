@@ -17,6 +17,8 @@ class BackendLike(Protocol):
     interface with `complete`, `complete_streaming` and `count_tokens` methods.
     """
 
+    supported_formats: list[str]
+
     async def __aenter__(self) -> BackendLike: ...
     async def __aexit__(
         self,

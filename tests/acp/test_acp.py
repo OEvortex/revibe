@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from acp import (
     InitializeRequest,
@@ -457,10 +457,10 @@ class TestSessionUpdates:
 
             assert response.params is not None
             assert response.params.update.sessionUpdate == "agent_message_chunk"
-            assert response.params.update.content is not None
-            assert response.params.update.content.type == "text"
-            assert response.params.update.content.text is not None
-            assert response.params.update.content.text == "Hi"
+            assert response.params.update.content is not None  # type: ignore[union-attr]
+            assert response.params.update.content.type == "text"  # type: ignore[union-attr]
+            assert response.params.update.content.text is not None  # type: ignore[union-attr]
+            assert response.params.update.content.text == "Hi"  # type: ignore[union-attr]
 
     @pytest.mark.asyncio
     async def test_tool_call_update_structure(self, vibe_home_dir: Path) -> None:
@@ -666,9 +666,9 @@ class TestToolCallStructure:
                     and r.params is not None
                     and r.params.update is not None
                     and r.params.update.sessionUpdate == "tool_call_update"
-                    and r.params.update.toolCallId
+                    and r.params.update.toolCallId  # type: ignore[union-attr]
                     == (permission_request.params.toolCall.toolCallId)
-                    and r.params.update.status == "completed"
+                    and r.params.update.status == "completed"  # type: ignore[union-attr]
                 ),
                 None,
             )
@@ -728,9 +728,9 @@ class TestToolCallStructure:
                     and r.method == "session/update"
                     and r.params is not None
                     and r.params.update.sessionUpdate == "tool_call_update"
-                    and r.params.update.toolCallId
+                    and r.params.update.toolCallId  # type: ignore[union-attr]
                     == (permission_request.params.toolCall.toolCallId)
-                    and r.params.update.status == "failed"
+                    and r.params.update.status == "failed"  # type: ignore[union-attr]
                 ),
                 None,
             )
@@ -787,7 +787,7 @@ class TestToolCallStructure:
                 if isinstance(r, UpdateJsonRpcNotification)
                 and r.params is not None
                 and r.params.update.sessionUpdate == "tool_call_update"
-                and r.params.update.status == "in_progress"
+                and r.params.update.status == "in_progress"  # type: ignore[union-attr]
             ]
 
             assert len(in_progress_calls) > 0, (
@@ -848,9 +848,9 @@ class TestToolCallStructure:
                     if isinstance(r, UpdateJsonRpcNotification)
                     and r.params is not None
                     and r.params.update.sessionUpdate == "tool_call_update"
-                    and r.params.update.status == "failed"
-                    and r.params.update.rawOutput is not None
-                    and r.params.update.toolCallId is not None
+                    and r.params.update.status == "failed"  # type: ignore[union-attr]
+                    and r.params.update.rawOutput is not None  # type: ignore[union-attr]
+                    and r.params.update.toolCallId is not None  # type: ignore[union-attr]
                 ),
                 None,
             )
@@ -921,9 +921,9 @@ class TestCancellationStructure:
                     and r.method == "session/update"
                     and r.params is not None
                     and r.params.update.sessionUpdate == "tool_call_update"
-                    and r.params.update.toolCallId
+                    and r.params.update.toolCallId  # type: ignore[union-attr]
                     == (permission_request.params.toolCall.toolCallId)
-                    and r.params.update.status == "failed"
+                    and r.params.update.status == "failed"  # type: ignore[union-attr]
                 ),
                 None,
             )

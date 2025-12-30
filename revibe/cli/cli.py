@@ -142,6 +142,10 @@ def run_cli(args: argparse.Namespace) -> None:
         if args.enabled_tools:
             config.enabled_tools = args.enabled_tools
 
+        if args.tool_format:
+            from revibe.core.config import ToolFormat
+            config.tool_format = ToolFormat(args.tool_format.lower())
+
         loaded_messages = load_session(args, config)
 
         stdin_prompt = get_prompt_from_stdin()

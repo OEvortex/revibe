@@ -425,8 +425,18 @@ def get_universal_system_prompt(
         sections.append(_get_os_system_prompt())
         tool_prompts = []
         active_tools = get_active_tool_classes(tool_manager, config)
+
+        # Import ToolFormat here to check format mode
+        from revibe.core.config import ToolFormat
+        use_xml_prompts = config.tool_format == ToolFormat.XML
+
         for tool_class in active_tools:
-            if prompt := tool_class.get_tool_prompt():
+            # Use XML prompts when in XML mode, otherwise use standard prompts
+            if use_xml_prompts:
+                prompt = tool_class.get_xml_tool_prompt()
+            else:
+                prompt = tool_class.get_tool_prompt()
+            if prompt:
                 tool_prompts.append(prompt)
         if tool_prompts:
             sections.append("\n---\n".join(tool_prompts))
@@ -438,6 +448,19 @@ def get_universal_system_prompt(
         skills_section = _get_available_skills_section(skill_manager)
         if skills_section:
             sections.append(skills_section)
+
+    # Add XML tool definitions if using XML format
+    from revibe.core.config import ToolFormat
+    if config.tool_format == ToolFormat.XML:
+        from revibe import VIBE_ROOT
+        from revibe.core.llm.format import XMLToolFormatHandler
+        xml_handler = XMLToolFormatHandler()
+        tool_defs = xml_handler.get_tool_definitions_xml(tool_manager, config)
+        if tool_defs:
+            xml_prompt_path = VIBE_ROOT / "core" / "tools" / "builtins" / "prompts" / "xml_tools.md"
+            xml_prompt_template = xml_prompt_path.read_text(encoding="utf-8")
+            xml_prompt = xml_prompt_template.format(tool_definitions=tool_defs)
+            sections.append(xml_prompt)
 
     if config.include_project_context:
         is_dangerous, reason = is_dangerous_directory()

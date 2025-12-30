@@ -53,14 +53,11 @@ class WriteFile(
     @classmethod
     def get_call_display(cls, event: ToolCallEvent) -> ToolCallDisplay:
         if not isinstance(event.args, WriteFileArgs):
-            return ToolCallDisplay(summary="Invalid arguments")
+            return ToolCallDisplay(summary="Write")
 
-        args = event.args
-
-        return ToolCallDisplay(
-            summary=f"Writing {args.path}{' (overwrite)' if args.overwrite else ''}",
-            content=args.content,
-        )
+        path = Path(event.args.path).name
+        summary = f"Write ({path})"
+        return ToolCallDisplay(summary=summary, content=event.args.content)
 
     @classmethod
     def get_result_display(cls, event: ToolResultEvent) -> ToolResultDisplay:
