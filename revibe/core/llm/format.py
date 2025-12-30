@@ -270,10 +270,13 @@ class APIToolFormatHandler:
     ) -> LLMMessage:
         return LLMMessage(
             role=Role.tool,
-            tool_call_id=failed.call_id,
-            name=failed.tool_name,
             content=error_content,
+            tool_call_id=failed.call_id,
         )
+
+    def is_tool_response(self, message: LLMMessage) -> bool:
+        """Check if message is a tool result."""
+        return message.role == Role.tool
 
 
 class XMLToolFormatHandler:
@@ -511,4 +514,12 @@ class XMLToolFormatHandler:
         return LLMMessage(
             role=Role.user,
             content=xml_result,
+        )
+
+    def is_tool_response(self, message: LLMMessage) -> bool:
+        """Check if message is an XML tool result."""
+        return (
+            message.role == Role.user
+            and message.content is not None
+            and message.content.strip().startswith("<tool_result")
         )

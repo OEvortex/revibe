@@ -274,7 +274,7 @@ class Agent:
                     yield event
 
                 last_message = self.messages[-1]
-                should_break_loop = last_message.role != Role.tool
+                should_break_loop = not self.format_handler.is_tool_response(last_message)
 
                 self._flush_new_messages()
 
