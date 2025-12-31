@@ -88,34 +88,45 @@ class WelcomeBanner(Static):
         self._initialize_static_line_suffixes()
 
     def _initialize_static_line_suffixes(self) -> None:
-        # Define some premium colors
-        MODEL_COLOR = "#00D1FF"
+        # Vibrant colors inspired by Copilot
+        LOGO_COLOR = "#FFD700"  # Gold
+        MODEL_COLOR = "#00D4FF"  # Bright blue
+        STATS_COLOR = "#00FF88"  # Bright green
+        PATH_COLOR = "#FF6B35"  # Orange
+        DIVIDER_COLOR = "#FFB347"  # Warm yellow
 
+        # Main title with vibrant logo
         self._static_line1_suffix = (
-            f"[accent]✦[/] [b]ReVibe[/] [version-badge]v{__version__}[/]"
+            f"[{LOGO_COLOR}]⚡[/] [{LOGO_COLOR} bold]ReVibe[/] [{LOGO_COLOR}]v{__version__}[/]"
         )
+
+        # Model info with bright accent
         self._static_line2_suffix = (
-            f"[dim]model [/] [{MODEL_COLOR}]{self.config.active_model}[/]"
+            f"[dim]🤖 model [/] [{MODEL_COLOR} bold]{self.config.active_model}[/]"
         )
+
+        # Stats with colorful badges and emojis
         mcp_count = len(self.config.mcp_servers)
         model_count = len(self.config.models)
         provider_count = len({m.provider for m in self.config.models})
         self._static_line3_suffix = (
-            f"[dim]stats [/] [stats-badge]{model_count}[/] models [divider]·[/] [stats-badge]{provider_count}[/] providers [divider]·[/] [stats-badge]{mcp_count}[/] MCP"
-        )
-        self._static_line4_suffix = (
-            f"[dim]path  [/] [path-badge]{self.config.effective_workdir}[/]"
+            f"[dim]📊 stats [/] [{STATS_COLOR}]{model_count}[/] models [{DIVIDER_COLOR}]●[/] [{STATS_COLOR}]{provider_count}[/] providers [{DIVIDER_COLOR}]●[/] [{STATS_COLOR}]{mcp_count}[/] MCP"
         )
 
-        # Footer with enhanced pill style commands
+        # Path with folder icon
+        self._static_line4_suffix = (
+            f"[dim]📁 path [/] [{PATH_COLOR}]{self.config.effective_workdir}[/]"
+        )
+
+        # Footer with more engaging call-to-action
         self._static_line7 = Text.from_markup(
-            "[dim]Press[/] [command-pill]/help[/] [dim]or[/] [command-pill]/terminal-setup[/] [dim]to begin[/]",
+            f"[dim]💡 Get started:[/] [{MODEL_COLOR} bold]/help[/] [dim]or[/] [{LOGO_COLOR} bold]/terminal-setup[/] [dim]to begin ✨[/]",
             justify="center",
         )
 
-        # Decorative divider
+        # More decorative divider with pattern
         self._static_line5 = Text.from_markup(
-            "[accent]┌─────────────────────────────────────────────────────────────────┐[/]",
+            f"[{DIVIDER_COLOR}]╭─────────────────────────────────────────────────────────────────╮[/]",
             justify="center",
         )
 
