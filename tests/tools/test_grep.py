@@ -6,9 +6,9 @@ import pytest
 
 from revibe.core.tools.base import ToolError
 from revibe.core.tools.builtins.grep import (
-    Grep,
+    Find,
+    FindBackend,
     GrepArgs,
-    GrepBackend,
     GrepState,
     GrepToolConfig,
 )
@@ -17,7 +17,7 @@ from revibe.core.tools.builtins.grep import (
 @pytest.fixture
 def grep(tmp_path):
     config = GrepToolConfig(workdir=tmp_path)
-    return Grep(config=config, state=GrepState())
+    return Find(config=config, state=GrepState())
 
 
 @pytest.fixture
@@ -31,12 +31,12 @@ def grep_gnu_only(tmp_path, monkeypatch):
 
     monkeypatch.setattr("shutil.which", mock_which)
     config = GrepToolConfig(workdir=tmp_path)
-    return Grep(config=config, state=GrepState())
+    return Find(config=config, state=GrepState())
 
 
 def test_detects_ripgrep_when_available(grep):
     if shutil.which("rg"):
-        assert grep._detect_backend() == GrepBackend.RIPGREP
+        assert grep._detect_backend() == FindBackend.RIPGREP
 
 
 def test_falls_back_to_gnu_grep(grep, monkeypatch):
@@ -50,7 +50,7 @@ def test_falls_back_to_gnu_grep(grep, monkeypatch):
     monkeypatch.setattr("shutil.which", mock_which)
 
     if shutil.which("grep"):
-        assert grep._detect_backend() == GrepBackend.GNU_GREP
+        assert grep._detect_backend() == FindBackend.GNU_GREP
 
 
 def test_raises_error_if_no_grep_available(grep, monkeypatch):
@@ -139,7 +139,7 @@ async def test_truncates_to_max_matches(grep, tmp_path):
 @pytest.mark.asyncio
 async def test_truncates_to_max_output_bytes(grep, tmp_path):
     config = GrepToolConfig(workdir=tmp_path, max_output_bytes=100)
-    grep_tool = Grep(config=config, state=GrepState())
+    grep_tool = Find(config=config, state=GrepState())
     (tmp_path / "test.py").write_text("\n".join("x" * 100 for _ in range(10)))
 
     result = await grep_tool.run(GrepArgs(pattern="x"))
@@ -201,7 +201,7 @@ async def test_tracks_search_history(grep, tmp_path):
 @pytest.mark.asyncio
 async def test_uses_effective_workdir(tmp_path):
     config = GrepToolConfig(workdir=tmp_path)
-    grep_tool = Grep(config=config, state=GrepState())
+    grep_tool = Find(config=config, state=GrepState())
     (tmp_path / "test.py").write_text("match\n")
 
     result = await grep_tool.run(GrepArgs(pattern="match", path="."))

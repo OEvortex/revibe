@@ -41,6 +41,13 @@ async def pass_welcome_screen(pilot: Pilot) -> None:
 
 @pytest.mark.asyncio
 async def test_ui_gets_through_the_onboarding_successfully() -> None:
+    import os
+
+    # Ensure no existing key
+    os.environ.pop("MISTRAL_API_KEY", None)
+    # Remove any existing .env file
+    GLOBAL_ENV_FILE.path.unlink(missing_ok=True)
+
     app = OnboardingApp()
     api_key_value = "sk-onboarding-test-key"
 

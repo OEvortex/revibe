@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-12-31
+
+### Added
+
+- Added multiple OpenRouter provider models to DEFAULT_MODELS, exposing a wide range of external models for easy selection and usage:
+  - minimax/minimax-m2.1 (205K context) — $0.30/M input, $1.20/M output
+  - z-ai/glm-4.7 (203K context) — $0.40/M input, $1.50/M output
+  - google/gemini-3-flash-preview (1.05M context) — $0.50/M input, $3/M output, $1/M audio tokens
+  - xiaomi/mimo-v2-flash:free (262K context) — free (0.0 input/output)
+  - allenai/olmo-3.1-32b-think:free (66K context) — free (0.0 input/output)
+  - nvidia/nemotron-3-nano-30b-a3b:free (262K context) — free (0.0 input/output)
+  - nvidia/nemotron-3-nano-30b-a3b (262K context) — $0.06/M input, $0.24/M output
+  - openai/gpt-5.2-pro (400K context) — $21/M input, $168/M output
+  - openai/gpt-5.2 (400K context) — $1.75/M input, $14/M output
+  - mistralai/devstral-2512:free (262K context) — free (0.0 input/output)
+  - mistralai/devstral-2512 (262K context) — $0.05/M input, $0.22/M output
+  - openai/gpt-5.1-codex-max (400K context) — $1.25/M input, $10/M output
+  - deepseek/deepseek-v3.2-speciale (164K context) — $0.27/M input, $0.41/M output
+  - anthropic/claude-opus-4.5 (200K context) — $5/M input, $25/M output
+  - x-ai/grok-4.1-fast (2M context) — $0.20/M input, $0.50/M output
+  - google/gemini-3-pro-preview (1M context) — $2/M input, $12/M output
+  - openai/gpt-5.1 / openai/gpt-5.1-codex (400K context) — $1.25/M input, $10/M output
+  - openai/gpt-5.1-codex-mini (400K context) — $0.25/M input, $2/M output
+  - kwaipilot/kat-coder-pro:free (256K context) — free (0.0 input/output)
+  - moonshotai/kimi-k2-thinking (262K context) — $0.40/M input, $1.75/M output
+  - minimax/minimax-m2 (197K context) — $0.20/M input, $1/M output
+  - anthropic/claude-haiku-4.5 (200K context) — $1/M input, $5/M output
+  - z-ai/glm-4.6:exacto (205K context) — $0.44/M input, $1.76/M output
+  - anthropic/claude-sonnet-4.5 (1M context) — $3/M input, $15/M output
+  - qwen/qwen3-coder-plus (128K context) — $1/M input, $5/M output
+  - moonshotai/kimi-k2-0905 (262K context) — $0.39/M input, $1.90/M output
+  - x-ai/grok-code-fast-1 (256K context) — $0.20/M input, $1.50/M output
+
+- Free variants were added with explicit 0.0 input/output pricing so they are selectable without billing impact.
+- Updated revibe/core/model_config.py to include the new OpenRouter entries and canonicalized context/pricing values.
+- **Enhanced Onboarding TUI**: Significantly improved the setup experience with richer provider information
+  - Added centralized provider metadata in `revibe/setup/onboarding/provider_info.py` to avoid duplication
+  - Provider selection screen now shows detailed descriptions including auth status, API bases, example models, and documentation links
+  - Added toggle functionality (`i` key) to switch between basic and detailed provider descriptions
+  - API key screen now detects existing keys in environment and provides graceful handling with masked display
+  - Added OpenRouter provider support to onboarding with proper descriptions and help links
+- **Provider Information System**: New helper functions for consistent provider display across the TUI
+  - `build_provider_description()`: Builds multi-line provider descriptions with configurable detail levels
+  - `check_key_status()`: Checks API key configuration status
+  - `get_example_model()`: Retrieves example model aliases for providers
+  - `mask_key()`: Safely masks API keys for display
+
+### Changed
+
+- None significant other than the additions above; behavior remains backward compatible. The changes primarily extend available model choices.
+- Removed Anthropic provider from onboarding descriptions since it's not currently implemented in ReVibe
+- Provider selection now uses centralized metadata instead of hardcoded strings in UI components
+
+### Fixed
+
+- None in this release.
+
 ## [0.2.0] - 2025-12-30
 
 ### Added

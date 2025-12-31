@@ -8,6 +8,7 @@ from revibe.core.llm.backend.llamacpp import LlamaCppBackend
 from revibe.core.llm.backend.mistral import MistralBackend
 from revibe.core.llm.backend.ollama import OllamaBackend
 from revibe.core.llm.backend.openai import OpenAIBackend
+from revibe.core.llm.backend.openrouter import OpenRouterBackend
 from revibe.core.llm.backend.qwen import QwenBackend
 
 BACKEND_FACTORY = {
@@ -20,4 +21,5 @@ BACKEND_FACTORY = {
     Backend.LLAMACPP: LlamaCppBackend,
     Backend.CEREBRAS: CerebrasBackend,
     Backend.QWEN: QwenBackend,
+    Backend.OPENROUTER: OpenRouterBackend,
 }

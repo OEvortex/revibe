@@ -3,11 +3,86 @@
    ============================================================================= */
 
 Screen {
-    align: center middle;
+    background: $background;
+    color: $text;
 }
 
 OnboardingScreen {
     align: center middle;
+    padding: 2 0;
+    background: $background;
+}
+
+/* Shared utility styles */
+
+.eyebrow {
+    color: $text-muted;
+    text-style: bold;
+    margin-bottom: 1;
+    text-align: center;
+}
+
+.lede {
+    color: $text;
+    text-style: bold;
+    text-align: center;
+    margin-bottom: 1;
+}
+
+.muted {
+    color: $text-muted;
+}
+
+.subtle {
+    color: $foreground-muted;
+    text-align: center;
+}
+
+.pill {
+    border: round $foreground-muted;
+    padding: 0 1;
+    margin: 1 0;
+    background: $surface;
+    text-style: bold;
+}
+
+.code {
+    text-style: italic;
+}
+
+.card {
+    background: $panel;
+    border: round $foreground-muted;
+    padding: 2 3;
+    width: 72;
+    max-width: 90;
+}
+
+.footer-card {
+    background: $surface;
+    border: round $foreground-muted;
+    padding: 1 2;
+    width: 64;
+    max-width: 80;
+}
+
+.link-row {
+    width: auto;
+    height: auto;
+    margin-top: 1;
+    align: center middle;
+}
+
+.link-chevron {
+    width: auto;
+    color: $primary;
+}
+
+Button.primary-action {
+    width: 100%;
+    min-width: 24;
+    padding: 1 2;
+    text-style: bold;
 }
 
 /* =============================================================================
@@ -19,11 +94,12 @@ OnboardingScreen {
 }
 
 #welcome-text {
-    border: round #555555;
-    padding: 1 3;
+    border: round $foreground-muted;
+    padding: 2 4;
     margin-bottom: 2;
     text-align: center;
     width: auto;
+    background: $panel;
 }
 
 WelcomeScreen #enter-hint {
@@ -47,10 +123,13 @@ WelcomeScreen #enter-hint.hidden {
 }
 
 #provider-content {
-    width: auto;
+    width: 64;
+    max-width: 90;
     height: auto;
-    padding: 1 0;
+    padding: 2 3;
     align: center middle;
+    background: $panel;
+    border: round $foreground-muted;
 }
 
 #provider-title {
@@ -58,12 +137,14 @@ WelcomeScreen #enter-hint.hidden {
     width: 100%;
     margin-bottom: 1;
     text-style: bold;
+    color: $primary;
 }
 
 #provider-subtitle {
     text-align: center;
     width: 100%;
     margin-bottom: 2;
+    color: $text-muted;
 }
 
 #provider-nav {
@@ -82,6 +163,9 @@ WelcomeScreen #enter-hint.hidden {
     width: 32;
     height: auto;
     margin: 1 0;
+    border: tall $foreground-muted;
+    padding: 0 1;
+    background: $surface;
 }
 
 .provider-item {
@@ -94,14 +178,15 @@ WelcomeScreen #enter-hint.hidden {
     color: $text;
     text-style: bold;
     background: $surface;
+    border: round $foreground-muted;
 }
 
 .provider-item.fade-1 {
-    text-opacity: 50%;
+    text-opacity: 60%;
 }
 
 .provider-item.fade-2 {
-    text-opacity: 25%;
+    text-opacity: 30%;
 }
 
 #provider-description {
@@ -110,11 +195,13 @@ WelcomeScreen #enter-hint.hidden {
     margin-top: 1;
     margin-bottom: 1;
     height: 1;
+    color: $text-muted;
 }
 
 #provider-hint {
     text-align: center;
     margin-top: 1;
+    color: $foreground-muted;
 }
 
 /* =============================================================================
@@ -129,15 +216,20 @@ WelcomeScreen #enter-hint.hidden {
 }
 
 #theme-content {
-    width: auto;
+    width: 64;
+    max-width: 90;
     height: auto;
-    padding: 1 0;
+    padding: 2 3;
+    background: $panel;
+    border: round $foreground-muted;
 }
 
 #theme-title {
     text-align: center;
     width: 100%;
     margin-bottom: 2;
+    color: $primary;
+    text-style: bold;
 }
 
 #theme-row {
@@ -166,20 +258,21 @@ WelcomeScreen #enter-hint.hidden {
 .theme-item.selected {
     color: $text;
     text-style: bold;
-    border: round #555555;
+    border: round $foreground-muted;
     padding: 0 2;
+    background: $surface;
 }
 
 .theme-item.fade-1 {
-    text-opacity: 50%;
+    text-opacity: 60%;
 }
 
 .theme-item.fade-2 {
-    text-opacity: 25%;
+    text-opacity: 30%;
 }
 
 .theme-item.fade-3 {
-    text-opacity: 10%;
+    text-opacity: 15%;
 }
 
 ThemeSelectionScreen #enter-hint {
@@ -203,8 +296,9 @@ ThemeSelectionScreen #enter-hint {
     height: auto;
     max-height: 100%;
     overflow: auto;
-    border: round #555555;
+    border: round $foreground-muted;
     border-title-align: center;
+    background: $surface;
 }
 
 #preview-inner {
@@ -218,7 +312,10 @@ ThemeSelectionScreen #enter-hint {
    ============================================================================= */
 
 #api-key-outer {
+    width: 100%;
+    max-width: 96;
     overflow-y: auto;
+    align: center middle;
 }
 
 .spacer {
@@ -227,11 +324,13 @@ ThemeSelectionScreen #enter-hint {
 
 #api-key-title {
     text-align: center;
-    margin-bottom: 2;
+    margin-bottom: 1;
+    color: $primary;
+    text-style: bold;
 }
 
 #api-key-content {
-    width: auto;
+    width: 100%;
     height: auto;
 }
 
@@ -239,22 +338,27 @@ ThemeSelectionScreen #enter-hint {
     text-align: center;
 }
 
-.link-row {
-    width: auto;
-    height: auto;
+#key-detected-message {
+    color: $text-muted;
+}
+
+#masked-key {
+    text-align: center;
+}
+
+#replace-hint {
+    color: $text-muted;
     margin-top: 1;
 }
 
-.link-chevron {
-    width: auto;
-}
-
 #input-box {
-    border: round #555555;
+    border: round $foreground-muted;
     padding: 0 1;
-    margin-top: 2;
-    width: auto;
+    margin-top: 1;
+    width: 100%;
+    max-width: 60;
     height: 3;
+    background: $surface;
 }
 
 #input-box.valid {
@@ -267,9 +371,10 @@ ThemeSelectionScreen #enter-hint {
 
 #key {
     border: none;
-    width: 48;
+    width: 100%;
     height: 1;
     padding: 0;
+    background: transparent;
 }
 
 #paste-hint {
@@ -280,6 +385,7 @@ ThemeSelectionScreen #enter-hint {
     text-align: center;
     height: 1;
     margin-top: 1;
+    color: $text-muted;
 }
 
 #feedback.error {
@@ -287,7 +393,7 @@ ThemeSelectionScreen #enter-hint {
 }
 
 #feedback.success {
-    color: $text-muted;
+    color: $success;
 }
 
 #config-docs-section {
@@ -295,11 +401,13 @@ ThemeSelectionScreen #enter-hint {
     height: auto;
     align: center top;
     padding-bottom: 2;
+    margin-top: 1;
 }
 
 #config-docs-group {
     width: auto;
     height: auto;
+    color: $text-muted;
 }
 
 #config-docs-group Static {

@@ -9,16 +9,7 @@ from textual.widgets import Static
 
 from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfig, VibeConfig
 from revibe.setup.onboarding.base import OnboardingScreen
-
-PROVIDER_DESCRIPTIONS: dict[str, str] = {
-    "mistral": "Mistral AI - Devstral models",
-    "openai": "OpenAI - GPT-4o, o1 models",
-    "anthropic": "Anthropic - Claude models",
-    "huggingface": "Hugging Face - Inference API and local models",
-    "groq": "Groq - Fast inference",
-    "ollama": "Ollama - Local models",
-    "llamacpp": "llama.cpp - Local server",
-}
+from revibe.setup.onboarding.provider_info import build_provider_description
 
 VISIBLE_NEIGHBORS = 2
 FADE_CLASSES = ["fade-1", "fade-2"]
@@ -30,6 +21,7 @@ class ProviderSelectionScreen(OnboardingScreen):
         Binding("space", "select", "Select", show=False),
         Binding("up", "prev_provider", "Previous", show=False),
         Binding("down", "next_provider", "Next", show=False),
+        Binding("i", "toggle_details", "Toggle details", show=False),
         Binding("ctrl+c", "cancel", "Cancel", show=False),
         Binding("escape", "cancel", "Cancel", show=False),
     ]
@@ -41,6 +33,7 @@ class ProviderSelectionScreen(OnboardingScreen):
         self._provider_index = 0
         self._provider_widgets: list[Static] = []
         self._providers: list[ProviderConfig] = list(DEFAULT_PROVIDERS)
+        self._show_details = False
 
     def _compose_provider_list(self) -> ComposeResult:
         for _ in range(VISIBLE_NEIGHBORS * 2 + 1):
@@ -67,7 +60,7 @@ class ProviderSelectionScreen(OnboardingScreen):
                 yield Static("", id="provider-description")
                 yield Center(
                     Static(
-                        "[dim]Press[/] Enter [dim]to select[/]",
+                        "[dim]Press[/] Enter [dim]to select, [/]i[dim] to toggle details[/]",
                         id="provider-hint",
                     )
                 )
@@ -98,8 +91,8 @@ class ProviderSelectionScreen(OnboardingScreen):
 
         # Update description
         current = self._providers[self._provider_index]
-        desc = PROVIDER_DESCRIPTIONS.get(current.name, current.api_base)
-        self.query_one("#provider-description", Static).update(f"[dim]{desc}[/]")
+        desc = build_provider_description(current, self._show_details)
+        self.query_one("#provider-description", Static).update(desc)
 
     def _navigate(self, direction: int) -> None:
         self._provider_index = (self._provider_index + direction) % len(self._providers)
@@ -110,6 +103,10 @@ class ProviderSelectionScreen(OnboardingScreen):
 
     def action_prev_provider(self) -> None:
         self._navigate(-1)
+
+    def action_toggle_details(self) -> None:
+        self._show_details = not self._show_details
+        self._update_display()
 
     def action_select(self) -> None:
         selected = self._providers[self._provider_index]
@@ -127,6 +124,7 @@ class ProviderSelectionScreen(OnboardingScreen):
         except OSError as e:
             # Log the error but don't fail silently - this is critical for setup
             from rich import print as rprint
+
             rprint(f"[yellow]Warning: Could not save provider selection: {e}[/]")
             # Continue anyway - the API key screen will handle the mismatch
         self.action_next()

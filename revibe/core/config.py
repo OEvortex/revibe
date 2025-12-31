@@ -135,6 +135,7 @@ class Backend(StrEnum):
     OLLAMA = auto()
     LLAMACPP = auto()
     QWEN = auto()
+    OPENROUTER = auto()
 
 
 class ToolFormat(StrEnum):
@@ -191,6 +192,10 @@ class QwenProviderConfig(_ProviderBase):
     backend: Literal[Backend.QWEN] = Backend.QWEN
 
 
+class OpenRouterProviderConfig(_ProviderBase):
+    backend: Literal[Backend.OPENROUTER] = Backend.OPENROUTER
+
+
 ProviderConfigUnion = Annotated[
     MistralProviderConfig
     | OpenAIProviderConfig
@@ -200,7 +205,8 @@ ProviderConfigUnion = Annotated[
     | LlamaCppProviderConfig
     | CerebrasProviderConfig
     | GenericProviderConfig
-    | QwenProviderConfig,
+    | QwenProviderConfig
+    | OpenRouterProviderConfig,
     Field(discriminator="backend"),
 ]
 
@@ -328,6 +334,11 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
         name="qwencode",
         api_base="",  # Uses OAuth base URL from qwen backend
         api_key_env_var="",
+    ),
+    OpenRouterProviderConfig(
+        name="openrouter",
+        api_base="https://openrouter.ai/api/v1",
+        api_key_env_var="OPENROUTER_API_KEY",
     ),
 ]
 

@@ -7,7 +7,7 @@ from dotenv import set_key
 from pydantic import TypeAdapter
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
-from textual.containers import Center, Horizontal, Vertical
+from textual.containers import Center, Container, Horizontal, Vertical
 from textual.timer import Timer
 from textual.validation import Length
 from textual.widgets import Button, Input, Link, Static
@@ -16,19 +16,13 @@ from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfigUnion, VibeConfi
 from revibe.core.model_config import DEFAULT_MODELS, ModelConfig
 from revibe.core.paths.global_paths import GLOBAL_ENV_FILE
 from revibe.setup.onboarding.base import OnboardingScreen
+from revibe.setup.onboarding.provider_info import PROVIDER_HELP, mask_key
 
-PROVIDER_HELP = {
-    "mistral": ("https://console.mistral.ai/api-keys", "Mistral AI Console"),
-    "openai": ("https://platform.openai.com/api-keys", "OpenAI Platform"),
-    "anthropic": ("https://console.anthropic.com/settings/keys", "Anthropic Console"),
-    "groq": ("https://console.groq.com/keys", "Groq Console"),
-    "huggingface": ("https://huggingface.co/settings/tokens", "Hugging Face Settings"),
-    "cerebras": (
-        "https://cloud.cerebras.ai/platform/api-keys",
-        "Cerebras Cloud Platform",
-    ),
-}
 CONFIG_DOCS_URL = "https://github.com/OEvortex/revibe?tab=readme-ov-file#configuration"
+
+
+MODEL_CONFIG_ADAPTER = TypeAdapter(list[ModelConfig])
+PROVIDER_ADAPTER = TypeAdapter(list[ProviderConfigUnion])
 
 
 MODEL_CONFIG_ADAPTER = TypeAdapter(list[ModelConfig])
@@ -161,12 +155,73 @@ class ApiKeyScreen(OnboardingScreen):
         # Skip API key input for providers that don't require it
         if not getattr(self.provider, "api_key_env_var", ""):
             with Vertical(id="api-key-outer"):
-                yield Static("", classes="spacer")
-                yield Center(Static("", id="api-key-title"))
+                yield Static("Credentials", classes="eyebrow")
+                yield Center(Static("No API Key Required", id="api-key-title"))
                 with Center():
-                    with Vertical(id="api-key-content"):
+                    with Vertical(id="api-key-content", classes="card"):
                         yield from self._compose_no_api_key_content()
                 yield Static("", classes="spacer")
+            return
+
+        env_key = self.provider.api_key_env_var
+        existing_key = os.getenv(env_key)
+        if existing_key:
+            # Show detected key UI
+            self.input_widget = Input(
+                password=True,
+                id="key",
+                placeholder="Paste a new API key to replace (optional)",
+                validators=[
+                    Length(minimum=1, failure_description="No API key provided.")
+                ],
+            )
+            with Vertical(id="api-key-outer"):
+                yield Static("Credentials", classes="eyebrow")
+                yield Center(Static("API Key Detected", id="api-key-title"))
+                yield Center(
+                    Static(
+                        f"{self.provider.name.capitalize()} is already connected",
+                        classes="lede",
+                    )
+                )
+                with Center():
+                    with Vertical(id="api-key-content", classes="card"):
+                        yield Static(
+                            f"Found {env_key} in environment", id="key-detected-message"
+                        )
+                        yield Static(
+                            f"Masked key: {mask_key(existing_key)}",
+                            id="masked-key",
+                            classes="pill code",
+                        )
+                        yield Static(
+                            "Keep the detected key or replace it with a fresh one.",
+                            classes="subtle",
+                        )
+                        yield Static("", id="feedback")
+                        yield Center(
+                            Button(
+                                "Continue with detected key",
+                                id="continue-button",
+                                variant="success",
+                                classes="primary-action",
+                            )
+                        )
+                        yield Static(
+                            "Replace it below if you'd prefer to rotate the key.",
+                            id="replace-hint",
+                        )
+                        with Container(id="input-box"):
+                            yield self.input_widget
+                yield Static("", classes="spacer")
+                yield Vertical(
+                    Vertical(
+                        *self._compose_config_docs(),
+                        id="config-docs-group",
+                        classes="footer-card",
+                    ),
+                    id="config-docs-section",
+                )
             return
 
         self.input_widget = Input(
@@ -177,14 +232,28 @@ class ApiKeyScreen(OnboardingScreen):
         )
 
         with Vertical(id="api-key-outer"):
-            yield Static("", classes="spacer")
-            yield Center(Static("One last thing...", id="api-key-title"))
+            yield Static("Credentials", classes="eyebrow")
+            yield Center(Static("Connect your API key", id="api-key-title"))
             with Center():
-                with Vertical(id="api-key-content"):
-                    yield from self._compose_no_api_key_content()
+                with Vertical(id="api-key-content", classes="card"):
+                    yield from self._compose_provider_link(
+                        self.provider.name.capitalize()
+                    )
+                    yield Static(f"Env variable: {env_key}", classes="pill code")
+                    yield Static(
+                        "Your key stays on your machine. Paste it to continue.",
+                        classes="subtle",
+                    )
+                    with Container(id="input-box"):
+                        yield self.input_widget
+                    yield Static("", id="feedback")
             yield Static("", classes="spacer")
             yield Vertical(
-                Vertical(*self._compose_config_docs(), id="config-docs-group"),
+                Vertical(
+                    *self._compose_config_docs(),
+                    id="config-docs-group",
+                    classes="footer-card",
+                ),
                 id="config-docs-section",
             )
 
@@ -197,20 +266,38 @@ class ApiKeyScreen(OnboardingScreen):
         title_widget.update(self._render_title())
 
     def _render_title(self) -> str:
-        title = "Setup Completed"
+        title = "Secure your API key"
         return _apply_gradient(title, self._gradient_offset)
 
     def on_mount(self) -> None:
         title_widget = self.query_one("#api-key-title", Static)
         if title_widget:
-            title_widget.update(self._render_title())
-            self._start_gradient_animation()
+            # Check for specific widgets that only exist in the "detected" state
+            is_detected = False
+            try:
+                self.query_one("#masked-key")
+                is_detected = True
+            except Exception:
+                pass
+
+            if is_detected:
+                # No gradient for detected key
+                pass
+            else:
+                title_widget.update(self._render_title())
+                self._start_gradient_animation()
         if hasattr(self, "input_widget") and self.input_widget:
             self.input_widget.focus()
+        else:
+            try:
+                continue_button = self.query_one("#continue-button", Button)
+                continue_button.focus()
+            except Exception:
+                pass
 
     def on_input_changed(self, event: Input.Changed) -> None:
         feedback = self.query_one("#feedback", Static)
-        input_box = self.query_one("#input-box")
+        input_box = self.query_one("#input-box", Container)
 
         if event.validation_result is None:
             return
