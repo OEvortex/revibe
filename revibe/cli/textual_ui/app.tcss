@@ -789,53 +789,53 @@ DiffViewWidget {
 WelcomeBanner {
     width: 100%;
     height: auto;
-    border: round #FFD700;
+    border: round #0066CC;
     border-title-align: center;
     text-align: center;
     content-align: center middle;
-    padding: 3 1;
+    padding: 2 1;
     margin: 1 0 0 0;
-    color: #FFFFFF;
-    background: #1a1a2e;
+    color: #E5E7EB;
+    background: #1F2937;
 
     .muted {
-        color: #888888;
+        color: #9CA3AF;
     }
 
     .accent {
-        color: #FFD700;
+        color: #00A67E;
         text-style: bold;
     }
 
     .primary {
-        color: #00D4FF;
+        color: #0066CC;
         text-style: bold;
     }
 
     .success {
-        color: #00FF88;
+        color: #059669;
         text-style: bold;
     }
 
     .version-badge {
-        background: #FFD700;
-        color: #1a1a2e;
+        background: #0066CC;
+        color: #FFFFFF;
         padding: 0 1;
         text-style: bold;
         margin-left: 1;
     }
 
     .model-badge {
-        background: #00D4FF;
-        color: #1a1a2e;
+        background: #00A67E;
+        color: #FFFFFF;
         padding: 0 1;
         text-style: bold;
         margin-left: 1;
     }
 
     .stats-badge {
-        background: #00FF88;
-        color: #1a1a2e;
+        background: #059669;
+        color: #FFFFFF;
         padding: 0 1;
         text-style: bold;
         margin-left: 1;
@@ -843,22 +843,22 @@ WelcomeBanner {
 
     .path-badge {
         background: #FF6B35;
-        color: #1a1a2e;
+        color: #FFFFFF;
         padding: 0 1;
         text-style: bold;
         margin-left: 1;
     }
 
     .command-pill {
-        background: #00D4FF;
-        color: #1a1a2e;
+        background: #00A67E;
+        color: #FFFFFF;
         padding: 0 1;
         text-style: bold;
         margin: 0 1;
     }
 
     .divider {
-        color: #FFB347;
+        color: #6B7280;
         text-style: bold;
         margin: 0 1;
     }

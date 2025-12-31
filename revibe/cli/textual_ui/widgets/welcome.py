@@ -88,45 +88,44 @@ class WelcomeBanner(Static):
         self._initialize_static_line_suffixes()
 
     def _initialize_static_line_suffixes(self) -> None:
-        # Vibrant colors inspired by Copilot
-        LOGO_COLOR = "#FFD700"  # Gold
-        MODEL_COLOR = "#00D4FF"  # Bright blue
-        STATS_COLOR = "#00FF88"  # Bright green
-        PATH_COLOR = "#FF6B35"  # Orange
-        DIVIDER_COLOR = "#FFB347"  # Warm yellow
+        # Professional color palette
+        PRIMARY = "#0066CC"  # Professional blue
+        ACCENT = "#00A67E"   # Modern teal
+        HIGHLIGHT = "#FF6B35"  # Subtle orange
+        MUTED = "#6B7280"    # Professional gray
 
-        # Main title with vibrant logo
+        # Clean, professional title
         self._static_line1_suffix = (
-            f"[{LOGO_COLOR}]⚡[/] [{LOGO_COLOR} bold]ReVibe[/] [{LOGO_COLOR}]v{__version__}[/]"
+            f"[{PRIMARY}]●[/] [{PRIMARY} bold]ReVibe[/] [{MUTED}]v{__version__}[/]"
         )
 
-        # Model info with bright accent
+        # Minimal model info
         self._static_line2_suffix = (
-            f"[dim]🤖 model [/] [{MODEL_COLOR} bold]{self.config.active_model}[/]"
+            f"[{MUTED}]model:[/] [{ACCENT}]{self.config.active_model}[/]"
         )
 
-        # Stats with colorful badges and emojis
+        # Clean stats display
         mcp_count = len(self.config.mcp_servers)
         model_count = len(self.config.models)
         provider_count = len({m.provider for m in self.config.models})
         self._static_line3_suffix = (
-            f"[dim]📊 stats [/] [{STATS_COLOR}]{model_count}[/] models [{DIVIDER_COLOR}]●[/] [{STATS_COLOR}]{provider_count}[/] providers [{DIVIDER_COLOR}]●[/] [{STATS_COLOR}]{mcp_count}[/] MCP"
+            f"[{MUTED}]models:[/] [{PRIMARY}]{model_count}[/] [{MUTED}]•[/] providers: [{PRIMARY}]{provider_count}[/] [{MUTED}]•[/] MCP: [{PRIMARY}]{mcp_count}[/]"
         )
 
-        # Path with folder icon
+        # Professional path display
         self._static_line4_suffix = (
-            f"[dim]📁 path [/] [{PATH_COLOR}]{self.config.effective_workdir}[/]"
+            f"[{MUTED}]workspace:[/] [{HIGHLIGHT}]{self.config.effective_workdir}[/]"
         )
 
-        # Footer with more engaging call-to-action
+        # Clean call-to-action
         self._static_line7 = Text.from_markup(
-            f"[dim]💡 Get started:[/] [{MODEL_COLOR} bold]/help[/] [dim]or[/] [{LOGO_COLOR} bold]/terminal-setup[/] [dim]to begin ✨[/]",
+            f"[{MUTED}]Start with:[/] [{ACCENT}]/help[/] [{MUTED}]or[/] [{PRIMARY}]/terminal-setup[/]",
             justify="center",
         )
 
-        # More decorative divider with pattern
+        # Minimal divider
         self._static_line5 = Text.from_markup(
-            f"[{DIVIDER_COLOR}]╭─────────────────────────────────────────────────────────────────╮[/]",
+            f"[{MUTED}]─────────────────────────────────────────────────────────────[/]",
             justify="center",
         )
 
