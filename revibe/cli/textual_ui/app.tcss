@@ -799,22 +799,6 @@ WelcomeBanner {
     background: $surface;
     box-shadow: 0 2 8 $surface-darken-2;
 
-    &::before {
-        content: "";
-        width: 100%;
-        height: 1;
-        background: linear-gradient(to right, transparent, $accent, transparent);
-        margin-bottom: 1;
-    }
-
-    &::after {
-        content: "";
-        width: 100%;
-        height: 1;
-        background: linear-gradient(to right, transparent, $accent, transparent);
-        margin-top: 1;
-    }
-
     .muted {
         color: $text-muted;
     }
