@@ -232,6 +232,7 @@ Markdown MarkdownFence {
     margin-bottom: 0;
 }
 
+/* Enhanced Reasoning/Thought Message - Modern Card Design */
 .reasoning-message {
     margin-top: 1;
     width: 100%;
@@ -241,56 +242,87 @@ Markdown MarkdownFence {
 .reasoning-message-wrapper {
     width: 100%;
     height: auto;
+    background: $surface;
+    border-left: thick $accent;
+    padding: 0 1;
+    margin: 0;
 }
 
 .reasoning-message-header {
     width: 100%;
     height: auto;
+    padding: 0;
+    align: left middle;
 }
 
-.reasoning-indicator {
+/* Brain/Thinking icon */
+.reasoning-icon {
     width: auto;
     height: auto;
-    color: $text-muted;
     margin-right: 1;
+    color: $accent;
 
     &.success {
-        color: $text-success;
+        color: $success;
+    }
+
+    &.error {
+        color: $error;
     }
 }
 
+/* Spinner indicator */
+.reasoning-indicator {
+    width: auto;
+    height: auto;
+    color: $accent;
+    margin-right: 1;
+
+    &.success {
+        color: $success;
+    }
+
+    &.error {
+        color: $error;
+    }
+}
+
+/* Status text (Thinking/Thought) */
+.reasoning-status-text {
+    width: auto;
+    height: auto;
+    color: $foreground;
+    text-style: bold;
+}
+
+/* Legacy class name for backwards compatibility */
 .reasoning-collapsed-text {
     width: auto;
     height: auto;
-    color: $text-muted;
-    text-style: italic;
+    color: $foreground;
+    text-style: bold;
 }
 
+/* Expand/collapse triangle */
 .reasoning-triangle {
     width: auto;
     height: auto;
     color: $text-muted;
-    text-style: italic;
     margin-left: 1;
 }
 
+/* Content area when expanded */
 .reasoning-message-content {
     width: 100%;
     height: auto;
-    padding: 0;
-    padding-left: 2;
+    padding: 1 0 0 2;
     margin: 0;
     color: $text-muted;
-    text-style: italic;
+    border-top: solid $surface-darken-1;
 }
 
 .reasoning-message-content * {
     color: $text-muted;
-    text-style: italic;
-}
-
-.reasoning-message-content > *:last-child {
-    margin-bottom: 0;
 }
 
 .interrupt-message {

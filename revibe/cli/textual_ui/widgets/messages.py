@@ -145,9 +145,15 @@ class AssistantMessage(StreamingMessageBase):
 
 
 class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
-    SPINNER_TYPE = SpinnerType.LINE
+    """Modern reasoning/thought display with card-like appearance."""
+
+    SPINNER_TYPE = SpinnerType.BRAILLE  # Use braille for smoother animation
     SPINNING_TEXT = "Thinking"
     COMPLETED_TEXT = "Thought"
+
+    # Modern icons
+    THINKING_ICON = "💭"
+    COMPLETED_ICON = "✓"
 
     def __init__(self, content: str, collapsed: bool = True) -> None:
         super().__init__(content)
@@ -155,23 +161,37 @@ class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
         self.collapsed = collapsed
         self._indicator_widget: Static | None = None
         self._triangle_widget: Static | None = None
+        self._icon_widget: Static | None = None
         self.init_spinner()
 
     def compose(self) -> ComposeResult:
         with Vertical(classes="reasoning-message-wrapper"):
             with Horizontal(classes="reasoning-message-header"):
+                # Brain/thinking icon
+                self._icon_widget = NonSelectableStatic(
+                    self.THINKING_ICON, classes="reasoning-icon"
+                )
+                yield self._icon_widget
+
+                # Spinner indicator
                 self._indicator_widget = NonSelectableStatic(
                     self._spinner.current_frame(), classes="reasoning-indicator"
                 )
                 yield self._indicator_widget
+
+                # Status text
                 self._status_text_widget = Static(
-                    self.SPINNING_TEXT, markup=False, classes="reasoning-collapsed-text"
+                    self.SPINNING_TEXT, markup=False, classes="reasoning-status-text"
                 )
                 yield self._status_text_widget
+
+                # Expand/collapse triangle
                 self._triangle_widget = NonSelectableStatic(
-                    "▶" if self.collapsed else "▼", classes="reasoning-triangle"
+                    "▼" if not self.collapsed else "▶", classes="reasoning-triangle"
                 )
                 yield self._triangle_widget
+
+            # Content area
             markdown = Markdown("", classes="reasoning-message-content")
             markdown.display = not self.collapsed
             self._markdown = markdown
@@ -205,6 +225,16 @@ class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
                 await self._markdown.update("")
                 self._displayed_content = ""
                 await self._update_display()
+
+    def stop_spinning(self, success: bool = True) -> None:
+        """Override to update icon when complete."""
+        super().stop_spinning(success)
+        if self._icon_widget:
+            self._icon_widget.update(self.COMPLETED_ICON if success else "✗")
+            if success:
+                self._icon_widget.add_class("success")
+            else:
+                self._icon_widget.add_class("error")
 
     def _process_content_for_display(self, content: str) -> str:
         return redact_xml_tool_calls(content)
