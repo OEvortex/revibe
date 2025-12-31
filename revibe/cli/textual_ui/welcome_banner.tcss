@@ -1,77 +1,119 @@
 WelcomeBanner {
     width: 100%;
     height: auto;
-    border: round #0066CC;
+    border: none;
     border-title-align: center;
     text-align: center;
     content-align: center middle;
-    padding: 2 1;
-    margin: 1 0 0 0;
-    color: #E5E7EB;
-    background: #1F2937;
+    padding: 1 0;
+    margin: 0;
+    color: #FFFFFF;
+    background: #000000;
 
-    .muted {
-        color: #9CA3AF;
+    .white {
+        color: #FFFFFF;
     }
 
-    .accent {
-        color: #00A67E;
+    .black {
+        color: #000000;
+    }
+
+    .teal {
+        color: #00D9FF;
         text-style: bold;
     }
 
-    .primary {
-        color: #0066CC;
+    .purple {
+        color: #8B5CF6;
         text-style: bold;
     }
 
-    .success {
-        color: #059669;
+    .green {
+        color: #10B981;
         text-style: bold;
     }
 
+    .light-gray {
+        color: #E5E7EB;
+    }
+
+    .dark-gray {
+        color: #1A1A1A;
+    }
+
+    /* Pixelated text effects */
+    .pixelated {
+        text-style: bold;
+    }
+
+    .teal-pixelated {
+        color: #00D9FF;
+        text-style: bold;
+        background: #000000;
+    }
+
+    /* Corner bracket styling */
+    .corner-bracket {
+        color: #FFFFFF;
+        text-style: bold;
+    }
+
+    /* Version badge styling */
     .version-badge {
-        background: #0066CC;
         color: #FFFFFF;
-        padding: 0 1;
         text-style: bold;
-        margin-left: 1;
     }
 
-    .model-badge {
-        background: #00A67E;
-        color: #FFFFFF;
-        padding: 0 1;
-        text-style: bold;
-        margin-left: 1;
+    /* Model info styling */
+    .model-info {
+        color: #00D9FF;
     }
 
-    .stats-badge {
-        background: #059669;
+    /* Stats styling */
+    .stats-info {
         color: #FFFFFF;
-        padding: 0 1;
-        text-style: bold;
-        margin-left: 1;
     }
 
-    .path-badge {
-        background: #FF6B35;
-        color: #FFFFFF;
-        padding: 0 1;
-        text-style: bold;
-        margin-left: 1;
+    /* Workspace styling */
+    .workspace-info {
+        color: #00D9FF;
     }
 
-    .command-pill {
-        background: #00A67E;
-        color: #FFFFFF;
-        padding: 0 1;
+    /* Command styling */
+    .command {
+        color: #00D9FF;
         text-style: bold;
-        margin: 0 1;
     }
 
-    .divider {
-        color: #6B7280;
+    /* Character illustration styling */
+    .character-head {
+        color: #8B5CF6;
         text-style: bold;
-        margin: 0 1;
+    }
+
+    .character-goggles {
+        color: #00D9FF;
+        text-style: bold;
+    }
+
+    /* Welcome text styling */
+    .welcome-text {
+        color: #FFFFFF;
+        text-style: none;
+    }
+
+    /* Main title styling */
+    .main-title {
+        color: #00D9FF;
+        text-style: bold;
+        background: #000000;
+    }
+
+    /* Frame styling */
+    .frame-top,
+    .frame-bottom,
+    .frame-side {
+        color: #FFFFFF;
+        text-style: bold;
     }
 }
