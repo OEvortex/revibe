@@ -797,7 +797,6 @@ WelcomeBanner {
     margin: 1 0 0 0;
     color: $foreground;
     background: $surface;
-    box-shadow: 0 2 8 $surface-darken-2;
 
     .muted {
         color: $text-muted;
@@ -822,7 +821,6 @@ WelcomeBanner {
         background: $accent;
         color: $background;
         padding: 0 1;
-        border-radius: 2;
         text-style: bold;
         margin-left: 1;
     }
@@ -831,7 +829,6 @@ WelcomeBanner {
         background: $primary;
         color: $background;
         padding: 0 1;
-        border-radius: 2;
         text-style: bold;
         margin-left: 1;
     }
@@ -840,7 +837,6 @@ WelcomeBanner {
         background: $success;
         color: $background;
         padding: 0 1;
-        border-radius: 2;
         text-style: bold;
         margin-left: 1;
     }
@@ -849,7 +845,6 @@ WelcomeBanner {
         background: $surface-darken-1;
         color: $foreground;
         padding: 0 1;
-        border-radius: 2;
         text-style: bold;
         margin-left: 1;
     }
@@ -858,7 +853,6 @@ WelcomeBanner {
         background: $primary;
         color: $background;
         padding: 0 1;
-        border-radius: 2;
         text-style: bold;
         margin: 0 1;
     }
