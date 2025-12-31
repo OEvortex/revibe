@@ -72,6 +72,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed by serializing args dict to JSON string in `_parse_tool_calls()` before Pydantic sees it
   - Added defensive check in `_prepare_messages()` for any non-string arguments
 
+### Fixed
+
+- Added `revibe/__main__.py` to enable `python -m revibe` command execution on all devices
+
 ## [0.2.0] - 2025-12-30
 
 ### Added
