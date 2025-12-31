@@ -1,0 +1,77 @@
+WelcomeBanner {
+    width: 100%;
+    height: auto;
+    border: round #0066CC;
+    border-title-align: center;
+    text-align: center;
+    content-align: center middle;
+    padding: 2 1;
+    margin: 1 0 0 0;
+    color: #E5E7EB;
+    background: #1F2937;
+
+    .muted {
+        color: #9CA3AF;
+    }
+
+    .accent {
+        color: #00A67E;
+        text-style: bold;
+    }
+
+    .primary {
+        color: #0066CC;
+        text-style: bold;
+    }
+
+    .success {
+        color: #059669;
+        text-style: bold;
+    }
+
+    .version-badge {
+        background: #0066CC;
+        color: #FFFFFF;
+        padding: 0 1;
+        text-style: bold;
+        margin-left: 1;
+    }
+
+    .model-badge {
+        background: #00A67E;
+        color: #FFFFFF;
+        padding: 0 1;
+        text-style: bold;
+        margin-left: 1;
+    }
+
+    .stats-badge {
+        background: #059669;
+        color: #FFFFFF;
+        padding: 0 1;
+        text-style: bold;
+        margin-left: 1;
+    }
+
+    .path-badge {
+        background: #FF6B35;
+        color: #FFFFFF;
+        padding: 0 1;
+        text-style: bold;
+        margin-left: 1;
+    }
+
+    .command-pill {
+        background: #00A67E;
+        color: #FFFFFF;
+        padding: 0 1;
+        text-style: bold;
+        margin: 0 1;
+    }
+
+    .divider {
+        color: #6B7280;
+        text-style: bold;
+        margin: 0 1;
+    }
+}
