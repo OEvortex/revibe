@@ -136,10 +136,8 @@ class SpinnerMixin:
             self._spinner_timer = None
         if self._indicator_widget:
             if success:
-                self._indicator_widget.update("✓")
                 self._indicator_widget.add_class("success")
             else:
-                self._indicator_widget.update("✕")
                 self._indicator_widget.add_class("error")
         if self._status_text_widget and self.COMPLETED_TEXT:
             self._status_text_widget.update(self.COMPLETED_TEXT)

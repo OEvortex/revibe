@@ -167,12 +167,6 @@ class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
     def compose(self) -> ComposeResult:
         with Vertical(classes="reasoning-message-wrapper"):
             with Horizontal(classes="reasoning-message-header"):
-                # Brain/thinking icon
-                self._icon_widget = NonSelectableStatic(
-                    self.THINKING_ICON, classes="reasoning-icon"
-                )
-                yield self._icon_widget
-
                 # Spinner indicator
                 self._indicator_widget = NonSelectableStatic(
                     self._spinner.current_frame(), classes="reasoning-indicator"
@@ -227,14 +221,8 @@ class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
                 await self._update_display()
 
     def stop_spinning(self, success: bool = True) -> None:
-        """Override to update icon when complete."""
+        """Override to update status text when complete."""
         super().stop_spinning(success)
-        if self._icon_widget:
-            self._icon_widget.update(self.COMPLETED_ICON if success else "✗")
-            if success:
-                self._icon_widget.add_class("success")
-            else:
-                self._icon_widget.add_class("error")
 
     def _process_content_for_display(self, content: str) -> str:
         return redact_xml_tool_calls(content)
