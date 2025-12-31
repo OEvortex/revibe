@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Large "REVIBE" ASCII wordmark with animated color transitions
   - Added git commit hash detection and display in footer
   - Improved layout with proper cell-width-based alignment for consistent rendering
+  - Updated color scheme to orange-yellow gradient matching UI theme
 
 ### Fixed
 

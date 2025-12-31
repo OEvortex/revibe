@@ -18,9 +18,10 @@ from revibe.core.config import VibeConfig
 # GitHub Copilot inspired color palette
 BLACK = "#000000"
 WHITE = "#FFFFFF"
-TEAL = "#00D9FF"
-PURPLE = "#8B5CF6"
-GREEN = "#10B981"
+ORANGE = "#FF8C00"
+YELLOW = "#FFD700"
+GOLD = "#FFA500"
+AMBER = "#FFBF00"
 DARK_GRAY = "#1A1A1A"
 LIGHT_GRAY = "#E5E7EB"
 
@@ -55,7 +56,7 @@ class LineAnimationState:
 
 class WelcomeBanner(Static):
     FLASH_COLOR = WHITE
-    TARGET_COLORS = (TEAL, PURPLE, GREEN, WHITE, TEAL)
+    TARGET_COLORS = (ORANGE, GOLD, AMBER, YELLOW, ORANGE)
     BORDER_TARGET_COLOR = WHITE
 
     LINE_ANIMATION_DURATION_MS = 300
@@ -118,12 +119,12 @@ class WelcomeBanner(Static):
         self._static_line1_suffix = f"[{WHITE}]Welcome to Revibe[/]"
 
         self._copilot_lines: list[str] = [
-            f"[{TEAL} bold] ██████╗ ███████╗██╗   ██╗██╗██████╗ ███████╗[/]",
-            f"[{TEAL} bold] ██╔══██╗██╔════╝██║   ██║██║██╔══██╗██╔════╝[/]",
-            f"[{TEAL} bold] ██████╔╝█████╗  ██║   ██║██║██████╔╝█████╗  [/]",
-            f"[{TEAL} bold] ██╔══██╗██╔══╝  ╚██╗ ██╔╝██║██╔══██╗██╔══╝  [/]",
-            f"[{TEAL} bold] ██║  ██║███████╗ ╚████╔╝ ██║██████╔╝███████╗[/]",
-            f"[{TEAL} bold] ╚═╝  ╚═╝╚══════╝  ╚═══╝  ╚═╝╚═════╝ ╚══════╝[/]",
+            f"[{ORANGE} bold] ██████╗ ███████╗██╗   ██╗██╗██████╗ ███████╗[/]",
+            f"[{ORANGE} bold] ██╔══██╗██╔════╝██║   ██║██║██╔══██╗██╔════╝[/]",
+            f"[{ORANGE} bold] ██████╔╝█████╗  ██║   ██║██║██████╔╝█████╗  [/]",
+            f"[{ORANGE} bold] ██╔══██╗██╔══╝  ╚██╗ ██╔╝██║██╔══██╗██╔══╝  [/]",
+            f"[{ORANGE} bold] ██║  ██║███████╗ ╚████╔╝ ██║██████╔╝███████╗[/]",
+            f"[{ORANGE} bold] ╚═╝  ╚═╝╚══════╝  ╚═══╝  ╚═╝╚═════╝ ╚══════╝[/]",
         ]
 
         # Version info
@@ -314,7 +315,7 @@ class WelcomeBanner(Static):
 
         for idx, revibe_line in enumerate(self._copilot_lines):
             color = self._get_color(min(idx + 1, len(self._line_states) - 1))
-            left = revibe_line.replace(f"[{TEAL} bold]", f"[{color} bold]")
+            left = revibe_line.replace(f"[{ORANGE} bold]", f"[{color} bold]")
             banner_lines.append(compose_row(left, ""))
 
         banner_lines.append(compose_row("", ""))
@@ -371,6 +372,6 @@ class WelcomeBanner(Static):
             return (
                 pattern
                 if line_idx == 0
-                else pattern.replace(f"[{TEAL} bold]", f"[{color} bold]")
+                else pattern.replace(f"[{ORANGE} bold]", f"[{color} bold]")
             )
         return ""
