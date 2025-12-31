@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
+import subprocess
 from time import monotonic
 
 from rich.align import Align
@@ -11,6 +13,16 @@ from textual.widgets import Static
 
 from revibe import __version__
 from revibe.core.config import VibeConfig
+
+
+# GitHub Copilot inspired color palette
+BLACK = "#000000"
+WHITE = "#FFFFFF"
+TEAL = "#00D9FF"
+PURPLE = "#8B5CF6"
+GREEN = "#10B981"
+DARK_GRAY = "#1A1A1A"
+LIGHT_GRAY = "#E5E7EB"
 
 
 def hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
@@ -42,17 +54,17 @@ class LineAnimationState:
 
 
 class WelcomeBanner(Static):
-    FLASH_COLOR = "#FFFFFF"
-    TARGET_COLORS = ("#FFD800", "#FFAF00", "#FF8205", "#FA500F", "#E10500")
-    BORDER_TARGET_COLOR = "#b05800"
+    FLASH_COLOR = WHITE
+    TARGET_COLORS = (TEAL, PURPLE, GREEN, WHITE, TEAL)
+    BORDER_TARGET_COLOR = WHITE
 
-    LINE_ANIMATION_DURATION_MS = 200
-    LINE_STAGGER_MS = 280
-    FLASH_RESET_DURATION_MS = 400
-    ANIMATION_TICK_INTERVAL = 0.1
+    LINE_ANIMATION_DURATION_MS = 300
+    LINE_STAGGER_MS = 150
+    FLASH_RESET_DURATION_MS = 200
+    ANIMATION_TICK_INTERVAL = 0.05
 
-    COLOR_FLASH_MIDPOINT = 0.5
-    COLOR_PHASE_SCALE = 2.0
+    COLOR_FLASH_MIDPOINT = 0.4
+    COLOR_PHASE_SCALE = 2.5
     COLOR_CACHE_THRESHOLD = 0.001
     BORDER_PROGRESS_THRESHOLD = 0.01
 
@@ -84,58 +96,69 @@ class WelcomeBanner(Static):
             + self.LINE_ANIMATION_DURATION_MS
         ) / 1000
 
-        self._cached_text_lines: list[Text | None] = [None] * 7
+        self._cached_text_lines: list[Text | None] = [None] * 15
         self._initialize_static_line_suffixes()
 
     def _initialize_static_line_suffixes(self) -> None:
-        # Professional color palette
-        PRIMARY = "#0066CC"  # Professional blue
-        ACCENT = "#00A67E"   # Modern teal
-        HIGHLIGHT = "#FF6B35"  # Subtle orange
-        MUTED = "#6B7280"    # Professional gray
+        # GitHub Copilot inspired styling
 
-        # Clean, professional title
-        self._static_line1_suffix = (
-            f"[{PRIMARY}]●[/] [{PRIMARY} bold]ReVibe[/] [{MUTED}]v{__version__}[/]"
+        # Corner brackets for pixelated frame effect
+        self._corner_brackets = {
+            "tl": "┌",
+            "tr": "┐",
+            "bl": "└",
+            "br": "┘",
+        }
+
+        self._frame_inner_width = 86
+        self._left_width = 86
+        self._right_width = 0
+
+        # Main title lines with pixelated styling
+        self._static_line1_suffix = f"[{WHITE}]Welcome to Revibe[/]"
+
+        self._copilot_lines: list[str] = [
+            f"[{TEAL} bold] ██████╗ ███████╗██╗   ██╗██╗██████╗ ███████╗[/]",
+            f"[{TEAL} bold] ██╔══██╗██╔════╝██║   ██║██║██╔══██╗██╔════╝[/]",
+            f"[{TEAL} bold] ██████╔╝█████╗  ██║   ██║██║██████╔╝█████╗  [/]",
+            f"[{TEAL} bold] ██╔══██╗██╔══╝  ╚██╗ ██╔╝██║██╔══██╗██╔══╝  [/]",
+            f"[{TEAL} bold] ██║  ██║███████╗ ╚████╔╝ ██║██████╔╝███████╗[/]",
+            f"[{TEAL} bold] ╚═╝  ╚═╝╚══════╝  ╚═══╝  ╚═╝╚═════╝ ╚══════╝[/]",
+        ]
+
+        # Version info
+        self._static_line8_suffix = f"[{WHITE}]CLI Version[/] [{WHITE}]{__version__}[/]"
+
+        # Call to action
+        self._static_line9 = Text.from_markup(
+            f"[{WHITE}]Version {__version__}[/]",
+            justify="left",
         )
 
-        # Minimal model info
-        self._static_line2_suffix = (
-            f"[{MUTED}]model:[/] [{ACCENT}]{self.config.active_model}[/]"
-        )
+    def _get_git_commit_short(self) -> str | None:
+        workdir = Path(self.config.effective_workdir)
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                capture_output=True,
+                cwd=workdir,
+                stdin=subprocess.DEVNULL,
+                text=True,
+                timeout=2.0,
+            )
+        except (FileNotFoundError, OSError, subprocess.TimeoutExpired):
+            return None
 
-        # Clean stats display
-        mcp_count = len(self.config.mcp_servers)
-        model_count = len(self.config.models)
-        provider_count = len({m.provider for m in self.config.models})
-        self._static_line3_suffix = (
-            f"[{MUTED}]models:[/] [{PRIMARY}]{model_count}[/] [{MUTED}]•[/] providers: [{PRIMARY}]{provider_count}[/] [{MUTED}]•[/] MCP: [{PRIMARY}]{mcp_count}[/]"
-        )
-
-        # Professional path display
-        self._static_line4_suffix = (
-            f"[{MUTED}]workspace:[/] [{HIGHLIGHT}]{self.config.effective_workdir}[/]"
-        )
-
-        # Clean call-to-action
-        self._static_line7 = Text.from_markup(
-            f"[{MUTED}]Start with:[/] [{ACCENT}]/help[/] [{MUTED}]or[/] [{PRIMARY}]/terminal-setup[/]",
-            justify="center",
-        )
-
-        # Minimal divider
-        self._static_line5 = Text.from_markup(
-            f"[{MUTED}]─────────────────────────────────────────────────────────────[/]",
-            justify="center",
-        )
+        commit = result.stdout.strip() if result.returncode == 0 else ""
+        return commit[:7] if commit else None
 
     @property
     def skeleton_color(self) -> str:
-        return self._cached_skeleton_color or "#1e1e1e"
+        return self._cached_skeleton_color or BLACK
 
     @property
     def skeleton_rgb(self) -> tuple[int, int, int]:
-        return self._cached_skeleton_rgb or hex_to_rgb("#1e1e1e")
+        return self._cached_skeleton_rgb or hex_to_rgb(BLACK)
 
     def on_mount(self) -> None:
         if not self.config.disable_welcome_banner_animation:
@@ -143,8 +166,8 @@ class WelcomeBanner(Static):
 
     def _init_after_styles(self) -> None:
         self._cache_skeleton_color()
-        self._cached_text_lines[5] = Text("")
-        self._cached_text_lines[6] = self._static_line7
+        self._cached_text_lines[13] = Text("")
+        self._cached_text_lines[14] = self._static_line9
         self._update_display()
         self._start_animation()
 
@@ -163,8 +186,8 @@ class WelcomeBanner(Static):
         except (AttributeError, TypeError):
             pass
 
-        self._cached_skeleton_color = "#1e1e1e"
-        self._cached_skeleton_rgb = hex_to_rgb("#1e1e1e")
+        self._cached_skeleton_color = BLACK
+        self._cached_skeleton_rgb = hex_to_rgb(BLACK)
 
     def _stop_timer(self) -> None:
         if self.animation_timer:
@@ -258,11 +281,59 @@ class WelcomeBanner(Static):
         return interpolate_color(self._flash_rgb, target_rgb, phase)
 
     def _update_display(self) -> None:
-        for idx in range(5):
-            self._update_colored_line(idx, idx)
+        # Build complete banner with corner brackets
+        banner_lines: list[Text] = []
 
-        lines = [line if line else Text("") for line in self._cached_text_lines]
-        self.update(Align.center(Group(*lines)))
+        # Top border with corner brackets
+        top_border = (
+            f"[{WHITE}]{self._corner_brackets['tl']}" + " " * self._frame_inner_width + f"{self._corner_brackets['tr']}[/]"
+        )
+        banner_lines.append(Text.from_markup(top_border))
+
+        def compose_row(left_markup: str, right_markup: str) -> Text:
+            left_text = Text.from_markup(left_markup)
+            if left_text.cell_len < self._left_width:
+                left_text.pad_right(self._left_width - left_text.cell_len)
+            else:
+                left_text.truncate(self._left_width)
+
+            right_text = Text.from_markup(right_markup)
+            if right_text.cell_len < self._right_width:
+                right_text.pad_right(self._right_width - right_text.cell_len)
+            else:
+                right_text.truncate(self._right_width)
+
+            return left_text + right_text
+
+        banner_lines.append(
+            compose_row(
+                f"  {self._build_line(0, self._get_color(0))}",
+                "",
+            )
+        )
+
+        for idx, revibe_line in enumerate(self._copilot_lines):
+            color = self._get_color(min(idx + 1, len(self._line_states) - 1))
+            left = revibe_line.replace(f"[{TEAL} bold]", f"[{color} bold]")
+            banner_lines.append(compose_row(left, ""))
+
+        banner_lines.append(compose_row("", ""))
+        banner_lines.append(compose_row(f"  {self._static_line8_suffix}", ""))
+
+        # Bottom border with corner brackets
+        bottom_border = (
+            f"[{WHITE}]{self._corner_brackets['bl']}" + " " * self._frame_inner_width + f"{self._corner_brackets['br']}[/]"
+        )
+        banner_lines.append(Text.from_markup(bottom_border))
+
+        commit = self._get_git_commit_short()
+        footer = (
+            f"[{WHITE}]Version {__version__}[/]"
+            + (f"[{LIGHT_GRAY}] - Commit {commit}[/]" if commit else "")
+        )
+        banner_lines.append(Text.from_markup(footer))
+
+        self.update(Align.center(Group(*banner_lines)))
 
     def _get_color(self, line_idx: int) -> str:
         state = self._line_states[line_idx]
@@ -289,12 +360,17 @@ class WelcomeBanner(Static):
         )
 
     def _build_line(self, line_idx: int, color: str) -> str:
-        # Just return the info lines directly for a clean look
+        # Return appropriate line pattern with animation color
         patterns = [
             self._static_line1_suffix,
-            self._static_line2_suffix,
-            self._static_line3_suffix,
-            self._static_line4_suffix,
-            self._static_line5.plain if hasattr(self._static_line5, 'plain') else str(self._static_line5),
+            *self._copilot_lines,
         ]
-        return patterns[line_idx]
+
+        if line_idx < len(patterns):
+            pattern = patterns[line_idx]
+            return (
+                pattern
+                if line_idx == 0
+                else pattern.replace(f"[{TEAL} bold]", f"[{color} bold]")
+            )
+        return ""

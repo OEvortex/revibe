@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.2] - 2025-12-31
 
+### Added
+
+- **Enhanced Welcome Banner**: Redesigned welcome banner with GitHub Copilot-inspired styling
+  - Added corner-only frame layout with clean borders
+  - Large "REVIBE" ASCII wordmark with animated color transitions
+  - Added git commit hash detection and display in footer
+  - Improved layout with proper cell-width-based alignment for consistent rendering
+
 ### Fixed
 
 - Fixed duplicate tick display in Thought reasoning widget by removing redundant icon widget update
@@ -19,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Added multiple OpenRouter provider models to DEFAULT_MODELS, exposing a wide range of external models for easy selection and usage:
+
   - minimax/minimax-m2.1 (205K context) — $0.30/M input, $1.20/M output
   - z-ai/glm-4.7 (203K context) — $0.40/M input, $1.50/M output
   - google/gemini-3-flash-preview (1.05M context) — $0.50/M input, $3/M output, $1/M audio tokens
@@ -111,11 +120,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `redact_xml_tool_calls(text)` utility in `revibe/core/utils.py` to remove raw `<tool_call>...<tool_call>` blocks from assistant output stream
   - Refactored `StreamingMessageBase` in `revibe/cli/textual_ui/widgets/messages.py` to track `_displayed_content` for smart UI updates
   - Enhanced premium tool summaries in chat history:
-    * Find now shows as `Find (pattern)` instead of `grep: 'pattern'`
-    * Bash now shows as `Bash (command)` instead of raw command string
-    * Read File now shows as `Read (filename)` with cleaner summary
-    * Write File now shows as `Write (filename)`
-    * Search & Replace now shows as `Patch (filename)`
+    - Find now shows as `Find (pattern)` instead of `grep: 'pattern'`
+    - Bash now shows as `Bash (command)` instead of raw command string
+    - Read File now shows as `Read (filename)` with cleaner summary
+    - Write File now shows as `Write (filename)`
+    - Search & Replace now shows as `Patch (filename)`
   - Applied redaction logic to `ReasoningMessage` in `revibe/cli/textual_ui/widgets/messages.py` to hide raw XML in reasoning blocks
 - Model alias validation now allows same aliases for different providers while maintaining uniqueness within each provider.
 
