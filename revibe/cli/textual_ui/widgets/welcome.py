@@ -89,12 +89,11 @@ class WelcomeBanner(Static):
 
     def _initialize_static_line_suffixes(self) -> None:
         # Define some premium colors
-        ACCENT = "#FFAF00"
         MODEL_COLOR = "#00D1FF"
-        STATS_COLOR = "#00FF94"
-        PATH_COLOR = "#B388FF"
 
-        self._static_line1_suffix = f"[{ACCENT}]✦[/] [b]ReVibe[/] [dim]v{__version__}[/]"
+        self._static_line1_suffix = (
+            f"[accent]✦[/] [b]ReVibe[/] [version-badge]v{__version__}[/]"
+        )
         self._static_line2_suffix = (
             f"[dim]model [/] [{MODEL_COLOR}]{self.config.active_model}[/]"
         )
@@ -102,15 +101,21 @@ class WelcomeBanner(Static):
         model_count = len(self.config.models)
         provider_count = len({m.provider for m in self.config.models})
         self._static_line3_suffix = (
-            f"[dim]stats [/] [{STATS_COLOR}]{model_count}[/] models · [{STATS_COLOR}]{provider_count}[/] providers · [{STATS_COLOR}]{mcp_count}[/] MCP"
+            f"[dim]stats [/] [stats-badge]{model_count}[/] models [divider]·[/] [stats-badge]{provider_count}[/] providers [divider]·[/] [stats-badge]{mcp_count}[/] MCP"
         )
         self._static_line4_suffix = (
-            f"[dim]path  [/] [{PATH_COLOR}]{self.config.effective_workdir}[/]"
+            f"[dim]path  [/] [path-badge]{self.config.effective_workdir}[/]"
         )
 
-        # Footer with "pill" style commands
+        # Footer with enhanced pill style commands
         self._static_line7 = Text.from_markup(
-            "[dim]Press[/] [b reverse] /help [/] [dim]or[/] [b reverse] /terminal-setup [/] [dim]to begin[/]",
+            "[dim]Press[/] [command-pill]/help[/] [dim]or[/] [command-pill]/terminal-setup[/] [dim]to begin[/]",
+            justify="center",
+        )
+
+        # Decorative divider
+        self._static_line5 = Text.from_markup(
+            "[accent]┌─────────────────────────────────────────────────────────────────┐[/]",
             justify="center",
         )
 
@@ -280,6 +285,6 @@ class WelcomeBanner(Static):
             self._static_line2_suffix,
             self._static_line3_suffix,
             self._static_line4_suffix,
-            "[dim]───────────────────────────────────────[/]",
+            self._static_line5.plain if hasattr(self._static_line5, 'plain') else str(self._static_line5),
         ]
         return patterns[line_idx]

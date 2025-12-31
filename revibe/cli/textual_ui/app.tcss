@@ -789,16 +789,100 @@ DiffViewWidget {
 WelcomeBanner {
     width: 100%;
     height: auto;
-    border: round $surface;
+    border: round $accent;
     border-title-align: center;
     text-align: center;
     content-align: center middle;
-    padding: 2 0;
+    padding: 3 1;
     margin: 1 0 0 0;
     color: $foreground;
+    background: $surface;
+    box-shadow: 0 2 8 $surface-darken-2;
+
+    &::before {
+        content: "";
+        width: 100%;
+        height: 1;
+        background: linear-gradient(to right, transparent, $accent, transparent);
+        margin-bottom: 1;
+    }
+
+    &::after {
+        content: "";
+        width: 100%;
+        height: 1;
+        background: linear-gradient(to right, transparent, $accent, transparent);
+        margin-top: 1;
+    }
 
     .muted {
         color: $text-muted;
+    }
+
+    .accent {
+        color: $accent;
+        text-style: bold;
+    }
+
+    .primary {
+        color: $primary;
+        text-style: bold;
+    }
+
+    .success {
+        color: $success;
+        text-style: bold;
+    }
+
+    .version-badge {
+        background: $accent;
+        color: $background;
+        padding: 0 1;
+        border-radius: 2;
+        text-style: bold;
+        margin-left: 1;
+    }
+
+    .model-badge {
+        background: $primary;
+        color: $background;
+        padding: 0 1;
+        border-radius: 2;
+        text-style: bold;
+        margin-left: 1;
+    }
+
+    .stats-badge {
+        background: $success;
+        color: $background;
+        padding: 0 1;
+        border-radius: 2;
+        text-style: bold;
+        margin-left: 1;
+    }
+
+    .path-badge {
+        background: $surface-darken-1;
+        color: $foreground;
+        padding: 0 1;
+        border-radius: 2;
+        text-style: bold;
+        margin-left: 1;
+    }
+
+    .command-pill {
+        background: $primary;
+        color: $background;
+        padding: 0 1;
+        border-radius: 2;
+        text-style: bold;
+        margin: 0 1;
+    }
+
+    .divider {
+        color: $accent;
+        text-style: bold;
+        margin: 0 1;
     }
 }
 
