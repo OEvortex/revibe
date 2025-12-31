@@ -161,3 +161,6 @@ ignore_decorators = ["@*"]
 [tool.pytest.ini_options]
 addopts = "-vvvv -q -n auto --durations=5 --import-mode=importlib"
 timeout = 10
+
+[tool.ty]
+# No additional configuration needed for now

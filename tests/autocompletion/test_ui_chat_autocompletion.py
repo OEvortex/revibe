@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
+import pytest  # type: ignore
 from textual.content import Content
 from textual.style import Style
 from textual.widgets import Markdown

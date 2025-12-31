@@ -192,6 +192,29 @@ class APIToolFormatHandler:
         tool_calls = []
 
         api_tool_calls = message.tool_calls or []
+
+        def _decode_nested_json(value: Any) -> Any:
+            """Recursively decode JSON strings inside structures.
+
+            If a string looks like a JSON object or array (starts with '{' or '['),
+            attempt to json.loads it. If successful, continue decoding recursively
+            so nested JSON strings are converted into Python structures.
+            """
+            if isinstance(value, str):
+                s = value.strip()
+                if s and s[0] in "[{":
+                    try:
+                        parsed = json.loads(s)
+                    except json.JSONDecodeError:
+                        return value
+                    return _decode_nested_json(parsed)
+                return value
+            if isinstance(value, dict):
+                return {k: _decode_nested_json(v) for k, v in value.items()}
+            if isinstance(value, list):
+                return [_decode_nested_json(v) for v in value]
+            return value
+
         for tc in api_tool_calls:
             if not (function_call := tc.function):
                 continue
@@ -199,6 +222,8 @@ class APIToolFormatHandler:
                 args = json.loads(function_call.arguments or "{}")
             except json.JSONDecodeError:
                 args = {}
+
+            args = _decode_nested_json(args)
 
             tool_calls.append(
                 ParsedToolCall(
@@ -269,9 +294,7 @@ class APIToolFormatHandler:
         self, failed: FailedToolCall, error_content: str
     ) -> LLMMessage:
         return LLMMessage(
-            role=Role.tool,
-            content=error_content,
-            tool_call_id=failed.call_id,
+            role=Role.tool, content=error_content, tool_call_id=failed.call_id
         )
 
     def is_tool_response(self, message: LLMMessage) -> bool:
@@ -297,21 +320,15 @@ class XMLToolFormatHandler:
 
     # Regex patterns for parsing XML tool calls
     TOOL_CALL_PATTERN = re.compile(
-        r'<tool_call>(.*?)</tool_call>',
-        re.DOTALL | re.IGNORECASE
+        r"<tool_call>(.*?)</tool_call>", re.DOTALL | re.IGNORECASE
     )
     TOOL_NAME_PATTERN = re.compile(
-        r'<tool_name>(.*?)</tool_name>',
-        re.DOTALL | re.IGNORECASE
+        r"<tool_name>(.*?)</tool_name>", re.DOTALL | re.IGNORECASE
     )
     PARAMETERS_PATTERN = re.compile(
-        r'<parameters>(.*?)</parameters>',
-        re.DOTALL | re.IGNORECASE
+        r"<parameters>(.*?)</parameters>", re.DOTALL | re.IGNORECASE
     )
-    PARAM_PATTERN = re.compile(
-        r'<(\w+)>(.*?)</\1>',
-        re.DOTALL
-    )
+    PARAM_PATTERN = re.compile(r"<(\w+)>(.*?)</\1>", re.DOTALL)
 
     @property
     def name(self) -> str:
@@ -344,7 +361,7 @@ class XMLToolFormatHandler:
             parameters = tool_class.get_parameters()
 
             lines.append(f'  <tool name="{html.escape(tool_name)}">')
-            lines.append(f'    <description>{html.escape(description)}</description>')
+            lines.append(f"    <description>{html.escape(description)}</description>")
 
             # Add parameters section
             props = parameters.get("properties", {})
@@ -363,17 +380,21 @@ class XMLToolFormatHandler:
                         f'type="{html.escape(param_type)}" required="{req_str}">'
                     )
                     if param_desc:
-                        lines.append(f'        <description>{html.escape(param_desc)}</description>')
+                        lines.append(
+                            f"        <description>{html.escape(param_desc)}</description>"
+                        )
 
                     # Add default value if present
                     if "default" in param_info:
                         default_val = param_info["default"]
-                        lines.append(f'        <default>{html.escape(str(default_val))}</default>')
+                        lines.append(
+                            f"        <default>{html.escape(str(default_val))}</default>"
+                        )
 
                     # Add enum values if present
                     if "enum" in param_info:
                         enum_vals = ", ".join(str(v) for v in param_info["enum"])
-                        lines.append(f'        <enum>{html.escape(enum_vals)}</enum>')
+                        lines.append(f"        <enum>{html.escape(enum_vals)}</enum>")
 
                     lines.append("      </parameter>")
                 lines.append("    </parameters>")
@@ -426,11 +447,7 @@ class XMLToolFormatHandler:
             call_id = f"xml_{uuid4().hex[:12]}"
 
             tool_calls.append(
-                ParsedToolCall(
-                    tool_name=tool_name,
-                    raw_args=raw_args,
-                    call_id=call_id,
-                )
+                ParsedToolCall(tool_name=tool_name, raw_args=raw_args, call_id=call_id)
             )
 
         return ParsedMessage(tool_calls=tool_calls)
@@ -491,14 +508,11 @@ class XMLToolFormatHandler:
         xml_result = (
             f'<tool_result name="{html.escape(tool_call.tool_name)}" '
             f'call_id="{html.escape(tool_call.call_id)}">\n'
-            f'<status>success</status>\n'
-            f'<output>\n{result_text}\n</output>\n'
-            f'</tool_result>'
+            f"<status>success</status>\n"
+            f"<output>\n{result_text}\n</output>\n"
+            f"</tool_result>"
         )
-        return LLMMessage(
-            role=Role.user,
-            content=xml_result,
-        )
+        return LLMMessage(role=Role.user, content=xml_result)
 
     def create_failed_tool_response_message(
         self, failed: FailedToolCall, error_content: str
@@ -507,14 +521,11 @@ class XMLToolFormatHandler:
         xml_result = (
             f'<tool_result name="{html.escape(failed.tool_name)}" '
             f'call_id="{html.escape(failed.call_id)}">\n'
-            f'<status>error</status>\n'
-            f'<error>\n{error_content}\n</error>\n'
-            f'</tool_result>'
+            f"<status>error</status>\n"
+            f"<error>\n{error_content}\n</error>\n"
+            f"</tool_result>"
         )
-        return LLMMessage(
-            role=Role.user,
-            content=xml_result,
-        )
+        return LLMMessage(role=Role.user, content=xml_result)
 
     def is_tool_response(self, message: LLMMessage) -> bool:
         """Check if message is an XML tool result."""

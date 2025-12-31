@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
+import pytest  # type: ignore
 from textual import events
 
 from revibe.cli.autocompletion.base import CompletionResult, CompletionView

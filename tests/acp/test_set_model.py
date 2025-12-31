@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from acp import AgentSideConnection, NewSessionRequest, SetSessionModelRequest
-import pytest
+import pytest  # type: ignore
 
 from revibe.acp.acp_agent import VibeAcpAgent
 from revibe.core.agent import Agent

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from acp import WriteTextFileRequest
-import pytest
+import pytest  # type: ignore
 
 from revibe.acp.tools.builtins.write_file import AcpWriteFileState, WriteFile
 from revibe.core.tools.base import ToolError

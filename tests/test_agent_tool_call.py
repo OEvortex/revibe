@@ -355,6 +355,37 @@ async def test_tool_call_with_duplicate_todo_ids() -> None:
 
 
 @pytest.mark.asyncio
+async def test_tool_call_with_todos_passed_as_json_string() -> None:
+    """Ensure that todos passed as a JSON-encoded string are decoded and validated."""
+    todos = [TodoItem(id="t1", content="Task 1"), TodoItem(id="t2", content="Task 2")]
+
+    # Intentionally encode the todos list as a JSON string inside the arguments
+    tool_call = make_todo_tool_call(
+        "call_6b",
+        arguments=json.dumps({
+            "action": "write",
+            "todos": json.dumps([t.model_dump() for t in todos]),
+        }),
+    )
+    agent = make_agent(
+        auto_approve=True,
+        backend=FakeBackend([
+            [mock_llm_chunk(content="Let me write todos.", tool_calls=[tool_call])],
+            [mock_llm_chunk(content="I updated todos.")],
+        ]),
+    )
+
+    events = await act_and_collect_events(agent, "Add todos")
+
+    # Should succeed and update todos
+    assert isinstance(events[2], ToolResultEvent)
+    assert events[2].error is None
+    assert events[2].result is not None
+    assert "updated" in events[2].result.model_dump().get("message", "").lower()
+    assert agent.stats.tool_calls_succeeded == 1
+
+
+@pytest.mark.asyncio
 async def test_tool_call_with_exceeding_max_todos() -> None:
     many_todos = [TodoItem(id=f"todo_{i}", content=f"Task {i}") for i in range(150)]
     tool_call = make_todo_tool_call(
