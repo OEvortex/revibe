@@ -287,9 +287,10 @@ class WelcomeBanner(Static):
 
         # Top border with corner brackets
         top_border = (
-            f"[{WHITE}]{self._corner_brackets['tl']}" + " " * self._frame_inner_width + f"{self._corner_brackets['tr']}[/]"
+            f"[{WHITE}]{self._corner_brackets['tl']}" + "─" * self._frame_inner_width + f"{self._corner_brackets['tr']}[/]"
         )
         banner_lines.append(Text.from_markup(top_border))
+        banner_lines.append(Text.from_markup(f"[{WHITE}]│[/]"))
 
         def compose_row(left_markup: str, right_markup: str) -> Text:
             left_text = Text.from_markup(left_markup)
@@ -304,34 +305,60 @@ class WelcomeBanner(Static):
             else:
                 right_text.truncate(self._right_width)
 
-            return left_text + right_text
+            return Text.from_markup(f"[{WHITE}]│[/]") + left_text + right_text
 
-        banner_lines.append(
-            compose_row(
-                f"  {self._build_line(0, self._get_color(0))}",
-                "",
-            )
-        )
+        # Welcome line with better spacing
+        banner_lines.append(compose_row(f"  {self._build_line(0, self._get_color(0))}", ""))
+        banner_lines.append(Text.from_markup(f"[{WHITE}]│[/]"))
+        banner_lines.append(Text.from_markup(f"[{WHITE}]│[/]"))
 
+        # REVIBE wordmark with breathing room
         for idx, revibe_line in enumerate(self._copilot_lines):
             color = self._get_color(min(idx + 1, len(self._line_states) - 1))
             left = revibe_line.replace(f"[{ORANGE} bold]", f"[{color} bold]")
             banner_lines.append(compose_row(left, ""))
 
-        banner_lines.append(compose_row("", ""))
+        banner_lines.append(Text.from_markup(f"[{WHITE}]│[/]"))
+        banner_lines.append(Text.from_markup(f"[{WHITE}]│[/]"))
+
+        # Separator line
+        separator = f"[{LIGHT_GRAY}]├" + "─" * (self._frame_inner_width - 1) + "┤[/]"
+        banner_lines.append(Text.from_markup(separator))
+
+        # Info section with better organization
+        banner_lines.append(Text.from_markup(f"[{WHITE}]│[/]"))
         banner_lines.append(compose_row(f"  {self._static_line8_suffix}", ""))
+        banner_lines.append(Text.from_markup(f"[{WHITE}]│[/]"))
+
+        # Model and workspace info with improved spacing
+        model_count = len(self.config.models)
+        mcp_count = len(self.config.mcp_servers)
+        workspace_path = str(self.config.effective_workdir)
+
+        model_info = f"[{WHITE}]{self.config.active_model}[/]"
+        stats_info = f"[{LIGHT_GRAY}]{model_count} models • {mcp_count} MCP servers[/]"
+        workspace_info = f"[{LIGHT_GRAY}]{workspace_path}[/]"
+
+        banner_lines.append(compose_row(f"  {model_info}", ""))
+        banner_lines.append(Text.from_markup(f"[{WHITE}]│[/]"))
+        banner_lines.append(compose_row(f"  {stats_info}", ""))
+        banner_lines.append(Text.from_markup(f"[{WHITE}]│[/]"))
+        banner_lines.append(compose_row(f"  {workspace_info}", ""))
+        banner_lines.append(Text.from_markup(f"[{WHITE}]│[/]"))
 
         # Bottom border with corner brackets
         bottom_border = (
-            f"[{WHITE}]{self._corner_brackets['bl']}" + " " * self._frame_inner_width + f"{self._corner_brackets['br']}[/]"
+            f"[{WHITE}]{self._corner_brackets['bl']}" + "─" * self._frame_inner_width + f"{self._corner_brackets['br']}[/]"
         )
         banner_lines.append(Text.from_markup(bottom_border))
 
+        # Footer with better spacing
         commit = self._get_git_commit_short()
         footer = (
-            f"[{WHITE}]Version {__version__}[/]"
-            + (f"[{LIGHT_GRAY}] - Commit {commit}[/]" if commit else "")
+            f"[{LIGHT_GRAY}]Version {__version__}[/]"
+            + (f"[{LIGHT_GRAY}] • {commit}[/]" if commit else "")
         )
+        banner_lines.append(Text(""))
         banner_lines.append(Text.from_markup(footer))
 
         self.update(Align.center(Group(*banner_lines)))
