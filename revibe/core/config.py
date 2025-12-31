@@ -136,6 +136,7 @@ class Backend(StrEnum):
     LLAMACPP = auto()
     QWEN = auto()
     OPENROUTER = auto()
+    GEMINICLI = auto()
 
 
 class ToolFormat(StrEnum):
@@ -196,6 +197,10 @@ class OpenRouterProviderConfig(_ProviderBase):
     backend: Literal[Backend.OPENROUTER] = Backend.OPENROUTER
 
 
+class GeminicliProviderConfig(_ProviderBase):
+    backend: Literal[Backend.GEMINICLI] = Backend.GEMINICLI
+
+
 ProviderConfigUnion = Annotated[
     MistralProviderConfig
     | OpenAIProviderConfig
@@ -206,7 +211,8 @@ ProviderConfigUnion = Annotated[
     | CerebrasProviderConfig
     | GenericProviderConfig
     | QwenProviderConfig
-    | OpenRouterProviderConfig,
+    | OpenRouterProviderConfig
+    | GeminicliProviderConfig,
     Field(discriminator="backend"),
 ]
 
@@ -339,6 +345,11 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
         name="openrouter",
         api_base="https://openrouter.ai/api/v1",
         api_key_env_var="OPENROUTER_API_KEY",
+    ),
+    GeminicliProviderConfig(
+        name="geminicli",
+        api_base="",  # Uses Gemini CLI endpoints
+        api_key_env_var="",
     ),
 ]
 

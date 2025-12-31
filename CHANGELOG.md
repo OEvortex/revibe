@@ -60,7 +60,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- None in this release.
+- Fixed geminicli provider 403 Forbidden error on API requests by aligning project ID handling with official gemini-cli behavior:
+  - Updated `_ensure_project_id()` in geminicli backend to only read `GOOGLE_CLOUD_PROJECT` from environment variables, not `.env` files
+  - Modified `get_project_id()` in OAuth module to check only `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_PROJECT_ID` environment variables
+  - Fixed API payload to only include `project` field when project_id is truthy (not empty string)
+  - Added proper free tier support that doesn't require a project ID
+  - Removed invalid placeholder reading from `~/.gemini/.env` file
+- Fixed geminicli provider validation error for tool call arguments:
+  - The API sends tool call args as dict, but `FunctionCall.arguments` field is typed as `str`
+  - Pydantic was coercing dicts to invalid string representation (`"{'pattern': ...}"`) instead of JSON
+  - Fixed by serializing args dict to JSON string in `_parse_tool_calls()` before Pydantic sees it
+  - Added defensive check in `_prepare_messages()` for any non-string arguments
 
 ## [0.2.0] - 2025-12-30
 

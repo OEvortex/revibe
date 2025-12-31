@@ -10,6 +10,7 @@ from revibe.core.llm.backend.ollama import OllamaBackend
 from revibe.core.llm.backend.openai import OpenAIBackend
 from revibe.core.llm.backend.openrouter import OpenRouterBackend
 from revibe.core.llm.backend.qwen import QwenBackend
+from revibe.core.llm.backend.geminicli import GeminicliBackend
 
 BACKEND_FACTORY = {
     Backend.MISTRAL: MistralBackend,
@@ -22,4 +23,5 @@ BACKEND_FACTORY = {
     Backend.CEREBRAS: CerebrasBackend,
     Backend.QWEN: QwenBackend,
     Backend.OPENROUTER: OpenRouterBackend,
+    Backend.GEMINICLI: GeminicliBackend,
 }
