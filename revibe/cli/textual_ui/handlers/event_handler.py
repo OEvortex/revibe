@@ -31,12 +31,14 @@ class EventHandler:
         todo_area_callback: Callable,
         get_tools_collapsed: Callable[[], bool],
         get_todos_collapsed: Callable[[], bool],
+        get_reasoning_collapsed: Callable[[], bool],
     ) -> None:
         self.mount_callback = mount_callback
         self.scroll_callback = scroll_callback
         self.todo_area_callback = todo_area_callback
         self.get_tools_collapsed = get_tools_collapsed
         self.get_todos_collapsed = get_todos_collapsed
+        self.get_reasoning_collapsed = get_reasoning_collapsed
         self.current_tool_call: ToolCallMessage | None = None
         self.current_compact: CompactMessage | None = None
 
@@ -124,9 +126,9 @@ class EventHandler:
         await self.mount_callback(AssistantMessage(event.content))
 
     async def _handle_reasoning_message(self, event: ReasoningEvent) -> None:
-        tools_collapsed = self.get_tools_collapsed()
+        reasoning_collapsed = self.get_reasoning_collapsed()
         await self.mount_callback(
-            ReasoningMessage(event.content, collapsed=tools_collapsed)
+            ReasoningMessage(event.content, collapsed=reasoning_collapsed)
         )
 
     async def _handle_compact_start(self) -> None:

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2025-12-31
+
+### Fixed
+
+- Fixed duplicate tick display in Thought reasoning widget by removing redundant icon widget update
+- Cleaned up `SpinnerMixin.stop_spinning()` to prevent duplicate completion indicators
+- Simplified Thought widget to show only spinner animation without icon for cleaner UI
+- Fixed reasoning/thought sections being collapsed by default in TUI - they now expand automatically to show content immediately
+
 ## [0.2.1] - 2025-12-31
 
 ### Added
