@@ -1,119 +1,22 @@
+/* Responsive welcome banner - takes max 40% of terminal height */
 WelcomeBanner {
     width: 100%;
     height: auto;
-    border: none;
-    border-title-align: center;
+    max-height: 40vh;
+    min-height: 8;
+
+    /* Alignment */
     text-align: center;
     content-align: center middle;
-    padding: 1 0;
-    margin: 0;
+
+    /* Spacing */
+    padding: 1 2;
+    margin: 0 0 1 0;
+
+    /* Colors */
     color: #FFFFFF;
-    background: #000000;
+    background: transparent;
 
-    .white {
-        color: #FFFFFF;
-    }
-
-    .black {
-        color: #000000;
-    }
-
-    .teal {
-        color: #00D9FF;
-        text-style: bold;
-    }
-
-    .purple {
-        color: #8B5CF6;
-        text-style: bold;
-    }
-
-    .green {
-        color: #10B981;
-        text-style: bold;
-    }
-
-    .light-gray {
-        color: #E5E7EB;
-    }
-
-    .dark-gray {
-        color: #1A1A1A;
-    }
-
-    /* Pixelated text effects */
-    .pixelated {
-        text-style: bold;
-    }
-
-    .teal-pixelated {
-        color: #00D9FF;
-        text-style: bold;
-        background: #000000;
-    }
-
-    /* Corner bracket styling */
-    .corner-bracket {
-        color: #FFFFFF;
-        text-style: bold;
-    }
-
-    /* Version badge styling */
-    .version-badge {
-        color: #FFFFFF;
-        text-style: bold;
-    }
-
-    /* Model info styling */
-    .model-info {
-        color: #00D9FF;
-    }
-
-    /* Stats styling */
-    .stats-info {
-        color: #FFFFFF;
-    }
-
-    /* Workspace styling */
-    .workspace-info {
-        color: #00D9FF;
-    }
-
-    /* Command styling */
-    .command {
-        color: #00D9FF;
-        text-style: bold;
-    }
-
-    /* Character illustration styling */
-    .character-head {
-        color: #8B5CF6;
-        text-style: bold;
-    }
-
-    .character-goggles {
-        color: #00D9FF;
-        text-style: bold;
-    }
-
-    /* Welcome text styling */
-    .welcome-text {
-        color: #FFFFFF;
-        text-style: none;
-    }
-
-    /* Main title styling */
-    .main-title {
-        color: #00D9FF;
-        text-style: bold;
-        background: #000000;
-    }
-
-    /* Frame styling */
-    .frame-top,
-    .frame-bottom,
-    .frame-side {
-        color: #FFFFFF;
-        text-style: bold;
-    }
+    /* No border - cleaner look */
+    border: none;
 }
