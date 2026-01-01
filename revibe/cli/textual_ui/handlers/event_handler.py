@@ -126,9 +126,10 @@ class EventHandler:
         await self.mount_callback(AssistantMessage(event.content))
 
     async def _handle_reasoning_message(self, event: ReasoningEvent) -> None:
-        reasoning_collapsed = self.get_reasoning_collapsed()
+        # Always start expanded so user can see thinking in progress
+        # Widget will auto-collapse when thinking is complete
         await self.mount_callback(
-            ReasoningMessage(event.content, collapsed=reasoning_collapsed)
+            ReasoningMessage(event.content, collapsed=False)
         )
 
     async def _handle_compact_start(self) -> None:

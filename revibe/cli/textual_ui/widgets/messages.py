@@ -238,7 +238,7 @@ class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
                 await self._update_display()
 
     def stop_spinning(self, success: bool = True) -> None:
-        """Override to update status and styling when complete."""
+        """Override to update status and styling when complete, then auto-collapse."""
         super().stop_spinning(success)
         self._is_complete = True
 
@@ -259,6 +259,13 @@ class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
                 wrapper.add_class("completed")
         except Exception:
             pass
+
+        # Auto-collapse after a short delay to let user see the completion
+        self.call_later(self._auto_collapse)
+
+    async def _auto_collapse(self) -> None:
+        """Auto-collapse the thought when thinking is complete."""
+        await self.set_collapsed(True)
 
     def _process_content_for_display(self, content: str) -> str:
         return redact_xml_tool_calls(content)
