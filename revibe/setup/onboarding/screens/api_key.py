@@ -106,7 +106,26 @@ class ApiKeyScreen(OnboardingScreen):
         """Reload config when screen becomes visible to pick up saved provider selection."""
         config = self._load_config()
         active_model = config.get_active_model()
-        self.provider = config.get_provider_for_model(active_model)
+
+        # Special handling for OpenCode dynamic models
+        if active_model.alias.startswith("opencode-"):
+            # For dynamic OpenCode models, get the provider directly
+            for provider in config.providers:
+                if provider.name == "opencode":
+                    self.provider = provider
+                    break
+        else:
+            # Normal provider lookup for other providers
+            try:
+                self.provider = config.get_provider_for_model(active_model)
+            except (ValueError, KeyError):
+                # If model lookup fails, try to find provider by name
+                if "-" in active_model.alias:
+                    provider_name = active_model.alias.split("-")[0]
+                    for provider in config.providers:
+                        if provider.name == provider_name:
+                            self.provider = provider
+                            break
 
     def _compose_provider_link(self, provider_name: str) -> ComposeResult:
         if not self.provider or self.provider.name not in PROVIDER_HELP:
@@ -150,7 +169,32 @@ class ApiKeyScreen(OnboardingScreen):
         if self.provider is None:
             config = self._load_config()
             active_model = config.get_active_model()
-            self.provider = config.get_provider_for_model(active_model)
+
+            # Special handling for OpenCode dynamic models
+            if active_model.alias.startswith("opencode-"):
+                # For dynamic OpenCode models, get the provider directly
+                for provider in config.providers:
+                    if provider.name == "opencode":
+                        self.provider = provider
+                        break
+                else:
+                    # Fallback to DEFAULT_PROVIDERS if not in config
+                    for provider in DEFAULT_PROVIDERS:
+                        if provider.name == "opencode":
+                            self.provider = provider
+                            break
+            else:
+                # Normal provider lookup for other providers
+                try:
+                    self.provider = config.get_provider_for_model(active_model)
+                except (ValueError, KeyError):
+                    # If model lookup fails, try to find provider by name
+                    if "-" in active_model.alias:
+                        provider_name = active_model.alias.split("-")[0]
+                        for provider in config.providers:
+                            if provider.name == provider_name:
+                                self.provider = provider
+                                break
 
         # Skip API key input for providers that don't require it
         if not getattr(self.provider, "api_key_env_var", ""):

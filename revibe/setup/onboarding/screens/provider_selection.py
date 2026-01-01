@@ -110,7 +110,35 @@ class ProviderSelectionScreen(OnboardingScreen):
 
     def action_select(self) -> None:
         selected = self._providers[self._provider_index]
-        # Find a model for this provider
+
+        # Special handling for OpenCode - fetch models dynamically
+        if selected.name == "opencode":
+            try:
+                from revibe.core.llm.backend.opencode import OpenCodeBackend
+                backend = OpenCodeBackend(selected)
+
+                # Try to fetch available models
+                import asyncio
+                try:
+                    models = asyncio.run(backend.list_models())
+                    if models:
+                        # Create a temporary model config for the first available model
+                        temp_model = f"opencode-{models[0]}"
+                        try:
+                            VibeConfig.save_updates({"active_model": temp_model})
+                        except OSError as e:
+                            from rich import print as rprint
+                            rprint(f"[yellow]Warning: Could not save provider selection: {e}[/]")
+                        self.action_next()
+                        return
+                except Exception:
+                    # If model fetching fails, still proceed
+                    pass
+            except Exception:
+                # If backend creation fails, still proceed
+                pass
+
+        # Find a model for this provider (for non-OpenCode providers)
         try:
             # Try to load existing config first
             config = VibeConfig.load()
