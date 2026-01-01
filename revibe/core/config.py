@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import sys
 import tomllib
 from typing import Annotated, Any, Literal
 
@@ -528,29 +529,56 @@ class VibeConfig(BaseSettings):
     @model_validator(mode="after")
     def _check_api_key(self) -> VibeConfig:
         try:
-            active_model = self.get_active_model()
-            provider = self.get_provider_for_model(active_model)
-            api_key_env = provider.api_key_env_var
-            if api_key_env and not os.getenv(api_key_env):
-                raise MissingAPIKeyError(api_key_env, provider.name)
-        except ValueError:
-            pass
+            # If we have active_provider, use that instead of trying to get provider from model
+            if self.active_provider:
+                # Find the provider by name
+                provider = None
+                for p in self.providers:
+                    if p.name == self.active_provider:
+                        provider = p
+                        break
+
+                if provider and provider.api_key_env_var and not os.getenv(provider.api_key_env_var):
+                    raise MissingAPIKeyError(provider.api_key_env_var, provider.name)
+            else:
+                # Fallback to model-based lookup for compatibility
+                active_model = self.get_active_model()
+                provider = self.get_provider_for_model(active_model)
+                api_key_env = provider.api_key_env_var
+                if api_key_env and not os.getenv(api_key_env):
+                    raise MissingAPIKeyError(api_key_env, provider.name)
+        except (ValueError, MissingAPIKeyError):
+            # Re-raise MissingAPIKeyError, pass ValueError for missing models
+            if isinstance(sys.exc_info()[1], MissingAPIKeyError):
+                raise
         return self
 
     @model_validator(mode="after")
     def _check_api_backend_compatibility(self) -> VibeConfig:
         try:
-            active_model = self.get_active_model()
-            provider = self.get_provider_for_model(active_model)
-            MISTRAL_API_BASES = [
-                "https://codestral.mistral.ai",
-                "https://api.mistral.ai",
-            ]
-            is_mistral_api = any(
-                provider.api_base.startswith(api_base) for api_base in MISTRAL_API_BASES
-            )
-            if is_mistral_api and provider.backend != Backend.MISTRAL:
-                raise WrongBackendError(provider.backend, is_mistral_api)
+            # If we have active_provider, use that instead of trying to get provider from model
+            if self.active_provider:
+                # Find the provider by name
+                provider = None
+                for p in self.providers:
+                    if p.name == self.active_provider:
+                        provider = p
+                        break
+            else:
+                # Fallback to model-based lookup for compatibility
+                active_model = self.get_active_model()
+                provider = self.get_provider_for_model(active_model)
+
+            if provider:
+                MISTRAL_API_BASES = [
+                    "https://codestral.mistral.ai",
+                    "https://api.mistral.ai",
+                ]
+                is_mistral_api = any(
+                    provider.api_base.startswith(api_base) for api_base in MISTRAL_API_BASES
+                )
+                if is_mistral_api and provider.backend != Backend.MISTRAL:
+                    raise WrongBackendError(provider.backend, is_mistral_api)
 
         except ValueError:
             pass
