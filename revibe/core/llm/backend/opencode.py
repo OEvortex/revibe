@@ -433,37 +433,6 @@ class OpenCodeBackend:
 
         return result.usage.prompt_tokens
 
-    async def list_models(self) -> list[str]:
-        """Return hardcoded list of available OpenCode models."""
-        return [
-            "claude-opus-4-5",
-            "claude-opus-4-1",
-            "claude-sonnet-4",
-            "claude-sonnet-4-5",
-            "claude-3-5-haiku",
-            "claude-haiku-4-5",
-            "gemini-3-pro",
-            "gemini-3-flash",
-            "gpt-5.2",
-            "gpt-5.1",
-            "gpt-5",
-            "gpt-5.1-codex-max",
-            "gpt-5.1-codex",
-            "gpt-5-codex",
-            "gpt-5.1-codex-mini",
-            "gpt-5-nano",
-            "qwen3-coder",
-            "glm-4.6",
-            "kimi-k2",
-            "kimi-k2-thinking",
-            "minimax-m2.1-free",
-            "glm-4.7-free",
-            "grok-code",
-            "alpha-glm-4.7",
-            "alpha-gd4",
-            "big-pickle",
-        ]
-
     async def close(self) -> None:
         if self._owns_client and self._client:
             await self._client.aclose()

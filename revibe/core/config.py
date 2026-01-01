@@ -205,6 +205,7 @@ class GeminicliProviderConfig(_ProviderBase):
 
 class OpenCodeProviderConfig(_ProviderBase):
     backend: Literal[Backend.OPENCODE] = Backend.OPENCODE
+    api_style: str = "opencode"
 
 
 ProviderConfigUnion = Annotated[

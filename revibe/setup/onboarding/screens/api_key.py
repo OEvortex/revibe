@@ -136,10 +136,10 @@ class ApiKeyScreen(OnboardingScreen):
                             break
 
     def _compose_provider_link(self, provider_name: str) -> ComposeResult:
-        if not self.provider or self.provider.name not in PROVIDER_HELP:
+        if not self.provider or getattr(self.provider, "name", "") not in PROVIDER_HELP:
             return
 
-        help_url, help_name = PROVIDER_HELP[self.provider.name]
+        help_url, help_name = PROVIDER_HELP[getattr(self.provider, "name", "")]
         yield Static(f"Grab your {provider_name} API key from the {help_name}:")
         yield Center(
             Horizontal(
@@ -161,10 +161,10 @@ class ApiKeyScreen(OnboardingScreen):
         if not self.provider:
             return
         yield Static(
-            f"{self.provider.name.capitalize()} does not require an API key.",
+            f"{getattr(self.provider, 'name', '').capitalize()} does not require an API key.",
             id="no-api-key-message",
         )
-        if self.provider.name == "qwencode":
+        if getattr(self.provider, "name", "") == "qwencode":
             yield Static(
                 "Please install qwen-code if not installed: `npm install -g @qwen-code/qwen-code@latest`\n"
                 "then use `/auth` in qwen to authenticate, then you can close qwen and use qwencode provider in ReVibe",
@@ -217,7 +217,7 @@ class ApiKeyScreen(OnboardingScreen):
                 yield Static("", classes="spacer")
             return
 
-        env_key = self.provider.api_key_env_var
+        env_key = getattr(self.provider, "api_key_env_var", "")
         existing_key = os.getenv(env_key)
         if existing_key:
             # Show detected key UI
@@ -234,7 +234,7 @@ class ApiKeyScreen(OnboardingScreen):
                 yield Center(Static("API Key Detected", id="api-key-title"))
                 yield Center(
                     Static(
-                        f"{self.provider.name.capitalize()} is already connected",
+                        f"{getattr(self.provider, 'name', '').capitalize()} is already connected",
                         classes="lede",
                     )
                 )
@@ -291,7 +291,7 @@ class ApiKeyScreen(OnboardingScreen):
             with Center():
                 with Vertical(id="api-key-content", classes="card"):
                     yield from self._compose_provider_link(
-                        self.provider.name.capitalize()
+                        getattr(self.provider, 'name', '').capitalize()
                     )
                     yield Static(f"Env variable: {env_key}", classes="pill code")
                     yield Static(
@@ -377,7 +377,7 @@ class ApiKeyScreen(OnboardingScreen):
     def _save_and_finish(self, api_key: str) -> None:
         if not self.provider:
             return
-        env_key = self.provider.api_key_env_var
+        env_key = getattr(self.provider, "api_key_env_var", "")
         os.environ[env_key] = api_key
         try:
             _save_api_key_to_env_file(env_key, api_key)
