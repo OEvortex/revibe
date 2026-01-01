@@ -166,7 +166,7 @@ class Agent:
         active_model = self.config.get_active_model()
         provider = self.config.get_provider_for_model(active_model)
         timeout = self.config.api_timeout
-        return BACKEND_FACTORY[provider.backend](provider=provider, timeout=timeout)
+        return cast(BackendLike, BACKEND_FACTORY[provider.backend](provider=provider, timeout=timeout))
 
     def add_message(self, message: LLMMessage) -> None:
         self.messages.append(message)

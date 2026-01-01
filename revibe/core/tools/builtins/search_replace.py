@@ -72,9 +72,12 @@ class SearchReplace(
     ToolUIData[SearchReplaceArgs, SearchReplaceResult],
 ):
     description: ClassVar[str] = (
-        "Replace sections of files using SEARCH/REPLACE blocks. "
-        "Supports fuzzy matching and detailed error reporting. "
-        "Format: <<<<<<< SEARCH\\n[text]\\n=======\\n[replacement]\\n>>>>>>> REPLACE"
+        "Edit files using precise SEARCH/REPLACE blocks. "
+        "Features: exact text matching with fuzzy diagnostics for failed searches, "
+        "multi-block support for batch edits, first-occurrence replacement with warnings, "
+        "detailed error context showing closest matches. "
+        "Always read_file first to get exact content. "
+        "Format: <<<<<<< SEARCH\\n[exact text]\\n=======\\n[replacement]\\n>>>>>>> REPLACE"
     )
 
     @classmethod
