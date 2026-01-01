@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 # Centralized provider descriptions
 PROVIDER_DESCRIPTIONS: dict[str, str] = {
     "mistral": "Mistral AI - Devstral models",
-    "openai": "OpenAI - GPT-4o, o1 models",
+    "openai": "OpenAI - GPT-5, o1 models",
     "huggingface": "Hugging Face - Inference API and local models",
     "groq": "Groq - Fast inference",
     "ollama": "Ollama - Local models",
@@ -22,6 +22,7 @@ PROVIDER_DESCRIPTIONS: dict[str, str] = {
     "openrouter": "OpenRouter - Access to 100+ models from various providers",
     "geminicli": "Gemini CLI - Google Gemini models via CLI",
     "opencode": "OpenCode - Multi-provider access (Claude, GPT, Gemini, GLM, Kimi, Qwen, Grok)",
+    "kilocode": "Kilo Code - Free coding models (Grok Code Fast, Devstral, KAT-Coder-Pro, MiniMax M2)",
 }
 
 # Help links for providers requiring API keys
@@ -36,6 +37,7 @@ PROVIDER_HELP: dict[str, tuple[str, str]] = {
     ),
     "openrouter": ("https://openrouter.ai/keys", "OpenRouter Dashboard"),
     "opencode": ("https://opencode.ai", "OpenCode Platform"),
+    "kilocode": ("https://app.kilo.ai/profile", "Kilo Code Profile"),
 }
 
 
@@ -99,5 +101,12 @@ def build_provider_description(
             lines.append("Docs: Use /auth in `qwen` CLI for OAuth setup")
         elif provider.name == "geminicli":
             lines.append("Docs: Use /auth in `gemini` CLI for OAuth setup")
+
+        # Data retention warning for KiloCode
+        if provider.name == "kilocode":
+            lines.append("")
+            lines.append("[yellow]⚠ Data Retention Notice:[/]")
+            lines.append("Kilo Code may retain and analyze prompts/completions")
+            lines.append("from free models to improve their services.")
 
     return "\n".join(lines)
