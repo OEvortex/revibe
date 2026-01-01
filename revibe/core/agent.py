@@ -329,6 +329,8 @@ class Agent:
         reasoning_buffer = ""
         chunks_with_content = 0
         chunks_with_reasoning = 0
+        thinking_start_time: float | None = None
+        is_thinking = False
         # Batch size of 1 = real-time streaming (like print with flush=True)
         BATCH_SIZE = 1
 
@@ -339,6 +341,11 @@ class Agent:
                     content_buffer = ""
                     chunks_with_content = 0
 
+                # Track when thinking starts
+                if thinking_start_time is None:
+                    thinking_start_time = time.perf_counter()
+                    is_thinking = True
+
                 reasoning_buffer += chunk.message.reasoning_content
                 chunks_with_reasoning += 1
 
@@ -348,10 +355,21 @@ class Agent:
                     chunks_with_reasoning = 0
 
             if chunk.message.content:
-                if reasoning_buffer:
-                    yield ReasoningEvent(content=reasoning_buffer)
-                    reasoning_buffer = ""
-                    chunks_with_reasoning = 0
+                # If we were thinking and now content starts, emit final duration event
+                if is_thinking:
+                    thinking_duration = None
+                    if thinking_start_time is not None:
+                        thinking_duration = time.perf_counter() - thinking_start_time
+                    # Emit any remaining reasoning content with duration
+                    if reasoning_buffer:
+                        yield ReasoningEvent(content=reasoning_buffer, duration=thinking_duration)
+                        reasoning_buffer = ""
+                        chunks_with_reasoning = 0
+                    else:
+                        # Just emit duration completion signal (empty content)
+                        yield ReasoningEvent(content="", duration=thinking_duration)
+                    thinking_start_time = None
+                    is_thinking = False
 
                 content_buffer += chunk.message.content
                 chunks_with_content += 1
@@ -361,8 +379,12 @@ class Agent:
                     content_buffer = ""
                     chunks_with_content = 0
 
-        if reasoning_buffer:
-            yield ReasoningEvent(content=reasoning_buffer)
+        # Handle remaining buffers at end of stream
+        if reasoning_buffer or is_thinking:
+            thinking_duration = None
+            if thinking_start_time is not None:
+                thinking_duration = time.perf_counter() - thinking_start_time
+            yield ReasoningEvent(content=reasoning_buffer, duration=thinking_duration)
 
         if content_buffer:
             yield AssistantEvent(content=content_buffer)

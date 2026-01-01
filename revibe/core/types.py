@@ -290,6 +290,7 @@ class AssistantEvent(BaseEvent):
 
 class ReasoningEvent(BaseEvent):
     content: str
+    duration: float | None = None
 
 
 class ToolCallEvent(BaseEvent):

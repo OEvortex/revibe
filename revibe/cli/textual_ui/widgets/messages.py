@@ -165,6 +165,7 @@ class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
         self._triangle_widget: Static | None = None
         self._status_text_widget: Static | None = None
         self._is_complete = False
+        self._thinking_duration: float | None = None
         self.init_spinner()
 
     def compose(self) -> ComposeResult:
@@ -236,14 +237,31 @@ class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
                 self._displayed_content = ""
                 await self._update_display()
 
+    def set_thinking_duration(self, duration: float) -> None:
+        """Set the thinking duration (in seconds)."""
+        self._thinking_duration = duration
+        self._update_status_text()
+
+    def _update_status_text(self) -> None:
+        """Update status text with duration if available."""
+        if not self._status_text_widget:
+            return
+
+        status_text = self.COMPLETED_TEXT if self._is_complete else self.SPINNING_TEXT
+
+        if self._thinking_duration is not None and self._is_complete:
+            # Format duration similar to tool execution time display
+            status_text = f"{self.COMPLETED_TEXT} ({self._thinking_duration:.1f}s)"
+
+        self._status_text_widget.update(status_text)
+
     def stop_spinning(self, success: bool = True) -> None:
         """Override to update status and styling when complete, then auto-collapse."""
         super().stop_spinning(success)
         self._is_complete = True
 
-        # Update status text
-        if self._status_text_widget:
-            self._status_text_widget.update(self.COMPLETED_TEXT)
+        # Update status text with duration if available
+        self._update_status_text()
 
         # Update indicator to checkmark
         if self._indicator_widget:
