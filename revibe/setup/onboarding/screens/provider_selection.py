@@ -111,7 +111,13 @@ class ProviderSelectionScreen(OnboardingScreen):
     def action_select(self) -> None:
         selected = self._providers[self._provider_index]
         # Find a model for this provider
-        config = VibeConfig.model_construct()
+        try:
+            # Try to load existing config first
+            config = VibeConfig.load()
+        except Exception:
+            # If loading fails, create a default config
+            config = VibeConfig.model_construct()
+
         matching_models = [m for m in config.models if m.provider == selected.name]
         if not matching_models:
             # If no models found for this provider, still proceed but don't save
