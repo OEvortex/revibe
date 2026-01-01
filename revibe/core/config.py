@@ -137,6 +137,7 @@ class Backend(StrEnum):
     QWEN = auto()
     OPENROUTER = auto()
     GEMINICLI = auto()
+    OPENCODE = auto()
 
 
 class ToolFormat(StrEnum):
@@ -201,6 +202,10 @@ class GeminicliProviderConfig(_ProviderBase):
     backend: Literal[Backend.GEMINICLI] = Backend.GEMINICLI
 
 
+class OpenCodeProviderConfig(_ProviderBase):
+    backend: Literal[Backend.OPENCODE] = Backend.OPENCODE
+
+
 ProviderConfigUnion = Annotated[
     MistralProviderConfig
     | OpenAIProviderConfig
@@ -212,7 +217,8 @@ ProviderConfigUnion = Annotated[
     | GenericProviderConfig
     | QwenProviderConfig
     | OpenRouterProviderConfig
-    | GeminicliProviderConfig,
+    | GeminicliProviderConfig
+    | OpenCodeProviderConfig,
     Field(discriminator="backend"),
 ]
 
@@ -351,6 +357,11 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
         api_base="",  # Uses Gemini CLI endpoints
         api_key_env_var="",
     ),
+    OpenCodeProviderConfig(
+        name="opencode",
+        api_base="https://opencode.ai/zen/v1",
+        api_key_env_var="OPENCODE_API_KEY",
+    ),
 ]
 
 
@@ -468,7 +479,8 @@ class VibeConfig(BaseSettings):
             providers_map[p.name] = p
         for p in self.providers:
             p_name = p.name if not isinstance(p, dict) else p.get("name")
-            providers_map[p_name] = p
+            if p_name is not None:
+                providers_map[p_name] = p
 
         m_provider = (
             model.provider if isinstance(model, ModelConfig) else model.get("provider")

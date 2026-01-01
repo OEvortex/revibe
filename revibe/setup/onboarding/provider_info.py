@@ -20,6 +20,8 @@ PROVIDER_DESCRIPTIONS: dict[str, str] = {
     "cerebras": "Cerebras - Fast inference",
     "qwencode": "Qwen Code - QwenCli models via OAuth",
     "openrouter": "OpenRouter - Access to 100+ models from various providers",
+    "geminicli": "Gemini CLI - Google Gemini models via CLI",
+    "opencode": "OpenCode - Multi-provider access (Claude, GPT, Gemini, GLM, Kimi, Qwen, Grok)",
 }
 
 # Help links for providers requiring API keys
@@ -33,6 +35,7 @@ PROVIDER_HELP: dict[str, tuple[str, str]] = {
         "Cerebras Cloud Platform",
     ),
     "openrouter": ("https://openrouter.ai/keys", "OpenRouter Dashboard"),
+    "opencode": ("https://opencode.ai", "OpenCode Platform"),
 }
 
 
@@ -94,5 +97,7 @@ def build_provider_description(
             lines.append(f"Docs: {name} ({url})")
         elif provider.name == "qwencode":
             lines.append("Docs: Use /auth in `qwen` CLI for OAuth setup")
+        elif provider.name == "geminicli":
+            lines.append("Docs: Use /auth in `gemini` CLI for OAuth setup")
 
     return "\n".join(lines)
