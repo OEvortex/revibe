@@ -72,12 +72,14 @@ class SearchReplace(
     ToolUIData[SearchReplaceArgs, SearchReplaceResult],
 ):
     description: ClassVar[str] = (
-        "Edit files using precise SEARCH/REPLACE blocks. "
-        "Features: exact text matching with fuzzy diagnostics for failed searches, "
-        "multi-block support for batch edits, first-occurrence replacement with warnings, "
-        "detailed error context showing closest matches. "
-        "Always read_file first to get exact content. "
-        "Format: <<<<<<< SEARCH\\n[exact text]\\n=======\\n[replacement]\\n>>>>>>> REPLACE"
+        "Edit existing files by replacing exact text matches using SEARCH/REPLACE blocks. "
+        "WORKFLOW: (1) Always call read_file first to see the exact file content. "
+        "(2) Copy the exact text you want to change from the file (preserving all spaces, tabs, indentation, newlines). "
+        "(3) Create a SEARCH/REPLACE block with that exact text. "
+        "CRITICAL: SEARCH text must match the file character-for-character - any whitespace difference will fail. "
+        "FORMAT: Use 7 delimiters: <<<<<<< SEARCH\\n[exact_text_from_file]\\n=======\\n[replacement_text]\\n>>>>>>> REPLACE. "
+        "TIPS: Keep SEARCH minimal but unique. Multiple blocks execute sequentially. Only first occurrence is replaced. "
+        "ERRORS: Read error messages carefully - they show fuzzy matches and exact differences to help you fix mismatches."
     )
 
     @classmethod

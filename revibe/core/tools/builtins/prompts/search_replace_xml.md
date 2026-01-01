@@ -1,10 +1,12 @@
-# ✏️ SEARCH & REPLACE TOOL - XML Format Reference
+# search_replace - XML Format
 
-## 🚫 CRITICAL: NEVER USE BASH FOR FILE EDITING
+## CRITICAL RULES
 
-**DO NOT use `bash` tool with `sed`, `awk`, `echo >`, or any shell text manipulation commands.** This `search_replace` tool is specifically designed for all file editing operations.
+1. **ALWAYS read_file FIRST** - See exact content before editing
+2. **EXACT MATCH REQUIRED** - Every space, tab, newline must match exactly
+3. **USE PROPER FORMAT** - Follow the delimiters precisely
 
-## XML Tool Call Format
+## XML Call Format
 
 ```xml
 <tool_call>
@@ -13,9 +15,9 @@
 <file_path>path/to/file</file_path>
 <content>
 <<<<<<< SEARCH
-exact text to find
+exact text from file
 =======
-replacement text
+new replacement text
 >>>>>>> REPLACE
 </content>
 </parameters>
@@ -23,40 +25,24 @@ replacement text
 ```
 
 ## Parameters
-- `file_path` *(required)* – Target file path (relative or absolute)
-- `content` *(required)* – One or more SEARCH/REPLACE blocks
 
-## Block Syntax Rules
-```
-<<<<<<< SEARCH
-<exact text to find - whitespace matters!>
-=======
-<replacement text>
->>>>>>> REPLACE
-```
+- `file_path` - File to edit (required)
+- `content` - SEARCH/REPLACE blocks (required)
 
-- Use at least **5 characters** for delimiters (`<`, `=`, `>`)
-- **Exact match required** - every space, tab, and newline must match
-- Multiple blocks can be stacked in a single `<content>` element
-- Blocks execute **sequentially** - later blocks see earlier changes
+## Block Rules
 
-## ⚠️ Common Mistakes
+- Use **7 or more** `<`, `=`, `>` characters
+- **Exact whitespace match** - spaces/tabs/newlines must match file
+- Multiple blocks execute sequentially
+- First occurrence only (adds warning if multiple matches)
 
-| ❌ WRONG | ✅ CORRECT |
-|----------|-----------|
-| Editing without reading first | Always use `read_file` before editing |
-| Wrong indentation in SEARCH | Copy indentation exactly from file |
-| Using escape sequences like `\n` | Use actual newlines |
-| Too much context in SEARCH | Keep it minimal but unique |
+## Example: Single Edit
 
-## Example XML Calls
-
-### Simple Single Edit
 ```xml
 <tool_call>
 <tool_name>search_replace</tool_name>
 <parameters>
-<file_path>revibe/core/config.py</file_path>
+<file_path>config.py</file_path>
 <content>
 <<<<<<< SEARCH
 DEFAULT_TIMEOUT = 30
@@ -68,12 +54,13 @@ DEFAULT_TIMEOUT = 60
 </tool_call>
 ```
 
-### Multiple Edits in One Call
+## Example: Multiple Edits
+
 ```xml
 <tool_call>
 <tool_name>search_replace</tool_name>
 <parameters>
-<file_path>src/utils.py</file_path>
+<file_path>utils.py</file_path>
 <content>
 <<<<<<< SEARCH
 def old_function():
@@ -84,90 +71,33 @@ def new_function():
 >>>>>>> REPLACE
 
 <<<<<<< SEARCH
-CONSTANT = "old"
+VERSION = "1.0"
 =======
-CONSTANT = "new"
->>>>>>> REPLACE
-
-<<<<<<< SEARCH
-# TODO: implement
-=======
-# DONE: implemented
+VERSION = "2.0"
 >>>>>>> REPLACE
 </content>
 </parameters>
 </tool_call>
 ```
 
-### Inserting New Code (Using Anchor Point)
-```xml
-<tool_call>
-<tool_name>search_replace</tool_name>
-<parameters>
-<file_path>src/models.py</file_path>
-<content>
-<<<<<<< SEARCH
-class User:
-=======
-from datetime import datetime
+## Common Errors
 
-class User:
->>>>>>> REPLACE
-</content>
-</parameters>
-</tool_call>
-```
+| Error | Fix |
+|-------|-----|
+| "Search text not found" | Read file first, copy EXACTLY |
+| Wrong indentation | Match spaces/tabs from file |
+| Whitespace mismatch | Check trailing spaces |
+| Multiple matches | Add more context |
 
-### Preserving Indentation
-```xml
-<tool_call>
-<tool_name>search_replace</tool_name>
-<parameters>
-<file_path>src/handler.py</file_path>
-<content>
-<<<<<<< SEARCH
-    def process(self):
-        return None
-=======
-    def process(self):
-        """Process the request."""
-        return self._execute()
->>>>>>> REPLACE
-</content>
-</parameters>
-</tool_call>
-```
+## Best Practices
 
-## Best Practices Checklist
+1. ✅ **Read first** - Always use `read_file` before editing
+2. ✅ **Copy exactly** - Don't retype, copy from file content
+3. ✅ **Minimal search** - Include only enough to be unique
+4. ✅ **Check errors** - Fuzzy match shows what's close
 
-1. ✅ **Read first** - Always `read_file` to see exact content before editing
-2. ✅ **Minimal context** - Include only enough text to be unique
-3. ✅ **Exact whitespace** - Copy indentation and spacing exactly
-4. ✅ **One concern per block** - Separate unrelated edits for clarity
-5. ✅ **Order matters** - Later blocks operate on modified content
+## DO NOT
 
-## Error Recovery
-
-### "Search text not found"
-- Run `read_file` to see current content
-- Check whitespace (spaces vs tabs, trailing spaces)
-- Check line endings (`\n` vs `\r\n`)
-- Use the fuzzy match suggestions in the error message
-
-### "Multiple occurrences found"
-- Add more context to make search unique
-- Only first occurrence is replaced (with warning)
-
-## When to Use Other Tools
-
-| Want to... | Use this tool |
-|------------|---------------|
-| Create new file | `write_file` |
-| Overwrite entire file | `write_file` with `overwrite=True` |
-| Read file first | `read_file` |
-| Search for text | `grep` |
-| Edit part of file | `search_replace` ✅ |
-
----
-
-📌 **Golden Rule**: Read → Understand → Edit. Never guess file content!
+❌ Never use `bash` with `sed`, `awk`, `echo >` for file editing
+❌ Never guess file content - always read first
+❌ Never escape newlines with `\n` - use actual newlines

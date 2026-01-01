@@ -735,7 +735,7 @@ DEFAULT_MODELS = [
         alias="grok-code",
         input_price=0.0,
         output_price=0.0,
-        context=2000000,
+        context=200000,
     ),
     ModelConfig(
         name="alpha-glm-4.7",

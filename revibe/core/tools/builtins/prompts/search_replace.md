@@ -1,181 +1,89 @@
-# ✏️ SEARCH & REPLACE TOOL - Your Primary File Editor
+# search_replace - File Editor
 
-## 🚫 CRITICAL: NEVER USE BASH FOR FILE EDITING
+## CRITICAL RULES
 
-**DO NOT use `bash` tool with `sed`, `awk`, `echo >`, or any shell text manipulation commands.** This `search_replace` tool is specifically designed for all file editing operations and is far superior to shell commands.
+1. **ALWAYS read_file FIRST** - You MUST see the exact file content before editing
+2. **EXACT MATCH REQUIRED** - Every space, tab, newline must match exactly
+3. **USE PROPER FORMAT** - Follow the delimiter pattern precisely
 
-## Why Use This Tool (NOT Bash)
-- ✅ **Deterministic edits** - Exact text matching ensures predictable changes
-- ✅ **Smart error diagnostics** - Fuzzy matching shows you the closest text when searches fail
-- ✅ **Atomic operations** - All blocks apply or none do (with detailed error reports)
-- ✅ **Multi-block support** - Apply several edits in a single call
-- ✅ **Safety rails** - Size limits, backup options, and detailed validation
-- ✅ **Cross-platform** - Works identically on Windows, macOS, Linux
+## Format
+
+```
+<<<<<<< SEARCH
+[exact text from file - copy it EXACTLY]
+=======
+[new text to replace with]
+>>>>>>> REPLACE
+```
+
+- Use **7 or more** `<`, `=`, `>` characters
+- Whitespace matters - copy spaces/tabs exactly as they appear
+- Multiple blocks execute sequentially
 
 ## Arguments
-- `file_path` *(str, required)* – Target file path (relative or absolute within project)
-- `content` *(str, required)* – One or more SEARCH/REPLACE blocks
 
-## Block Format Syntax
-```
-<<<<<<< SEARCH
-<exact text to find>
-=======
-<replacement text>
->>>>>>> REPLACE
-```
+- `file_path` - File to edit (required)
+- `content` - SEARCH/REPLACE blocks (required)
 
-### Block Rules
-- Use **at least 5** `<`, `=`, and `>` characters (7 recommended for clarity)
-- **Exact whitespace match required** - Every space, tab, and newline must match
-- Blocks may be wrapped in code fences (` ``` `) - both formats are accepted
-- Multiple blocks execute **sequentially** - later blocks see earlier changes
+## Example Workflow
 
-## ⚠️ Common Pitfalls to Avoid
-
-| ❌ WRONG | ✅ CORRECT |
-|----------|-----------|
-| Guessing file content | Always `read_file` first to see exact text |
-| Changing indentation in SEARCH | Copy indentation exactly from file |
-| Including too much context | Keep SEARCH minimal but unique |
-| Using `\n` escape sequences | Use actual newlines in the block |
-| Forgetting trailing whitespace | Check for spaces at line ends |
-
-## Best Practices
-
-### 1️⃣ Always Read First
 ```python
-# FIRST: Inspect the file
-read_file(path="src/config.py")
+# 1. Read file to see content
+read_file(path="config.py")
 
-# THEN: Apply precise edits based on what you saw
+# 2. Edit with exact match from file
 search_replace(
-    file_path="src/config.py",
+    file_path="config.py",
     content="""
 <<<<<<< SEARCH
-DEFAULT_TIMEOUT = 30
+TIMEOUT = 30
 =======
-DEFAULT_TIMEOUT = 60
+TIMEOUT = 60
 >>>>>>> REPLACE
 """
 )
 ```
 
-### 2️⃣ Keep SEARCH Blocks Minimal But Unique
+## Multiple Edits
+
 ```python
-# ❌ BAD: Too much context (fragile, may break on unrelated changes)
 search_replace(
-    file_path="app.py",
+    file_path="utils.py",
     content="""
 <<<<<<< SEARCH
-import os
-import sys
-from typing import Optional
-
-class Config:
-    timeout = 30  # <-- only this line needs to change
-    retries = 3
-=======
-import os
-...huge replacement...
->>>>>>> REPLACE
-"""
-)
-
-# ✅ GOOD: Just enough to be unique
-search_replace(
-    file_path="app.py",
-    content="""
-<<<<<<< SEARCH
-    timeout = 30  # <-- only this line needs to change
-=======
-    timeout = 60  # increased for slow networks
->>>>>>> REPLACE
-"""
-)
-```
-
-### 3️⃣ Multiple Edits in One Call
-```python
-# Apply several related changes atomically
-search_replace(
-    file_path="src/utils.py",
-    content="""
-<<<<<<< SEARCH
-def old_function():
+def old_func():
     pass
 =======
-def new_function():
+def new_func():
     return True
 >>>>>>> REPLACE
 
 <<<<<<< SEARCH
-CONSTANT = "old"
+VERSION = "1.0"
 =======
-CONSTANT = "new"
->>>>>>> REPLACE
-
-<<<<<<< SEARCH
-# TODO: refactor this
-=======
-# DONE: refactored
+VERSION = "2.0"
 >>>>>>> REPLACE
 """
 )
 ```
 
-### 4️⃣ Creating New Content (Empty SEARCH Block)
-```python
-# Insert new code by searching for a unique anchor point
-search_replace(
-    file_path="src/models.py",
-    content="""
-<<<<<<< SEARCH
-class User:
-=======
-from datetime import datetime
+## Common Errors
 
-class User:
->>>>>>> REPLACE
-"""
-)
-```
+| Error | Solution |
+|-------|----------|
+| "Search text not found" | Read the file first, copy text EXACTLY |
+| Wrong indentation | Use spaces/tabs exactly as in file |
+| Whitespace mismatch | Check for trailing spaces, line endings |
+| Multiple matches | Add more context to make search unique |
 
-## Error Recovery Guide
+## Tips
 
-### ❓ "Search text not found"
-1. Run `read_file` to see the current file content
-2. Check for **exact whitespace** (spaces vs tabs, trailing spaces)
-3. Verify **line endings** match (`\n` vs `\r\n`)
-4. The error message includes **fuzzy match suggestions** - use them!
+- **Keep SEARCH minimal** - Only include enough to be unique
+- **Preserve indentation** - Copy spaces/tabs exactly
+- **Read errors carefully** - Fuzzy match suggestions show what's close
+- **One edit at a time** - Don't guess, verify with read_file
 
-### ❓ "Multiple occurrences found"
-- The tool replaces only the **first** occurrence
-- Add more surrounding context to make your search unique
-- Consider if you actually want to replace all occurrences (use multiple blocks)
+## DO NOT Use bash for Editing
 
-### ❓ "Content size exceeds limit"
-- Default max is 100KB per call
-- Split large changes into multiple calls
-- Consider using `write_file` for complete file rewrites
-
-## Behavior Guarantees
-- **First occurrence only**: If search text appears multiple times, only the first match is replaced (with a warning)
-- **Sequential execution**: Blocks apply in order; each sees the result of previous blocks
-- **Fuzzy diagnostics**: Failed searches show similar text with diff highlighting
-- **Permission respected**: Cannot edit files outside project boundaries
-- **Optional backups**: Enable `create_backup=True` in config for `.bak` file creation
-
-## Quick Reference
-
-| Want to... | Do this |
-|------------|---------|
-| Edit part of a file | Use `search_replace` with precise blocks |
-| Create a new file | Use `write_file` |
-| Overwrite entire file | Use `write_file` with `overwrite=True` |
-| Read file first | Use `read_file` before editing |
-| Search for text | Use `grep` or `find` tool |
-
----
-
-📌 **Remember**: Always `read_file` before `search_replace`. The edit will only succeed if your SEARCH text matches the file **exactly**.
+❌ Never use `sed`, `awk`, `echo >`, or shell commands for file editing
+✅ Always use this tool - it's safer and gives better error messages

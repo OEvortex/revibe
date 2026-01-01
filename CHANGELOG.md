@@ -5,23 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.2] - 2025-12-31
+## [0.2.2] - 2026-01-01
 
 ### Added
 
-- **Enhanced Welcome Banner**: Redesigned welcome banner with GitHub Copilot-inspired styling
-  - Added corner-only frame layout with clean borders
-  - Large "REVIBE" ASCII wordmark with animated color transitions
-  - Added git commit hash detection and display in footer
-  - Improved layout with proper cell-width-based alignment for consistent rendering
-  - Updated color scheme to orange-yellow gradient matching UI theme
+- **Simplified Welcome Banner**: Completely redesigned welcome banner for better terminal compatibility
+  - Reduced from 405 lines to 65 lines (84% reduction in code)
+  - Removed complex animation system with color interpolation
+  - Removed border frame drawing logic
+  - Now uses responsive `max-height: 40vh` CSS to cap banner at 40% of terminal height
+  - Auto-adjusts size based on terminal dimensions using `height: auto`
+  - Cleaner, more compact ASCII logo with version, model, and workspace info
+  - Simplified TCSS from 120 lines to 20 lines (83% reduction)
 
 ### Fixed
 
+- **OpenCode Backend**: Fixed `'openai'` KeyError when using OpenCode provider
+  - Set `api_style = "opencode"` in `OpenCodeProviderConfig` to match registered adapter
+  - Removed hardcoded `list_models()` method from OpenCode backend
 - Fixed duplicate tick display in Thought reasoning widget by removing redundant icon widget update
 - Cleaned up `SpinnerMixin.stop_spinning()` to prevent duplicate completion indicators
 - Simplified Thought widget to show only spinner animation without icon for cleaner UI
 - Fixed reasoning/thought sections being collapsed by default in TUI - they now expand automatically to show content immediately
+
+### Changed
+
+- Updated `grok-code` model pricing to free (0.0 input/output) in model configuration
+
 
 ## [0.2.1] - 2025-12-31
 
