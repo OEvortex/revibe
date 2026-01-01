@@ -42,6 +42,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automatic injection of required Kilo Code headers (X-KiloCode-Version, HTTP-Referer, X-Title, User-Agent)
   - Full integration with provider selector, model configuration, and backend factory
   - Uses `KILOCODE_API_KEY` environment variable for authentication
+- **Antigravity Provider Integration**: New backend for accessing Claude and Gemini models via Google OAuth
+  - Created `AntigravityBackend` with full OAuth2 PKCE authentication flow
+  - Browser-based Google login with automatic token refresh and local credential storage (`~/.antigravity/oauth_creds.json`)
+  - Supports 10 models including Claude Sonnet 4.5, Claude Opus 4.5 (with thinking variants), and Gemini 3 series
+  - Available models:
+    - `antigravity-claude-sonnet-4-5` - Claude Sonnet 4.5 (200K context)
+    - `antigravity-claude-sonnet-thinking-low/medium/high` - Claude Sonnet with thinking (16K-64K output)
+    - `antigravity-claude-opus-thinking-low/medium/high` - Claude Opus with thinking (16K-64K output)
+    - `antigravity-gemini-3-flash` - Gemini 3 Flash (1M context)
+    - `antigravity-gemini-3-pro-low/high` - Gemini 3 Pro variants (1M context)
+  - Integrated OAuth flow in onboarding `--setup` with "Sign in with Google" button
+  - Streaming and non-streaming support with SSE parsing
+  - Native tool calls and thinking/reasoning content support
+  - Automatic retry on 401/403 authentication errors with token refresh
+
 
 ### Changed
 

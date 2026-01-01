@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from revibe.core.config import Backend
+from revibe.core.llm.backend.antigravity import AntigravityBackend
 from revibe.core.llm.backend.cerebras import CerebrasBackend
 from revibe.core.llm.backend.geminicli import GeminicliBackend
 from revibe.core.llm.backend.groq import GroqBackend
@@ -28,4 +29,6 @@ BACKEND_FACTORY = {
     Backend.GEMINICLI: GeminicliBackend,
     Backend.OPENCODE: OpenCodeBackend,
     Backend.KILOCODE: KiloCodeBackend,
+    Backend.ANTIGRAVITY: AntigravityBackend,
 }
+

@@ -160,17 +160,74 @@ class ApiKeyScreen(OnboardingScreen):
     def _compose_no_api_key_content(self) -> ComposeResult:
         if not self.provider:
             return
-        yield Static(
-            f"{getattr(self.provider, 'name', '').capitalize()} does not require an API key.",
-            id="no-api-key-message",
-        )
-        if getattr(self.provider, "name", "") == "qwencode":
+        provider_name = getattr(self.provider, 'name', '')
+
+        if provider_name == "antigravity":
+            # Check if already authenticated
+            from revibe.core.llm.backend.antigravity.types import get_antigravity_credential_path
+            cred_path = get_antigravity_credential_path()
+            if cred_path.exists():
+                yield Static(
+                    "[green]✓[/] Antigravity is already authenticated!",
+                    id="no-api-key-message",
+                )
+                yield Static(
+                    f"Credentials saved at: {cred_path}",
+                    id="antigravity-cred-path",
+                    classes="subtle",
+                )
+                yield Center(
+                    Button(
+                        "Re-authenticate with Google",
+                        id="antigravity-auth-button",
+                        variant="default",
+                    )
+                )
+            else:
+                yield Static(
+                    "Antigravity uses Google OAuth for authentication.",
+                    id="no-api-key-message",
+                )
+                yield Static(
+                    "Click the button below to open your browser and sign in with Google.",
+                    id="antigravity-instructions",
+                    classes="subtle",
+                )
+                yield Center(
+                    Button(
+                        "🔐 Sign in with Google",
+                        id="antigravity-auth-button",
+                        variant="success",
+                        classes="primary-action",
+                    )
+                )
+        elif provider_name == "qwencode":
+            yield Static(
+                f"{provider_name.capitalize()} does not require an API key.",
+                id="no-api-key-message",
+            )
             yield Static(
                 "Please install qwen-code if not installed: `npm install -g @qwen-code/qwen-code@latest`\n"
                 "then use `/auth` in qwen to authenticate, then you can close qwen and use qwencode provider in ReVibe",
                 id="qwen-instructions",
             )
+        elif provider_name == "geminicli":
+            yield Static(
+                f"{provider_name.capitalize()} does not require an API key.",
+                id="no-api-key-message",
+            )
+            yield Static(
+                "Please install gemini CLI: `npm install -g @anthropic-ai/gemini@latest`\n"
+                "then use `gemini auth login` to authenticate.",
+                id="geminicli-instructions",
+            )
+        else:
+            yield Static(
+                f"{provider_name.capitalize()} does not require an API key.",
+                id="no-api-key-message",
+            )
         yield Static("", id="feedback")
+
 
     def compose(self) -> ComposeResult:
         # Ensure provider is loaded (in case on_show hasn't been called yet)
@@ -389,6 +446,80 @@ class ApiKeyScreen(OnboardingScreen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "continue-button":
             self.app.exit("completed")
+        elif event.button.id == "antigravity-auth-button":
+            self._run_antigravity_auth()
+
+    def _run_antigravity_auth(self) -> None:
+        """Run Antigravity OAuth authentication in a background thread."""
+        import asyncio
+        import threading
+
+        feedback = self.query_one("#feedback", Static)
+        button = self.query_one("#antigravity-auth-button", Button)
+
+        # Disable button and show loading state
+        button.disabled = True
+        button.label = "Opening browser..."
+        feedback.update("[dim]Please complete the authentication in your browser...[/]")
+
+        def run_auth():
+            """Run the async OAuth flow."""
+            try:
+                from revibe.core.llm.backend.antigravity.oauth import AntigravityOAuthManager
+
+                oauth_manager = AntigravityOAuthManager()
+
+                # Run the async authenticate method
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    credentials = loop.run_until_complete(oauth_manager.authenticate())
+                    # Post success to main thread
+                    self.app.call_from_thread(self._on_auth_success, credentials)
+                except Exception as e:
+                    # Post error to main thread
+                    self.app.call_from_thread(self._on_auth_error, str(e))
+                finally:
+                    loop.close()
+            except Exception as e:
+                self.app.call_from_thread(self._on_auth_error, str(e))
+
+        # Run in background thread
+        thread = threading.Thread(target=run_auth, daemon=True)
+        thread.start()
+
+    def _on_auth_success(self, credentials) -> None:
+        """Called when OAuth authentication succeeds."""
+        feedback = self.query_one("#feedback", Static)
+        feedback.update(f"[green]✓ Authenticated as: {credentials.email or 'Unknown'}[/]")
+        feedback.add_class("success")
+
+        # Update button to show success
+        try:
+            button = self.query_one("#antigravity-auth-button", Button)
+            button.label = "✓ Authenticated"
+            button.variant = "success"
+            button.disabled = False
+        except Exception:
+            pass
+
+        # Auto-complete after a brief delay
+        self.set_timer(1.5, lambda: self.app.exit("completed"))
+
+    def _on_auth_error(self, error: str) -> None:
+        """Called when OAuth authentication fails."""
+        feedback = self.query_one("#feedback", Static)
+        feedback.update(f"[red]Authentication failed: {error}[/]")
+        feedback.add_class("error")
+
+        # Re-enable button
+        try:
+            button = self.query_one("#antigravity-auth-button", Button)
+            button.disabled = False
+            button.label = "🔐 Try Again"
+        except Exception:
+            pass
 
     def action_finish(self) -> None:
         self.app.exit("completed")
+

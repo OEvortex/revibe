@@ -140,6 +140,7 @@ class Backend(StrEnum):
     GEMINICLI = auto()
     OPENCODE = auto()
     KILOCODE = auto()
+    ANTIGRAVITY = auto()
 
 
 class ToolFormat(StrEnum):
@@ -214,6 +215,11 @@ class KiloCodeProviderConfig(_ProviderBase):
     api_style: str = "openai"
 
 
+class AntigravityProviderConfig(_ProviderBase):
+    backend: Literal[Backend.ANTIGRAVITY] = Backend.ANTIGRAVITY
+    api_style: str = "antigravity"
+
+
 ProviderConfigUnion = Annotated[
     MistralProviderConfig
     | OpenAIProviderConfig
@@ -227,7 +233,8 @@ ProviderConfigUnion = Annotated[
     | OpenRouterProviderConfig
     | GeminicliProviderConfig
     | OpenCodeProviderConfig
-    | KiloCodeProviderConfig,
+    | KiloCodeProviderConfig
+    | AntigravityProviderConfig,
     Field(discriminator="backend")
 ]
 
@@ -375,6 +382,11 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
         name="kilocode",
         api_base="https://api.kilo.ai/api/openrouter",
         api_key_env_var="KILOCODE_API_KEY",
+    ),
+    AntigravityProviderConfig(
+        name="antigravity",
+        api_base="",  # Uses Antigravity endpoints
+        api_key_env_var="",  # Uses OAuth authentication
     ),
 ]
 

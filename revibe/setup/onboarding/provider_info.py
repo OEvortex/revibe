@@ -23,6 +23,7 @@ PROVIDER_DESCRIPTIONS: dict[str, str] = {
     "geminicli": "Gemini CLI - Google Gemini models via CLI",
     "opencode": "OpenCode - Multi-provider access (Claude, GPT, Gemini, GLM, Kimi, Qwen, Grok)",
     "kilocode": "Kilo Code - Free coding models (Grok Code Fast, Devstral, KAT-Coder-Pro, MiniMax M2)",
+    "antigravity": "Antigravity - Free Claude & Gemini models via Google OAuth",
 }
 
 # Help links for providers requiring API keys
@@ -101,6 +102,8 @@ def build_provider_description(
             lines.append("Docs: Use /auth in `qwen` CLI for OAuth setup")
         elif provider.name == "geminicli":
             lines.append("Docs: Use /auth in `gemini` CLI for OAuth setup")
+        elif provider.name == "antigravity":
+            lines.append("Auth: Google OAuth (browser-based login)")
 
         # Data retention warning for KiloCode
         if provider.name == "kilocode":
