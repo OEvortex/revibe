@@ -329,7 +329,8 @@ class Agent:
         reasoning_buffer = ""
         chunks_with_content = 0
         chunks_with_reasoning = 0
-        BATCH_SIZE = 5
+        # Batch size of 1 = real-time streaming (like print with flush=True)
+        BATCH_SIZE = 1
 
         async for chunk in self._chat_streaming():
             if chunk.message.reasoning_content:

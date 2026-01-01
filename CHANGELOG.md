@@ -19,14 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Support for file status indicators (new, deleted, renamed files)
   - Word-level diff highlighting styles for inline changes
   - Removed 85 lines of duplicate CSS from `app.tcss`
-- **Thought/Reasoning UI Refactor**: Extracted and enhanced thought display component
-  - Created separate `thought.tcss` stylesheet (~250 lines) for thinking/reasoning UI
-  - Support for thinking phases/steps display like Claude's extended thinking
-  - Animated states for active thinking, completed, and error states
-  - Collapsible/expandable content with smooth transitions
-  - Markdown content styling within thought bubbles (code blocks, lists, headers)
-  - Thinking summary and stats display (compact view when collapsed)
-  - Stream indicator for live thinking display
+- **Thought/Reasoning UI Refactor**: Modern, polished thinking display with real-time streaming
+  - Created separate `thought.tcss` stylesheet (~180 lines) using VSCode/Textual theme variables
+  - **Auto-expand/collapse behavior**: Expands automatically during thinking, auto-collapses when complete
+  - **Theme integration**: Uses `$surface`, `$accent`, `$warning`, `$success`, `$text-muted` for consistent theming
+  - **Modern minimal design**: Removed emoji icons, simplified to just spinner + status + toggle
+  - **Visual states**: Purple border during thinking, green when complete, red for errors
+  - **Smooth transitions**: Natural collapsible content with proper layout updates
+  - **Markdown support**: Code blocks, lists, headers styled within thought content
   - Removed ~95 lines of reasoning styles from `app.tcss`
 - **Simplified Welcome Banner**: Completely redesigned welcome banner for better terminal compatibility
   - Reduced from 405 lines to 65 lines (84% reduction in code)
@@ -54,6 +54,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Line markers use Unicode (▶ for matched line, │ for context)
   - **Warnings**: More concise format `⚠ Block 1: Found 3 matches, replacing first only`
   - **Context Display**: Enhanced with better formatting, similarity indicators, and partial match suggestions
+- **Real-time Streaming**: Reduced agent batch size from 5 to 1 for immediate character-by-character streaming
+  - Content now appears instantly as it arrives, like `print(c, end="", flush=True)`
+  - No more waiting for batched chunks - smooth, natural streaming experience
 - Updated `grok-code` model pricing to free (0.0 input/output) in model configuration
 
 ### Fixed
@@ -61,10 +64,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **OpenCode Backend**: Fixed `'openai'` KeyError when using OpenCode provider
   - Set `api_style = "opencode"` in `OpenCodeProviderConfig` to match registered adapter
   - Removed hardcoded `list_models()` method from OpenCode backend
+- **Thought UI improvements**:
+  - Removed brain emoji for cleaner, more professional appearance
+  - Fixed thought panel to always expand during thinking (previously could start collapsed)
+  - Added auto-collapse on completion for clean conversation flow
+  - Thinking panel now properly uses theme colors instead of hardcoded values
 - Fixed duplicate tick display in Thought reasoning widget by removing redundant icon widget update
 - Cleaned up `SpinnerMixin.stop_spinning()` to prevent duplicate completion indicators
-- Simplified Thought widget to show only spinner animation without icon for cleaner UI
-- Fixed reasoning/thought sections being collapsed by default in TUI - they now expand automatically to show content immediately
 
 
 

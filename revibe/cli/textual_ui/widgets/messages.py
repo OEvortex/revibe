@@ -92,7 +92,7 @@ class StreamingMessageBase(Static):
         new_displayed = self._process_content_for_display(self._content)
 
         if len(new_displayed) > len(self._displayed_content):
-            # Append new content to stream
+            # Append new content to stream - MarkdownStream handles flushing
             diff = new_displayed[len(self._displayed_content) :]
             stream = self._ensure_stream()
             await stream.write(diff)
@@ -105,7 +105,6 @@ class StreamingMessageBase(Static):
             if self._markdown:
                 await self._markdown.update("")
             self._displayed_content = ""
-            # Recursively update with the now empty displayed content
             await self._update_display()
 
     def _process_content_for_display(self, content: str) -> str:
