@@ -111,22 +111,8 @@ class ProviderSelectionScreen(OnboardingScreen):
     def action_select(self) -> None:
         selected = self._providers[self._provider_index]
 
-        # Save both active_provider and a default active_model
+        # Save active_provider
         updates = {"active_provider": selected.name}
-
-        # Also set a default active_model for compatibility
-        # Find any model for this provider or create a placeholder
-        try:
-            config = VibeConfig.load()
-        except Exception:
-            config = VibeConfig.model_construct()
-
-        matching_models = [m for m in config.models if m.provider == selected.name]
-        if matching_models:
-            updates["active_model"] = matching_models[0].alias
-        else:
-            # Create a placeholder model name for compatibility
-            updates["active_model"] = f"{selected.name}-default"
 
         try:
             VibeConfig.save_updates(updates)
