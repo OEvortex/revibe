@@ -19,6 +19,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Support for file status indicators (new, deleted, renamed files)
   - Word-level diff highlighting styles for inline changes
   - Removed 85 lines of duplicate CSS from `app.tcss`
+- **Thought/Reasoning UI Refactor**: Extracted and enhanced thought display component
+  - Created separate `thought.tcss` stylesheet (~250 lines) for thinking/reasoning UI
+  - Support for thinking phases/steps display like Claude's extended thinking
+  - Animated states for active thinking, completed, and error states
+  - Collapsible/expandable content with smooth transitions
+  - Markdown content styling within thought bubbles (code blocks, lists, headers)
+  - Thinking summary and stats display (compact view when collapsed)
+  - Stream indicator for live thinking display
+  - Removed ~95 lines of reasoning styles from `app.tcss`
 - **Simplified Welcome Banner**: Completely redesigned welcome banner for better terminal compatibility
   - Reduced from 405 lines to 65 lines (84% reduction in code)
   - Removed complex animation system with color interpolation
