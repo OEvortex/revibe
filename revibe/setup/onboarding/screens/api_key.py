@@ -105,23 +105,31 @@ class ApiKeyScreen(OnboardingScreen):
     def on_show(self) -> None:
         """Reload config when screen becomes visible to pick up saved provider selection."""
         config = self._load_config()
-        active_model = config.get_active_model()
 
-        # Special handling for OpenCode dynamic models
-        if active_model.alias.startswith("opencode-"):
-            # For dynamic OpenCode models, get the provider directly
+        # Try to get active_provider first (new setup flow), fallback to active_model (existing flow)
+        active_provider = getattr(config, 'active_provider', None)
+
+        if active_provider:
+            # New flow: provider is saved directly
             for provider in config.providers:
-                if provider.name == "opencode":
+                if provider.name == active_provider:
                     self.provider = provider
                     break
+            else:
+                # Fallback to DEFAULT_PROVIDERS if not in config
+                for provider in DEFAULT_PROVIDERS:
+                    if provider.name == active_provider:
+                        self.provider = provider
+                        break
         else:
-            # Normal provider lookup for other providers
+            # Existing flow: try to get provider from model
             try:
+                active_model = config.get_active_model()
                 self.provider = config.get_provider_for_model(active_model)
             except (ValueError, KeyError):
                 # If model lookup fails, try to find provider by name
-                if "-" in active_model.alias:
-                    provider_name = active_model.alias.split("-")[0]
+                if hasattr(config, 'active_model') and "-" in config.active_model:
+                    provider_name = config.active_model.split("-")[0]
                     for provider in config.providers:
                         if provider.name == provider_name:
                             self.provider = provider
@@ -168,29 +176,31 @@ class ApiKeyScreen(OnboardingScreen):
         # Ensure provider is loaded (in case on_show hasn't been called yet)
         if self.provider is None:
             config = self._load_config()
-            active_model = config.get_active_model()
 
-            # Special handling for OpenCode dynamic models
-            if active_model.alias.startswith("opencode-"):
-                # For dynamic OpenCode models, get the provider directly
+            # Try to get active_provider first (new setup flow), fallback to active_model (existing flow)
+            active_provider = getattr(config, 'active_provider', None)
+
+            if active_provider:
+                # New flow: provider is saved directly
                 for provider in config.providers:
-                    if provider.name == "opencode":
+                    if provider.name == active_provider:
                         self.provider = provider
                         break
                 else:
                     # Fallback to DEFAULT_PROVIDERS if not in config
                     for provider in DEFAULT_PROVIDERS:
-                        if provider.name == "opencode":
+                        if provider.name == active_provider:
                             self.provider = provider
                             break
             else:
-                # Normal provider lookup for other providers
+                # Existing flow: try to get provider from model
                 try:
+                    active_model = config.get_active_model()
                     self.provider = config.get_provider_for_model(active_model)
                 except (ValueError, KeyError):
                     # If model lookup fails, try to find provider by name
-                    if "-" in active_model.alias:
-                        provider_name = active_model.alias.split("-")[0]
+                    if hasattr(config, 'active_model') and "-" in config.active_model:
+                        provider_name = config.active_model.split("-")[0]
                         for provider in config.providers:
                             if provider.name == provider_name:
                                 self.provider = provider

@@ -367,6 +367,7 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
 
 class VibeConfig(BaseSettings):
     active_model: str = "devstral-2"
+    active_provider: str | None = None
     textual_theme: str = "terminal"
     vim_keybindings: bool = False
     disable_welcome_banner_animation: bool = False
