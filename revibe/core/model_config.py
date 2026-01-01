@@ -733,8 +733,8 @@ DEFAULT_MODELS = [
         name="grok-code",
         provider="opencode",
         alias="grok-code",
-        input_price=0.20,
-        output_price=1.50,
+        input_price=0.0,
+        output_price=0.0,
         context=2000000,
     ),
     ModelConfig(
