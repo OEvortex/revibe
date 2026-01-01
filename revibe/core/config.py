@@ -139,6 +139,7 @@ class Backend(StrEnum):
     OPENROUTER = auto()
     GEMINICLI = auto()
     OPENCODE = auto()
+    KILOCODE = auto()
 
 
 class ToolFormat(StrEnum):
@@ -208,6 +209,11 @@ class OpenCodeProviderConfig(_ProviderBase):
     api_style: str = "opencode"
 
 
+class KiloCodeProviderConfig(_ProviderBase):
+    backend: Literal[Backend.KILOCODE] = Backend.KILOCODE
+    api_style: str = "openai"
+
+
 ProviderConfigUnion = Annotated[
     MistralProviderConfig
     | OpenAIProviderConfig
@@ -220,8 +226,9 @@ ProviderConfigUnion = Annotated[
     | QwenProviderConfig
     | OpenRouterProviderConfig
     | GeminicliProviderConfig
-    | OpenCodeProviderConfig,
-    Field(discriminator="backend"),
+    | OpenCodeProviderConfig
+    | KiloCodeProviderConfig,
+    Field(discriminator="backend")
 ]
 
 
@@ -363,6 +370,11 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
         name="opencode",
         api_base="https://opencode.ai/zen/v1",
         api_key_env_var="OPENCODE_API_KEY",
+    ),
+    KiloCodeProviderConfig(
+        name="kilocode",
+        api_base="https://api.kilo.ai/api/openrouter",
+        api_key_env_var="KILOCODE_API_KEY",
     ),
 ]
 

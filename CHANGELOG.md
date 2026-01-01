@@ -36,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Auto-adjusts size based on terminal dimensions using `height: auto`
   - Cleaner, more compact ASCII logo with version, model, and workspace info
   - Simplified TCSS from 120 lines to 20 lines (83% reduction)
+- **KiloCode Provider Integration**: Added support for Kilo Code API with specialized coding models
+  - Created `KiloCodeBackend` inheriting from `OpenAIBackend` with custom header injection
+  - Added 5 free Kilo Code models: x-ai/grok-code-fast-1, mistralai/devstral-2512:free, kwaipilot/kat-coder-pro:free, minimax/minimax-m2:free, mistralai/devstral-small-2512:free
+  - Automatic injection of required Kilo Code headers (X-KiloCode-Version, HTTP-Referer, X-Title, User-Agent)
+  - Full integration with provider selector, model configuration, and backend factory
+  - Uses `KILOCODE_API_KEY` environment variable for authentication
 
 ### Changed
 

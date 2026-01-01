@@ -5,6 +5,7 @@ from revibe.core.llm.backend.cerebras import CerebrasBackend
 from revibe.core.llm.backend.geminicli import GeminicliBackend
 from revibe.core.llm.backend.groq import GroqBackend
 from revibe.core.llm.backend.huggingface import HuggingFaceBackend
+from revibe.core.llm.backend.kilocode import KiloCodeBackend
 from revibe.core.llm.backend.llamacpp import LlamaCppBackend
 from revibe.core.llm.backend.mistral import MistralBackend
 from revibe.core.llm.backend.ollama import OllamaBackend
@@ -26,4 +27,5 @@ BACKEND_FACTORY = {
     Backend.OPENROUTER: OpenRouterBackend,
     Backend.GEMINICLI: GeminicliBackend,
     Backend.OPENCODE: OpenCodeBackend,
+    Backend.KILOCODE: KiloCodeBackend,
 }
