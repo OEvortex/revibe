@@ -1,19 +1,21 @@
 /* ============================================================================
-   THOUGHT/REASONING MESSAGE STYLES - Modern Thinking UI Component
+   THOUGHT/REASONING UI - Modern Smooth Design
    ============================================================================
-   A polished, modern thought/reasoning display inspired by Gemini CLI and
-   Claude's thinking interface. Features smooth animations, clean typography,
-   and collapsible content.
+   Clean, modern thought display using VSCode-like theme variables.
+   Minimal, smooth, and integrates seamlessly with the rest of the UI.
 */
 
-/* Main container for the thought message */
+/* ============================================================================
+   MAIN CONTAINER
+   ============================================================================ */
+
 .reasoning-message {
     margin-top: 1;
     width: 100%;
     height: auto;
 }
 
-/* Card-like wrapper with accent border */
+/* Card wrapper - uses theme surface color */
 .reasoning-message-wrapper {
     width: 100%;
     height: auto;
@@ -23,7 +25,25 @@
     margin: 0;
 }
 
-/* Header row containing indicator, status text, and triangle */
+/* Active thinking state - accent color border */
+.reasoning-message-wrapper.thinking {
+    border-left: thick $warning;
+}
+
+/* Completed state - success color border */
+.reasoning-message-wrapper.completed {
+    border-left: thick $success;
+}
+
+/* Error state */
+.reasoning-message-wrapper.error {
+    border-left: thick $error;
+}
+
+/* ============================================================================
+   HEADER ROW
+   ============================================================================ */
+
 .reasoning-message-header {
     width: 100%;
     height: auto;
@@ -35,7 +55,7 @@
 .reasoning-indicator {
     width: auto;
     height: auto;
-    color: $accent;
+    color: $warning;
     margin-right: 1;
 }
 
@@ -47,7 +67,7 @@
     color: $error;
 }
 
-/* Status text (Thinking/Thought) */
+/* Status text */
 .reasoning-status-text {
     width: auto;
     height: auto;
@@ -55,15 +75,12 @@
     text-style: bold;
 }
 
-/* Legacy class name for backwards compatibility */
-.reasoning-collapsed-text {
-    width: auto;
-    height: auto;
-    color: $foreground;
-    text-style: bold;
+/* Completed status - changes to success color */
+.reasoning-message-wrapper.completed .reasoning-status-text {
+    color: $text-success;
 }
 
-/* Expand/collapse triangle indicator */
+/* Expand/collapse triangle */
 .reasoning-triangle {
     width: auto;
     height: auto;
@@ -71,7 +88,10 @@
     margin-left: 1;
 }
 
-/* Content area when expanded */
+/* ============================================================================
+   CONTENT AREA
+   ============================================================================ */
+
 .reasoning-message-content {
     width: 100%;
     height: auto;
@@ -81,12 +101,67 @@
     border-top: solid $surface-darken-1;
 }
 
-/* All content inside reasoning uses muted color */
+/* Muted text for thought content */
 .reasoning-message-content * {
     color: $text-muted;
 }
 
-/* Brain/Thinking icon (if used separately) */
+/* Code blocks within reasoning */
+.reasoning-message-content MarkdownFence {
+    background: $surface-darken-1;
+    padding: 1;
+    margin: 1 0;
+}
+
+/* Bullet points */
+.reasoning-message-content MarkdownBulletList {
+    margin: 0 0 0 2;
+    color: $text-muted;
+}
+
+/* Numbered lists */
+.reasoning-message-content MarkdownOrderedList {
+    margin: 0 0 0 2;
+    color: $text-muted;
+}
+
+/* Headers within thought */
+.reasoning-message-content MarkdownH1,
+.reasoning-message-content MarkdownH2,
+.reasoning-message-content MarkdownH3 {
+    color: $foreground;
+    text-style: bold;
+    margin: 1 0 0 0;
+}
+
+/* Links */
+.reasoning-message-content MarkdownLink {
+    color: $accent;
+    text-style: underline;
+}
+
+/* Inline code */
+.reasoning-message-content MarkdownInlineCode {
+    background: $surface-darken-1;
+    color: $foreground;
+}
+
+/* ============================================================================
+   COLLAPSED STATE
+   ============================================================================ */
+
+.reasoning-message.collapsed .reasoning-message-content {
+    display: none;
+}
+
+.reasoning-message.collapsed .reasoning-triangle {
+    color: $foreground-muted;
+}
+
+/* ============================================================================
+   LEGACY SUPPORT
+   ============================================================================ */
+
 .reasoning-icon {
     width: auto;
     height: auto;
@@ -102,183 +177,9 @@
     color: $error;
 }
 
-/* ============================================================================
-   THINKING PHASES / STEPS DISPLAY
-   ============================================================================
-   For showing structured thinking steps or phases like Claude's extended
-   thinking display.
-*/
-
-/* Container for thinking phases */
-.thinking-phases {
-    width: 100%;
-    height: auto;
-    padding: 0;
-    margin: 0 0 1 0;
-}
-
-/* Individual thinking phase/step */
-.thinking-phase {
-    width: 100%;
-    height: auto;
-    padding: 0 0 0 2;
-    margin: 0;
-}
-
-/* Phase header with icon and title */
-.thinking-phase-header {
-    width: 100%;
-    height: auto;
-    align: left middle;
-}
-
-/* Phase number/bullet indicator */
-.thinking-phase-bullet {
-    width: auto;
-    height: auto;
-    color: $accent;
-    margin-right: 1;
-}
-
-/* Phase title text */
-.thinking-phase-title {
+.reasoning-collapsed-text {
     width: auto;
     height: auto;
     color: $foreground;
     text-style: bold;
-}
-
-/* Phase content/description */
-.thinking-phase-content {
-    width: 100%;
-    height: auto;
-    padding: 0 0 0 2;
-    color: $text-muted;
-}
-
-/* ============================================================================
-   ANIMATED STATES
-   ============================================================================
-*/
-
-/* Active thinking state - subtle pulse effect via border color */
-.reasoning-message-wrapper.thinking {
-    border-left: thick $warning;
-}
-
-/* Completed thought state */
-.reasoning-message-wrapper.completed {
-    border-left: thick $success;
-}
-
-/* Error in thinking */
-.reasoning-message-wrapper.error {
-    border-left: thick $error;
-}
-
-/* ============================================================================
-   COLLAPSED/EXPANDED STATES
-   ============================================================================
-*/
-
-/* When collapsed, reduce visual prominence */
-.reasoning-message.collapsed .reasoning-message-content {
-    display: none;
-}
-
-.reasoning-message.collapsed .reasoning-triangle {
-    color: $text-muted;
-}
-
-/* When expanded, show full content */
-.reasoning-message.expanded .reasoning-triangle {
-    color: $accent;
-}
-
-/* ============================================================================
-   MARKDOWN CONTENT STYLING WITHIN THOUGHT
-   ============================================================================
-*/
-
-/* Code blocks within reasoning */
-.reasoning-message-content MarkdownFence {
-    background: $surface-darken-1;
-    padding: 1;
-    margin: 1 0;
-}
-
-/* Bullet points within reasoning */
-.reasoning-message-content MarkdownBulletList {
-    margin: 0 0 0 2;
-    color: $text-muted;
-}
-
-/* Numbered lists within reasoning */
-.reasoning-message-content MarkdownOrderedList {
-    margin: 0 0 0 2;
-    color: $text-muted;
-}
-
-/* Headers within reasoning (rare but supported) */
-.reasoning-message-content MarkdownH1,
-.reasoning-message-content MarkdownH2,
-.reasoning-message-content MarkdownH3 {
-    color: $text-muted;
-    text-style: bold;
-    margin: 1 0 0 0;
-}
-
-/* Links within reasoning */
-.reasoning-message-content MarkdownLink {
-    color: $accent;
-    text-style: underline;
-}
-
-/* Inline code within reasoning */
-.reasoning-message-content MarkdownInlineCode {
-    background: $surface-darken-1;
-    color: $text-muted;
-}
-
-/* ============================================================================
-   THINKING SUMMARY (compact view)
-   ============================================================================
-*/
-
-/* Compact summary shown when collapsed */
-.thinking-summary {
-    width: 100%;
-    height: auto;
-    color: $text-muted;
-    text-style: italic;
-    padding: 0 0 0 2;
-}
-
-/* Token/time count display */
-.thinking-stats {
-    width: auto;
-    height: auto;
-    color: $text-muted;
-    margin-left: 2;
-    text-style: italic;
-}
-
-/* ============================================================================
-   STREAM INDICATOR (for live thinking)
-   ============================================================================
-*/
-
-/* Blinking cursor for active stream */
-.thinking-cursor {
-    width: auto;
-    height: auto;
-    color: $accent;
-}
-
-/* Stream buffer indicator */
-.thinking-stream-indicator {
-    width: auto;
-    height: auto;
-    color: $text-muted;
-    text-style: italic;
 }
