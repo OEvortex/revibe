@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Enhanced Diff View TUI**: Completely redesigned diff display similar to `git diff` with modern features
+  - Created separate `diff.tcss` stylesheet (350 lines) for better organization and maintainability
+  - Dual line number columns (old | new) with visual separator like side-by-side diff
+  - Syntax highlighting for code content (Python, JavaScript keywords, strings, numbers, comments, operators)
+  - Color-coded backgrounds for additions (green `#1d3f1d`) and deletions (red `#3f1d1d`)
+  - Visual whitespace indicators (· for spaces, → for tabs) to help debug formatting issues
+  - Enhanced hunk headers with blue-tinted backgrounds (`@@ -x,y +a,b @@`)
+  - Support for file status indicators (new, deleted, renamed files)
+  - Word-level diff highlighting styles for inline changes
+  - Removed 85 lines of duplicate CSS from `app.tcss`
 - **Simplified Welcome Banner**: Completely redesigned welcome banner for better terminal compatibility
   - Reduced from 405 lines to 65 lines (84% reduction in code)
   - Removed complex animation system with color interpolation
@@ -17,6 +27,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Auto-adjusts size based on terminal dimensions using `height: auto`
   - Cleaner, more compact ASCII logo with version, model, and workspace info
   - Simplified TCSS from 120 lines to 20 lines (83% reduction)
+
+### Changed
+
+- **Search/Replace Tool Improvements**: Completely redesigned error messages and tool display for better UX
+  - **Tool Description**: Reduced from 360 to 280 characters with clearer, more concise format
+  - **Tool Call Display**: Now shows `Editing filename.py` or `Editing filename.py (3 changes)` instead of generic `Patch`
+  - **Result Display**: Shows line changes with `✓ Applied 2 changes (+15 lines)` instead of just block count
+  - **Error Messages**: Complete visual redesign with Unicode box drawing and emoji indicators
+    - Invalid format errors now show expected format in a visual box with common issues listed
+    - Search-not-found errors display:
+      - Visual search preview with whitespace indicators (· for space, → for tab)
+      - Context analysis showing where first line was found with line numbers
+      - Fuzzy match with similarity percentage (🟢 95%+, 🟡 90%+, 🟠 <90%)
+      - Side-by-side diff showing exact differences between search and file
+      - Actionable "How to fix" steps with specific guidance
+    - Line markers use Unicode (▶ for matched line, │ for context)
+  - **Warnings**: More concise format `⚠ Block 1: Found 3 matches, replacing first only`
+  - **Context Display**: Enhanced with better formatting, similarity indicators, and partial match suggestions
+- Updated `grok-code` model pricing to free (0.0 input/output) in model configuration
 
 ### Fixed
 
@@ -28,9 +57,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplified Thought widget to show only spinner animation without icon for cleaner UI
 - Fixed reasoning/thought sections being collapsed by default in TUI - they now expand automatically to show content immediately
 
-### Changed
-
-- Updated `grok-code` model pricing to free (0.0 input/output) in model configuration
 
 
 ## [0.2.1] - 2025-12-31

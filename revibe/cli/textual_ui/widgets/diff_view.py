@@ -232,17 +232,141 @@ def parse_search_replace_to_file_diff(
     )
 
 
+def get_syntax_style(token: str, token_type: str) -> Style:
+    """Get Rich Style for a given syntax token type."""
+    styles = {
+        "keyword": Style(color="#c678dd", bold=True),
+        "string": Style(color="#98c379"),
+        "number": Style(color="#d19a66"),
+        "comment": Style(color="#5c6370", italic=True),
+        "function": Style(color="#61afef"),
+        "class": Style(color="#e5c07b", bold=True),
+        "operator": Style(color="#56b6c2"),
+        "variable": Style(color="#e06c75"),
+        "decorator": Style(color="#c678dd"),
+        "builtin": Style(color="#e5c07b"),
+        "default": Style(color="#abb2bf"),
+    }
+    return styles.get(token_type, styles["default"])
+
+
+# Python keywords for syntax highlighting
+PYTHON_KEYWORDS = {
+    "def", "class", "if", "elif", "else", "for", "while", "try", "except",
+    "finally", "with", "as", "import", "from", "return", "yield", "raise",
+    "pass", "break", "continue", "in", "is", "not", "and", "or", "None",
+    "True", "False", "lambda", "async", "await", "global", "nonlocal",
+}
+
+JS_KEYWORDS = {
+    "function", "const", "let", "var", "if", "else", "for", "while", "do",
+    "switch", "case", "break", "continue", "return", "try", "catch", "finally",
+    "throw", "new", "class", "extends", "import", "export", "from", "default",
+    "async", "await", "yield", "this", "super", "null", "undefined", "true", "false",
+}
+
+
+def apply_simple_syntax_highlight(content: str, line_type: str) -> Text:
+    """Apply simple syntax highlighting to code content."""
+    text = Text()
+
+    # Base color based on line type
+    if line_type == "removed":
+        base_color = "#e06c75"
+    elif line_type == "added":
+        base_color = "#98c379"
+    else:
+        base_color = "#abb2bf"
+
+    # Simple tokenization for highlighting
+    i = 0
+    content_len = len(content)
+
+    while i < content_len:
+        char = content[i]
+
+        # String detection (single and double quotes)
+        if char in ('"', "'"):
+            quote = char
+            start = i
+            i += 1
+            while i < content_len and content[i] != quote:
+                if content[i] == '\\' and i + 1 < content_len:
+                    i += 2
+                else:
+                    i += 1
+            if i < content_len:
+                i += 1
+            string_text = content[start:i]
+            text.append(string_text, style=Style(color="#98c379"))
+            continue
+
+        # Comment detection (# for Python, // for JS/C++)
+        if char == '#' or (char == '/' and i + 1 < content_len and content[i + 1] == '/'):
+            comment_text = content[i:]
+            text.append(comment_text, style=Style(color="#5c6370", italic=True))
+            break
+
+        # Number detection
+        if char.isdigit():
+            start = i
+            while i < content_len and (content[i].isdigit() or content[i] in '.xXoObB'):
+                i += 1
+            number_text = content[start:i]
+            text.append(number_text, style=Style(color="#d19a66"))
+            continue
+
+        # Word detection (keywords, identifiers)
+        if char.isalpha() or char == '_':
+            start = i
+            while i < content_len and (content[i].isalnum() or content[i] == '_'):
+                i += 1
+            word = content[start:i]
+
+            # Check if it's a keyword
+            if word in PYTHON_KEYWORDS or word in JS_KEYWORDS:
+                text.append(word, style=Style(color="#c678dd", bold=True))
+            elif word[0].isupper():  # Likely a class name
+                text.append(word, style=Style(color="#e5c07b", bold=True))
+            else:
+                text.append(word, style=Style(color=base_color))
+            continue
+
+        # Operators
+        if char in '+-*/%=<>!&|^~':
+            text.append(char, style=Style(color="#56b6c2"))
+            i += 1
+            continue
+
+        # Default: regular character
+        text.append(char, style=Style(color=base_color))
+        i += 1
+
+    return text
+
+
 class DiffLineWidget(Static):
-    """Widget for rendering a single diff line with line numbers and colors."""
+    """Widget for rendering a single diff line with line numbers, colors, and syntax highlighting.
+
+    Features:
+    - Dual line numbers (old file | new file) like git diff
+    - Color-coded line indicators (+/-/ )
+    - Syntax highlighting for code content
+    - Background colors for additions/deletions
+    """
 
     def __init__(
         self,
         diff_line: DiffLine,
-        show_line_numbers: bool = True
+        show_line_numbers: bool = True,
+        enable_syntax_highlight: bool = True,
+        file_extension: str = ""
     ) -> None:
         super().__init__()
         self.diff_line = diff_line
         self.show_line_numbers = show_line_numbers
+        self.enable_syntax_highlight = enable_syntax_highlight
+        self.file_extension = file_extension
         self._set_classes()
 
     def _set_classes(self) -> None:
@@ -255,31 +379,55 @@ class DiffLineWidget(Static):
 
         if line.line_type == "range":
             # Range header like @@ -1,3 +1,4 @@
+            text.append("   ", style=Style(color="#5c6370", dim=True))  # Line number placeholder
             text.append(line.content, style=Style(color="#61afef", bold=True))
             return text
 
-        # Line number column
+        # Dual line number columns (old | new)
         if self.show_line_numbers:
             if line.line_type == "removed":
-                # Show old line number for removed lines
-                ln = str(line.line_number) if line.line_number else ""
-                text.append(f"{ln:>4} ", style=Style(color="#e06c75", dim=True))
-                text.append("- ", style=Style(color="#e06c75", bold=True))
+                # Show old line number, empty new line number
+                old_ln = str(line.old_line_number or line.line_number) if (line.old_line_number or line.line_number) else ""
+                text.append(f"{old_ln:>4}", style=Style(color="#e06c75", dim=True))
+                text.append(" │", style=Style(color="#3d3d3d"))
+                text.append("    ", style=Style(dim=True))  # Empty new line number
+                text.append(" ", style=Style(dim=True))
             elif line.line_type == "added":
-                ln = str(line.line_number) if line.line_number else ""
-                text.append(f"{ln:>4} ", style=Style(color="#98c379", dim=True))
-                text.append("+ ", style=Style(color="#98c379", bold=True))
+                # Empty old line number, show new line number
+                text.append("    ", style=Style(dim=True))  # Empty old line number
+                text.append(" │", style=Style(color="#3d3d3d"))
+                new_ln = str(line.line_number) if line.line_number else ""
+                text.append(f"{new_ln:>4}", style=Style(color="#98c379", dim=True))
+                text.append(" ", style=Style(dim=True))
             else:
-                ln = str(line.line_number) if line.line_number else ""
-                text.append(f"{ln:>4}   ", style=Style(color="#5c6370", dim=True))
+                # Context: show both line numbers
+                old_ln = str(line.old_line_number) if line.old_line_number else ""
+                new_ln = str(line.line_number) if line.line_number else ""
+                text.append(f"{old_ln:>4}", style=Style(color="#5c6370", dim=True))
+                text.append(" │", style=Style(color="#3d3d3d"))
+                text.append(f"{new_ln:>4}", style=Style(color="#5c6370", dim=True))
+                text.append(" ", style=Style(dim=True))
 
-        # Content
+        # Sign indicator (+/-/ )
         if line.line_type == "removed":
-            text.append(line.content, style=Style(color="#e06c75"))
+            text.append("- ", style=Style(color="#e06c75", bold=True))
         elif line.line_type == "added":
-            text.append(line.content, style=Style(color="#98c379"))
+            text.append("+ ", style=Style(color="#98c379", bold=True))
         else:
-            text.append(line.content, style=Style(color="#abb2bf"))
+            text.append("  ", style=Style(color="#5c6370"))
+
+        # Content with optional syntax highlighting
+        if self.enable_syntax_highlight and line.line_type in ("added", "removed", "context"):
+            highlighted = apply_simple_syntax_highlight(line.content, line.line_type)
+            text.append_text(highlighted)
+        else:
+            # Base color based on line type
+            if line.line_type == "removed":
+                text.append(line.content, style=Style(color="#e06c75"))
+            elif line.line_type == "added":
+                text.append(line.content, style=Style(color="#98c379"))
+            else:
+                text.append(line.content, style=Style(color="#abb2bf"))
 
         return text
 
@@ -352,49 +500,11 @@ class DiffViewWidget(Vertical):
     Complete diff view widget with header, hunks, and collapsible sections.
 
     Similar to the diff views in Gemini CLI and QwenCode TUIs.
-    """
-
-    DEFAULT_CSS = """
-    DiffViewWidget {
-        width: 100%;
-        height: auto;
-        padding: 0;
-        margin: 0;
-    }
-
-    .diff-header-widget {
-        height: auto;
-        padding: 0 0 1 0;
-    }
-
-    .diff-hunk {
-        height: auto;
-        padding: 0;
-        margin: 0;
-    }
-
-    .diff-line {
-        height: 1;
-        width: 100%;
-    }
-
-    .diff-line-removed {
-        background: #3d2020;
-    }
-
-    .diff-line-added {
-        background: #1e3d20;
-    }
-
-    .diff-line-context {
-        background: transparent;
-    }
-
-    .diff-line-range {
-        background: #2d3a4d;
-        padding: 0 1;
-        margin: 1 0;
-    }
+    Features:
+    - Line numbers on left side
+    - Color-coded additions (green) and deletions (red)
+    - Syntax highlighting for code
+    - Collapsible hunks for large diffs
     """
 
     def __init__(

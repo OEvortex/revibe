@@ -83,7 +83,7 @@ class BottomApp(StrEnum):
 # ruff: noqa: PLR0904
 class VibeApp(App):
     ENABLE_COMMAND_PALETTE = False
-    CSS_PATH = ["app.tcss", "welcome_banner.tcss"]
+    CSS_PATH = ["app.tcss", "welcome_banner.tcss", "diff.tcss"]
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("ctrl+c", "clear_quit", "Quit", show=False),

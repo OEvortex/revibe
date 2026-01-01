@@ -72,39 +72,56 @@ class SearchReplace(
     ToolUIData[SearchReplaceArgs, SearchReplaceResult],
 ):
     description: ClassVar[str] = (
-        "Edit existing files by replacing exact text matches using SEARCH/REPLACE blocks. "
-        "WORKFLOW: (1) Always call read_file first to see the exact file content. "
-        "(2) Copy the exact text you want to change from the file (preserving all spaces, tabs, indentation, newlines). "
-        "(3) Create a SEARCH/REPLACE block with that exact text. "
-        "CRITICAL: SEARCH text must match the file character-for-character - any whitespace difference will fail. "
-        "FORMAT: Use 7 delimiters: <<<<<<< SEARCH\\n[exact_text_from_file]\\n=======\\n[replacement_text]\\n>>>>>>> REPLACE. "
-        "TIPS: Keep SEARCH minimal but unique. Multiple blocks execute sequentially. Only first occurrence is replaced. "
-        "ERRORS: Read error messages carefully - they show fuzzy matches and exact differences to help you fix mismatches."
+        "Make targeted edits to a file using SEARCH/REPLACE blocks. "
+        "WORKFLOW: 1) Read file first with read_file  2) Copy EXACT text to change  3) Create SEARCH/REPLACE block. "
+        "FORMAT: <<<<<<< SEARCH\\n[exact_text]\\n=======\\n[new_text]\\n>>>>>>> REPLACE. "
+        "RULES: SEARCH must match file exactly (whitespace matters). Multiple blocks run in order. First match only."
     )
 
     @classmethod
     def get_call_display(cls, event: ToolCallEvent) -> ToolCallDisplay:
         if not isinstance(event.args, SearchReplaceArgs):
-            return ToolCallDisplay(summary="Patch")
+            return ToolCallDisplay(summary="Editing file")
 
-        path = Path(event.args.file_path).name
-        summary = f"Patch ({path})"
+        path = Path(event.args.file_path)
+        # Count blocks in content
+        content = event.args.content
+        block_count = content.count("SEARCH") if content else 0
+
+        # More descriptive summary
+        if block_count > 1:
+            summary = f"Editing {path.name} ({block_count} changes)"
+        else:
+            summary = f"Editing {path.name}"
+
         return ToolCallDisplay(summary=summary, content=event.args.content)
 
     @classmethod
     def get_result_display(cls, event: ToolResultEvent) -> ToolResultDisplay:
         if isinstance(event.result, SearchReplaceResult):
+            blocks = event.result.blocks_applied
+            lines = event.result.lines_changed
+
+            # Build a more informative message
+            if blocks == 1:
+                msg = f"✓ Applied 1 change"
+            else:
+                msg = f"✓ Applied {blocks} changes"
+
+            if lines != 0:
+                msg += f" ({'+' if lines > 0 else ''}{lines} lines)"
+
             return ToolResultDisplay(
                 success=True,
-                message=f"Applied {event.result.blocks_applied} block{'' if event.result.blocks_applied == 1 else 's'}",
+                message=msg,
                 warnings=event.result.warnings,
             )
 
-        return ToolResultDisplay(success=True, message="Patch applied")
+        return ToolResultDisplay(success=True, message="✓ File edited")
 
     @classmethod
     def get_status_text(cls) -> str:
-        return "Editing files"
+        return "Editing file"
 
     @final
     async def run(self, args: SearchReplaceArgs) -> SearchReplaceResult:
@@ -120,13 +137,15 @@ class SearchReplace(
         )
 
         if block_result.errors:
-            error_message = "SEARCH/REPLACE blocks failed:\n" + "\n\n".join(
-                block_result.errors
-            )
+            # Build a clear, actionable error message
+            error_header = f"❌ Failed to edit {file_path.name}\n"
+            error_details = "\n" + "─" * 50 + "\n".join(block_result.errors)
+
+            error_message = error_header + error_details
+
             if block_result.warnings:
-                error_message += "\n\nWarnings encountered:\n" + "\n".join(
-                    block_result.warnings
-                )
+                error_message += "\n\n⚠ Warnings:\n" + "\n".join(block_result.warnings)
+
             raise ToolError(error_message)
 
         modified_content = block_result.content
@@ -188,14 +207,24 @@ class SearchReplace(
 
         search_replace_blocks = self._parse_search_replace_blocks(content)
         if not search_replace_blocks:
+            # Provide helpful error with the actual content received
+            content_preview = content[:200] + "..." if len(content) > 200 else content
             raise ToolError(
-                "No valid SEARCH/REPLACE blocks found in content.\n"
-                "Expected format:\n"
-                "<<<<<<< SEARCH\n"
-                "[exact content to find]\n"
-                "=======\n"
-                "[new content to replace with]\n"
-                ">>>>>>> REPLACE"
+                f"❌ Invalid SEARCH/REPLACE format\n\n"
+                f"Could not parse any valid blocks from content.\n\n"
+                f"Expected format:\n"
+                f"┌─────────────────────────────────\n"
+                f"│ <<<<<<< SEARCH\n"
+                f"│ [exact text from file]\n"
+                f"│ =======\n"
+                f"│ [replacement text]\n"
+                f"│ >>>>>>> REPLACE\n"
+                f"└─────────────────────────────────\n\n"
+                f"Received content:\n{content_preview}\n\n"
+                f"Common issues:\n"
+                f"• Missing/wrong delimiters (need 7+ chars: <<<<<<< not <<<<<)\n"
+                f"• Missing ======= separator between search and replace\n"
+                f"• Content wrapped in extra formatting"
             )
 
         return file_path, search_replace_blocks
@@ -240,26 +269,46 @@ class SearchReplace(
 
         for i, (search, replace) in enumerate(blocks, 1):
             if search not in current_content:
+                # Find helpful context for debugging
                 context = SearchReplace._find_search_context(current_content, search)
                 fuzzy_context = SearchReplace._find_fuzzy_match_context(
                     current_content, search, fuzzy_threshold
                 )
 
+                # Build clear, visual error message
+                search_preview = search[:300] + "..." if len(search) > 300 else search
+                search_lines = search.count('\n') + 1
+
                 error_msg = (
-                    f"SEARCH/REPLACE block {i} failed: Search text not found in {filepath}\n"
-                    f"Search text was:\n{search!r}\n"
-                    f"Context analysis:\n{context}"
+                    f"\n╭─ Block {i} Failed ─────────────────────────────────\n"
+                    f"│ Could not find SEARCH text in {filepath.name}\n"
+                    f"╰──────────────────────────────────────────────────────\n\n"
                 )
 
-                if fuzzy_context:
-                    error_msg += f"\n{fuzzy_context}"
-
+                # Show what was searched for
                 error_msg += (
-                    "\nDebugging tips:\n"
-                    "1. Check for exact whitespace/indentation match\n"
-                    "2. Verify line endings match the file exactly (\\r\\n vs \\n)\n"
-                    "3. Ensure the search text hasn't been modified by previous blocks or user edits\n"
-                    "4. Check for typos or case sensitivity issues"
+                    f"🔍 Looking for ({search_lines} lines):\n"
+                    f"┌──────────────────────────────────────\n"
+                )
+                for line in search_preview.split('\n'):
+                    # Show whitespace visually
+                    visible_line = line.replace(' ', '·').replace('\t', '→   ')
+                    error_msg += f"│ {visible_line}\n"
+                error_msg += f"└──────────────────────────────────────\n\n"
+
+                # Add context analysis
+                error_msg += f"📍 Context Analysis:\n{context}\n"
+
+                if fuzzy_context:
+                    error_msg += f"\n{fuzzy_context}\n"
+
+                # Actionable fixes
+                error_msg += (
+                    "\n💡 How to fix:\n"
+                    "  1. Run read_file first to see the EXACT current content\n"
+                    "  2. Copy the text directly - don't retype it\n"
+                    "  3. Whitespace must match exactly (spaces ≠ tabs, · = space, → = tab)\n"
+                    "  4. Check if a previous block already changed this text"
                 )
 
                 errors.append(error_msg)
@@ -268,9 +317,8 @@ class SearchReplace(
             occurrences = current_content.count(search)
             if occurrences > 1:
                 warning_msg = (
-                    f"Search text in block {i} appears {occurrences} times in the file. "
-                    f"Only the first occurrence will be replaced. Consider making your "
-                    f"search pattern more specific to avoid unintended changes."
+                    f"⚠ Block {i}: Found {occurrences} matches, replacing first only. "
+                    f"Add more context to target specific occurrence."
                 )
                 warnings.append(warning_msg)
 
@@ -294,15 +342,25 @@ class SearchReplace(
             return None
 
         diff = SearchReplace._create_unified_diff(
-            search_text, best_match.text, "SEARCH", "CLOSEST MATCH"
+            search_text, best_match.text, "YOUR SEARCH", "ACTUAL FILE"
         )
 
         similarity_pct = best_match.similarity * 100
 
+        # Visual similarity indicator
+        if similarity_pct >= 95:
+            match_quality = "🟢 Very close"
+        elif similarity_pct >= 90:
+            match_quality = "🟡 Close"
+        else:
+            match_quality = "🟠 Partial"
+
         return (
-            f"Closest fuzzy match (similarity {similarity_pct:.1f}%) "
-            f"at lines {best_match.start_line}–{best_match.end_line}:\n"
-            f"```diff\n{diff}\n```"
+            f"🔄 {match_quality} match found ({similarity_pct:.0f}% similar) at lines {best_match.start_line}-{best_match.end_line}:\n\n"
+            f"Differences between your SEARCH and actual file content:\n"
+            f"(- = your search, + = actual file)\n"
+            f"```diff\n{diff}\n```\n"
+            f"💡 Copy the text from the '+' lines above to fix your SEARCH block."
         )
 
     @final
@@ -413,34 +471,68 @@ class SearchReplace(
     @final
     @staticmethod
     def _find_search_context(
-        content: str, search_text: str, max_context: int = 5
+        content: str, search_text: str, max_context: int = 3
     ) -> str:
         lines = content.split("\n")
         search_lines = search_text.split("\n")
 
         if not search_lines:
-            return "Search text is empty"
+            return "❌ Search text is empty"
 
         first_search_line = search_lines[0].strip()
         if not first_search_line:
-            return "First line of search text is empty or whitespace only"
+            return "❌ First line of search text is empty or whitespace-only"
 
+        # Find potential matches for the first line
         matches = []
         for i, line in enumerate(lines):
             if first_search_line in line:
                 matches.append(i)
 
         if not matches:
-            return f"First search line '{first_search_line}' not found anywhere in file"
+            # Try to find similar lines
+            first_words = first_search_line.split()[:3]
+            if first_words:
+                partial_matches = []
+                for i, line in enumerate(lines):
+                    if any(word in line for word in first_words):
+                        partial_matches.append(i)
 
+                if partial_matches:
+                    result = f"❌ Exact first line not found.\n\n"
+                    result += f"Looking for: \"{first_search_line[:60]}{'...' if len(first_search_line) > 60 else ''}\"\n\n"
+                    result += f"Similar lines found at:\n"
+                    for idx in partial_matches[:3]:
+                        result += f"  Line {idx + 1}: {lines[idx][:70]}{'...' if len(lines[idx]) > 70 else ''}\n"
+                    return result
+
+            return f"❌ First line of search not found anywhere in file:\n   \"{first_search_line[:80]}{'...' if len(first_search_line) > 80 else ''}\""
+
+        # Show where the first line WAS found
         context_lines = []
-        for match_idx in matches[:3]:
+        found_count = len(matches)
+
+        if found_count == 1:
+            context_lines.append(f"✓ First line found at line {matches[0] + 1}, but full block doesn't match.")
+        else:
+            context_lines.append(f"✓ First line found {found_count} times (lines: {', '.join(str(m+1) for m in matches[:5])}{'...' if found_count > 5 else ''})")
+
+        context_lines.append("\nShowing context where first line appears:\n")
+
+        for match_idx in matches[:2]:  # Show max 2 potential locations
             start = max(0, match_idx - max_context)
             end = min(len(lines), match_idx + max_context + 1)
 
-            context_lines.append(f"\nPotential match area around line {match_idx + 1}:")
+            context_lines.append(f"┌─ Around line {match_idx + 1} ─────────────────────────")
             for i in range(start, end):
-                marker = ">>>" if i == match_idx else "   "
-                context_lines.append(f"{marker} {i + 1:3d}: {lines[i]}")
+                if i == match_idx:
+                    marker = "▶"
+                    style = ""
+                else:
+                    marker = "│"
+                    style = ""
+                line_content = lines[i][:80] + ("..." if len(lines[i]) > 80 else "")
+                context_lines.append(f"{marker} {i + 1:4d} │ {line_content}")
+            context_lines.append("└────────────────────────────────────────────")
 
         return "\n".join(context_lines)
