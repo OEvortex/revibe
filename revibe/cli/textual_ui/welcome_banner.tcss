@@ -1,0 +1,22 @@
+/* Responsive welcome banner - takes max 40% of terminal height */
+WelcomeBanner {
+    width: 100%;
+    height: auto;
+    max-height: 40vh;
+    min-height: 8;
+
+    /* Alignment */
+    text-align: center;
+    content-align: center middle;
+
+    /* Spacing */
+    padding: 1 2;
+    margin: 0 0 1 0;
+
+    /* Colors */
+    color: #FFFFFF;
+    background: transparent;
+
+    /* No border - cleaner look */
+    border: none;
+}

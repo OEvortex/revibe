@@ -92,7 +92,7 @@ class StreamingMessageBase(Static):
         new_displayed = self._process_content_for_display(self._content)
 
         if len(new_displayed) > len(self._displayed_content):
-            # Append new content to stream
+            # Append new content to stream - MarkdownStream handles flushing
             diff = new_displayed[len(self._displayed_content) :]
             stream = self._ensure_stream()
             await stream.write(diff)
@@ -105,7 +105,6 @@ class StreamingMessageBase(Static):
             if self._markdown:
                 await self._markdown.update("")
             self._displayed_content = ""
-            # Recursively update with the now empty displayed content
             await self._update_display()
 
     def _process_content_for_display(self, content: str) -> str:
@@ -145,33 +144,52 @@ class AssistantMessage(StreamingMessageBase):
 
 
 class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
-    SPINNER_TYPE = SpinnerType.LINE
+    """Modern reasoning/thought display with smooth animations.
+
+    Features:
+    - Animated spinner indicator
+    - Collapsible content
+    - Modern minimal design
+    """
+
+    SPINNER_TYPE = SpinnerType.BRAILLE
     SPINNING_TEXT = "Thinking"
     COMPLETED_TEXT = "Thought"
+    COMPLETED_ICON = "✓"
 
-    def __init__(self, content: str, collapsed: bool = True) -> None:
+    def __init__(self, content: str, collapsed: bool = False) -> None:
         super().__init__(content)
         self.add_class("reasoning-message")
         self.collapsed = collapsed
         self._indicator_widget: Static | None = None
         self._triangle_widget: Static | None = None
+        self._status_text_widget: Static | None = None
+        self._is_complete = False
+        self._thinking_duration: float | None = None
         self.init_spinner()
 
     def compose(self) -> ComposeResult:
         with Vertical(classes="reasoning-message-wrapper"):
             with Horizontal(classes="reasoning-message-header"):
+                # Animated spinner
                 self._indicator_widget = NonSelectableStatic(
                     self._spinner.current_frame(), classes="reasoning-indicator"
                 )
                 yield self._indicator_widget
+
+                # Status text
                 self._status_text_widget = Static(
-                    self.SPINNING_TEXT, markup=False, classes="reasoning-collapsed-text"
+                    self.SPINNING_TEXT, markup=False, classes="reasoning-status-text"
                 )
                 yield self._status_text_widget
+
+                # Expand/collapse triangle
                 self._triangle_widget = NonSelectableStatic(
-                    "▶" if self.collapsed else "▼", classes="reasoning-triangle"
+                    "▼" if not self.collapsed else "▶", classes="reasoning-triangle"
                 )
                 yield self._triangle_widget
+
+            # Content area with thought content
             markdown = Markdown("", classes="reasoning-message-content")
             markdown.display = not self.collapsed
             self._markdown = markdown
@@ -179,6 +197,10 @@ class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
 
     def on_mount(self) -> None:
         self.start_spinner_timer()
+        # Add thinking class for animation
+        wrapper = self.query_one(".reasoning-message-wrapper")
+        if wrapper:
+            wrapper.add_class("thinking")
 
     async def on_click(self) -> None:
         await self._toggle_collapsed()
@@ -194,8 +216,17 @@ class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
             return
 
         self.collapsed = collapsed
+
+        # Update triangle direction
         if self._triangle_widget:
             self._triangle_widget.update("▶" if collapsed else "▼")
+
+        # Update collapsed class
+        if collapsed:
+            self.add_class("collapsed")
+        else:
+            self.remove_class("collapsed")
+
         if self._markdown:
             self._markdown.display = not collapsed
             if not collapsed and self._content:
@@ -205,6 +236,53 @@ class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
                 await self._markdown.update("")
                 self._displayed_content = ""
                 await self._update_display()
+
+    def set_thinking_duration(self, duration: float) -> None:
+        """Set the thinking duration (in seconds)."""
+        self._thinking_duration = duration
+        self._update_status_text()
+
+    def _update_status_text(self) -> None:
+        """Update status text with duration if available."""
+        if not self._status_text_widget:
+            return
+
+        status_text = self.COMPLETED_TEXT if self._is_complete else self.SPINNING_TEXT
+
+        if self._thinking_duration is not None and self._is_complete:
+            # Format duration similar to tool execution time display
+            status_text = f"{self.COMPLETED_TEXT} ({self._thinking_duration:.1f}s)"
+
+        self._status_text_widget.update(status_text)
+
+    def stop_spinning(self, success: bool = True) -> None:
+        """Override to update status and styling when complete, then auto-collapse."""
+        super().stop_spinning(success)
+        self._is_complete = True
+
+        # Update status text with duration if available
+        self._update_status_text()
+
+        # Update indicator to checkmark
+        if self._indicator_widget:
+            self._indicator_widget.update(self.COMPLETED_ICON)
+            self._indicator_widget.add_class("success")
+
+        # Update wrapper styling
+        try:
+            wrapper = self.query_one(".reasoning-message-wrapper")
+            if wrapper:
+                wrapper.remove_class("thinking")
+                wrapper.add_class("completed")
+        except Exception:
+            pass
+
+        # Auto-collapse after a short delay to let user see the completion
+        self.call_later(self._auto_collapse)
+
+    async def _auto_collapse(self) -> None:
+        """Auto-collapse the thought when thinking is complete."""
+        await self.set_collapsed(True)
 
     def _process_content_for_display(self, content: str) -> str:
         return redact_xml_tool_calls(content)

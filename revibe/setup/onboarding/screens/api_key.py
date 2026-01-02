@@ -105,14 +105,41 @@ class ApiKeyScreen(OnboardingScreen):
     def on_show(self) -> None:
         """Reload config when screen becomes visible to pick up saved provider selection."""
         config = self._load_config()
-        active_model = config.get_active_model()
-        self.provider = config.get_provider_for_model(active_model)
+
+        # Try to get active_provider first (new setup flow), fallback to active_model (existing flow)
+        active_provider = getattr(config, 'active_provider', None)
+
+        if active_provider:
+            # New flow: provider is saved directly
+            for provider in config.providers:
+                if provider.name == active_provider:
+                    self.provider = provider
+                    break
+            else:
+                # Fallback to DEFAULT_PROVIDERS if not in config
+                for provider in DEFAULT_PROVIDERS:
+                    if provider.name == active_provider:
+                        self.provider = provider
+                        break
+        else:
+            # Existing flow: try to get provider from model
+            try:
+                active_model = config.get_active_model()
+                self.provider = config.get_provider_for_model(active_model)
+            except (ValueError, KeyError):
+                # If model lookup fails, try to find provider by name
+                if hasattr(config, 'active_model') and "-" in config.active_model:
+                    provider_name = config.active_model.split("-")[0]
+                    for provider in config.providers:
+                        if provider.name == provider_name:
+                            self.provider = provider
+                            break
 
     def _compose_provider_link(self, provider_name: str) -> ComposeResult:
-        if not self.provider or self.provider.name not in PROVIDER_HELP:
+        if not self.provider or getattr(self.provider, "name", "") not in PROVIDER_HELP:
             return
 
-        help_url, help_name = PROVIDER_HELP[self.provider.name]
+        help_url, help_name = PROVIDER_HELP[getattr(self.provider, "name", "")]
         yield Static(f"Grab your {provider_name} API key from the {help_name}:")
         yield Center(
             Horizontal(
@@ -133,24 +160,108 @@ class ApiKeyScreen(OnboardingScreen):
     def _compose_no_api_key_content(self) -> ComposeResult:
         if not self.provider:
             return
-        yield Static(
-            f"{self.provider.name.capitalize()} does not require an API key.",
-            id="no-api-key-message",
-        )
-        if self.provider.name == "qwencode":
+        provider_name = getattr(self.provider, 'name', '')
+
+        if provider_name == "antigravity":
+            # Check if already authenticated
+            from revibe.core.llm.backend.antigravity.types import get_antigravity_credential_path
+            cred_path = get_antigravity_credential_path()
+            if cred_path.exists():
+                yield Static(
+                    "[green]✓[/] Antigravity is already authenticated!",
+                    id="no-api-key-message",
+                )
+                yield Static(
+                    f"Credentials saved at: {cred_path}",
+                    id="antigravity-cred-path",
+                    classes="subtle",
+                )
+                yield Center(
+                    Button(
+                        "Re-authenticate with Google",
+                        id="antigravity-auth-button",
+                        variant="default",
+                    )
+                )
+            else:
+                yield Static(
+                    "Antigravity uses Google OAuth for authentication.",
+                    id="no-api-key-message",
+                )
+                yield Static(
+                    "Click the button below to open your browser and sign in with Google.",
+                    id="antigravity-instructions",
+                    classes="subtle",
+                )
+                yield Center(
+                    Button(
+                        "🔐 Sign in with Google",
+                        id="antigravity-auth-button",
+                        variant="success",
+                        classes="primary-action",
+                    )
+                )
+        elif provider_name == "qwencode":
+            yield Static(
+                f"{provider_name.capitalize()} does not require an API key.",
+                id="no-api-key-message",
+            )
             yield Static(
                 "Please install qwen-code if not installed: `npm install -g @qwen-code/qwen-code@latest`\n"
                 "then use `/auth` in qwen to authenticate, then you can close qwen and use qwencode provider in ReVibe",
                 id="qwen-instructions",
             )
+        elif provider_name == "geminicli":
+            yield Static(
+                f"{provider_name.capitalize()} does not require an API key.",
+                id="no-api-key-message",
+            )
+            yield Static(
+                "Please install gemini CLI: `npm install -g @anthropic-ai/gemini@latest`\n"
+                "then use `gemini auth login` to authenticate.",
+                id="geminicli-instructions",
+            )
+        else:
+            yield Static(
+                f"{provider_name.capitalize()} does not require an API key.",
+                id="no-api-key-message",
+            )
         yield Static("", id="feedback")
+
 
     def compose(self) -> ComposeResult:
         # Ensure provider is loaded (in case on_show hasn't been called yet)
         if self.provider is None:
             config = self._load_config()
-            active_model = config.get_active_model()
-            self.provider = config.get_provider_for_model(active_model)
+
+            # Try to get active_provider first (new setup flow), fallback to active_model (existing flow)
+            active_provider = getattr(config, 'active_provider', None)
+
+            if active_provider:
+                # New flow: provider is saved directly
+                for provider in config.providers:
+                    if provider.name == active_provider:
+                        self.provider = provider
+                        break
+                else:
+                    # Fallback to DEFAULT_PROVIDERS if not in config
+                    for provider in DEFAULT_PROVIDERS:
+                        if provider.name == active_provider:
+                            self.provider = provider
+                            break
+            else:
+                # Existing flow: try to get provider from model
+                try:
+                    active_model = config.get_active_model()
+                    self.provider = config.get_provider_for_model(active_model)
+                except (ValueError, KeyError):
+                    # If model lookup fails, try to find provider by name
+                    if hasattr(config, 'active_model') and "-" in config.active_model:
+                        provider_name = config.active_model.split("-")[0]
+                        for provider in config.providers:
+                            if provider.name == provider_name:
+                                self.provider = provider
+                                break
 
         # Skip API key input for providers that don't require it
         if not getattr(self.provider, "api_key_env_var", ""):
@@ -163,7 +274,7 @@ class ApiKeyScreen(OnboardingScreen):
                 yield Static("", classes="spacer")
             return
 
-        env_key = self.provider.api_key_env_var
+        env_key = getattr(self.provider, "api_key_env_var", "")
         existing_key = os.getenv(env_key)
         if existing_key:
             # Show detected key UI
@@ -180,7 +291,7 @@ class ApiKeyScreen(OnboardingScreen):
                 yield Center(Static("API Key Detected", id="api-key-title"))
                 yield Center(
                     Static(
-                        f"{self.provider.name.capitalize()} is already connected",
+                        f"{getattr(self.provider, 'name', '').capitalize()} is already connected",
                         classes="lede",
                     )
                 )
@@ -237,7 +348,7 @@ class ApiKeyScreen(OnboardingScreen):
             with Center():
                 with Vertical(id="api-key-content", classes="card"):
                     yield from self._compose_provider_link(
-                        self.provider.name.capitalize()
+                        getattr(self.provider, 'name', '').capitalize()
                     )
                     yield Static(f"Env variable: {env_key}", classes="pill code")
                     yield Static(
@@ -323,7 +434,7 @@ class ApiKeyScreen(OnboardingScreen):
     def _save_and_finish(self, api_key: str) -> None:
         if not self.provider:
             return
-        env_key = self.provider.api_key_env_var
+        env_key = getattr(self.provider, "api_key_env_var", "")
         os.environ[env_key] = api_key
         try:
             _save_api_key_to_env_file(env_key, api_key)
@@ -335,6 +446,80 @@ class ApiKeyScreen(OnboardingScreen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "continue-button":
             self.app.exit("completed")
+        elif event.button.id == "antigravity-auth-button":
+            self._run_antigravity_auth()
+
+    def _run_antigravity_auth(self) -> None:
+        """Run Antigravity OAuth authentication in a background thread."""
+        import asyncio
+        import threading
+
+        feedback = self.query_one("#feedback", Static)
+        button = self.query_one("#antigravity-auth-button", Button)
+
+        # Disable button and show loading state
+        button.disabled = True
+        button.label = "Opening browser..."
+        feedback.update("[dim]Please complete the authentication in your browser...[/]")
+
+        def run_auth():
+            """Run the async OAuth flow."""
+            try:
+                from revibe.core.llm.backend.antigravity.oauth import AntigravityOAuthManager
+
+                oauth_manager = AntigravityOAuthManager()
+
+                # Run the async authenticate method
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    credentials = loop.run_until_complete(oauth_manager.authenticate())
+                    # Post success to main thread
+                    self.app.call_from_thread(self._on_auth_success, credentials)
+                except Exception as e:
+                    # Post error to main thread
+                    self.app.call_from_thread(self._on_auth_error, str(e))
+                finally:
+                    loop.close()
+            except Exception as e:
+                self.app.call_from_thread(self._on_auth_error, str(e))
+
+        # Run in background thread
+        thread = threading.Thread(target=run_auth, daemon=True)
+        thread.start()
+
+    def _on_auth_success(self, credentials) -> None:
+        """Called when OAuth authentication succeeds."""
+        feedback = self.query_one("#feedback", Static)
+        feedback.update(f"[green]✓ Authenticated as: {credentials.email or 'Unknown'}[/]")
+        feedback.add_class("success")
+
+        # Update button to show success
+        try:
+            button = self.query_one("#antigravity-auth-button", Button)
+            button.label = "✓ Authenticated"
+            button.variant = "success"
+            button.disabled = False
+        except Exception:
+            pass
+
+        # Auto-complete after a brief delay
+        self.set_timer(1.5, lambda: self.app.exit("completed"))
+
+    def _on_auth_error(self, error: str) -> None:
+        """Called when OAuth authentication fails."""
+        feedback = self.query_one("#feedback", Static)
+        feedback.update(f"[red]Authentication failed: {error}[/]")
+        feedback.add_class("error")
+
+        # Re-enable button
+        try:
+            button = self.query_one("#antigravity-auth-button", Button)
+            button.disabled = False
+            button.label = "🔐 Try Again"
+        except Exception:
+            pass
 
     def action_finish(self) -> None:
         self.app.exit("completed")
+

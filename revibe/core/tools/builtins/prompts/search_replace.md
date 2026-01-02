@@ -1,59 +1,89 @@
-# Search & Replace Tool – Structured File Editing
+# search_replace - File Editor
 
-Use `search_replace` for deterministic file edits. Provide one or more SEARCH/REPLACE blocks that exactly match the existing content. The tool validates each block and reports precise errors if the search text is missing or ambiguous.
+## CRITICAL RULES
+
+1. **ALWAYS read_file FIRST** - You MUST see the exact file content before editing
+2. **EXACT MATCH REQUIRED** - Every space, tab, newline must match exactly
+3. **USE PROPER FORMAT** - Follow the delimiter pattern precisely
+
+## Format
+
+```
+<<<<<<< SEARCH
+[exact text from file - copy it EXACTLY]
+=======
+[new text to replace with]
+>>>>>>> REPLACE
+```
+
+- Use **7 or more** `<`, `=`, `>` characters
+- Whitespace matters - copy spaces/tabs exactly as they appear
+- Multiple blocks execute sequentially
 
 ## Arguments
-- `file_path` *(str)* – Target file (relative or absolute within project).
-- `content` *(str)* – Concatenated SEARCH/REPLACE blocks.
 
-## Block Format
-```
-<<<<<<< SEARCH
-<exact text to replace>
-=======
-<new text>
->>>>>>> REPLACE
-```
-- Use at least five `<`/`=`/`>` characters (already enforced by tool regexes).
-- Multiple blocks can be stacked in a single `content` payload; they execute sequentially.
-- Blocks may be wrapped in fenced code blocks ```…```; both styles are accepted.
+- `file_path` - File to edit (required)
+- `content` - SEARCH/REPLACE blocks (required)
 
-## Guarantees & Behavior
-- **Exact match required:** Whitespace, indentation, and newlines must align with the file.
-- **Single replacement per block:** If the search text appears multiple times, only the **first** occurrence is replaced and a warning is emitted so you can disambiguate later.
-- **Fuzzy diagnostics:** If no exact match is found, the tool surfaces nearby context and a diff of the closest match to help you adjust the block.
-- **Safety rails:**
-  - Rejects empty file paths or content.
-  - Enforces `max_content_size` (default 100 KB).
-  - Can create backups when `create_backup=True` in config.
+## Example Workflow
 
-## Workflow Tips
-1. **Inspect first** – Always call `read_file` to capture the current text before crafting blocks.
-2. **Keep blocks tight** – Include only the code you need to change plus sufficient neighboring lines to ensure uniqueness.
-3. **One concern per block** – Separate unrelated edits into different blocks for clearer diffs and easier retries.
-4. **Order matters** – Later blocks operate on the already-modified content from earlier blocks.
-5. **Line endings** – Ensure your block uses the same `\n`/`\r\n` style as the file.
-
-## Example Payload
 ```python
-search_replace(
-  file_path="revibe/core/tools/base.py",
-  content="""
-<<<<<<< SEARCH
-class ToolError(Exception):
-    """Raised when the tool encounters an unrecoverable problem."""
-=======
-class ToolError(Exception):
-    """Raised when a tool encounters an unrecoverable problem."""
->>>>>>> REPLACE
+# 1. Read file to see content
+read_file(path="config.py")
 
+# 2. Edit with exact match from file
+search_replace(
+    file_path="config.py",
+    content="""
 <<<<<<< SEARCH
-ARGS_COUNT = 4
+TIMEOUT = 30
 =======
-ARGS_COUNT = 4  # (<ToolArgs, ToolResult, ToolConfig, ToolState>)
+TIMEOUT = 60
 >>>>>>> REPLACE
 """
 )
 ```
 
-If a block fails, the exception message includes troubleshooting hints. Adjust the block and retry until all intended replacements succeed.
+## Multiple Edits
+
+```python
+search_replace(
+    file_path="utils.py",
+    content="""
+<<<<<<< SEARCH
+def old_func():
+    pass
+=======
+def new_func():
+    return True
+>>>>>>> REPLACE
+
+<<<<<<< SEARCH
+VERSION = "1.0"
+=======
+VERSION = "2.0"
+>>>>>>> REPLACE
+"""
+)
+```
+
+## Common Errors
+
+| Error | Solution |
+|-------|----------|
+| "Search text not found" | Read the file first, copy text EXACTLY |
+| Wrong indentation | Use spaces/tabs exactly as in file |
+| Whitespace mismatch | Check for trailing spaces, line endings |
+| Multiple matches | Add more context to make search unique |
+
+## Tips
+
+- **Keep SEARCH minimal** - Only include enough to be unique
+- **Preserve indentation** - Copy spaces/tabs exactly
+- **Read errors carefully** - Fuzzy match suggestions show what's close
+- **One edit at a time** - Don't guess, verify with read_file
+
+## DO NOT Use bash for Editing
+
+❌ Never use `sed`, `awk`, `echo >`, or shell commands for file editing
+✅ Always use this tool - it's safer and gives better error messages

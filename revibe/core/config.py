@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import sys
 import tomllib
 from typing import Annotated, Any, Literal
 
@@ -137,6 +138,10 @@ class Backend(StrEnum):
     QWEN = auto()
     OPENROUTER = auto()
     GEMINICLI = auto()
+    OPENCODE = auto()
+    KILOCODE = auto()
+    ANTIGRAVITY = auto()
+    CHUTES = auto()
 
 
 class ToolFormat(StrEnum):
@@ -201,6 +206,25 @@ class GeminicliProviderConfig(_ProviderBase):
     backend: Literal[Backend.GEMINICLI] = Backend.GEMINICLI
 
 
+class OpenCodeProviderConfig(_ProviderBase):
+    backend: Literal[Backend.OPENCODE] = Backend.OPENCODE
+    api_style: str = "opencode"
+
+
+class KiloCodeProviderConfig(_ProviderBase):
+    backend: Literal[Backend.KILOCODE] = Backend.KILOCODE
+    api_style: str = "openai"
+
+
+class AntigravityProviderConfig(_ProviderBase):
+    backend: Literal[Backend.ANTIGRAVITY] = Backend.ANTIGRAVITY
+    api_style: str = "antigravity"
+
+
+class ChutesProviderConfig(_ProviderBase):
+    backend: Literal[Backend.CHUTES] = Backend.CHUTES
+
+
 ProviderConfigUnion = Annotated[
     MistralProviderConfig
     | OpenAIProviderConfig
@@ -212,8 +236,12 @@ ProviderConfigUnion = Annotated[
     | GenericProviderConfig
     | QwenProviderConfig
     | OpenRouterProviderConfig
-    | GeminicliProviderConfig,
-    Field(discriminator="backend"),
+    | GeminicliProviderConfig
+    | OpenCodeProviderConfig
+    | KiloCodeProviderConfig
+    | AntigravityProviderConfig
+    | ChutesProviderConfig,
+    Field(discriminator="backend")
 ]
 
 
@@ -351,11 +379,32 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
         api_base="",  # Uses Gemini CLI endpoints
         api_key_env_var="",
     ),
+    OpenCodeProviderConfig(
+        name="opencode",
+        api_base="https://opencode.ai/zen/v1",
+        api_key_env_var="OPENCODE_API_KEY",
+    ),
+    KiloCodeProviderConfig(
+        name="kilocode",
+        api_base="https://api.kilo.ai/api/openrouter",
+        api_key_env_var="KILOCODE_API_KEY",
+    ),
+    AntigravityProviderConfig(
+        name="antigravity",
+        api_base="",  # Uses Antigravity endpoints
+        api_key_env_var="",  # Uses OAuth authentication
+    ),
+    ChutesProviderConfig(
+        name="chutes",
+        api_base="https://llm.chutes.ai/v1",
+        api_key_env_var="CHUTES_API_KEY",
+    ),
 ]
 
 
 class VibeConfig(BaseSettings):
     active_model: str = "devstral-2"
+    active_provider: str | None = None
     textual_theme: str = "terminal"
     vim_keybindings: bool = False
     disable_welcome_banner_animation: bool = False
@@ -468,7 +517,8 @@ class VibeConfig(BaseSettings):
             providers_map[p.name] = p
         for p in self.providers:
             p_name = p.name if not isinstance(p, dict) else p.get("name")
-            providers_map[p_name] = p
+            if p_name is not None:
+                providers_map[p_name] = p
 
         m_provider = (
             model.provider if isinstance(model, ModelConfig) else model.get("provider")
@@ -515,29 +565,56 @@ class VibeConfig(BaseSettings):
     @model_validator(mode="after")
     def _check_api_key(self) -> VibeConfig:
         try:
-            active_model = self.get_active_model()
-            provider = self.get_provider_for_model(active_model)
-            api_key_env = provider.api_key_env_var
-            if api_key_env and not os.getenv(api_key_env):
-                raise MissingAPIKeyError(api_key_env, provider.name)
-        except ValueError:
-            pass
+            # If we have active_provider, use that instead of trying to get provider from model
+            if self.active_provider:
+                # Find the provider by name
+                provider = None
+                for p in self.providers:
+                    if p.name == self.active_provider:
+                        provider = p
+                        break
+
+                if provider and provider.api_key_env_var and not os.getenv(provider.api_key_env_var):
+                    raise MissingAPIKeyError(provider.api_key_env_var, provider.name)
+            else:
+                # Fallback to model-based lookup for compatibility
+                active_model = self.get_active_model()
+                provider = self.get_provider_for_model(active_model)
+                api_key_env = provider.api_key_env_var
+                if api_key_env and not os.getenv(api_key_env):
+                    raise MissingAPIKeyError(api_key_env, provider.name)
+        except (ValueError, MissingAPIKeyError):
+            # Re-raise MissingAPIKeyError, pass ValueError for missing models
+            if isinstance(sys.exc_info()[1], MissingAPIKeyError):
+                raise
         return self
 
     @model_validator(mode="after")
     def _check_api_backend_compatibility(self) -> VibeConfig:
         try:
-            active_model = self.get_active_model()
-            provider = self.get_provider_for_model(active_model)
-            MISTRAL_API_BASES = [
-                "https://codestral.mistral.ai",
-                "https://api.mistral.ai",
-            ]
-            is_mistral_api = any(
-                provider.api_base.startswith(api_base) for api_base in MISTRAL_API_BASES
-            )
-            if is_mistral_api and provider.backend != Backend.MISTRAL:
-                raise WrongBackendError(provider.backend, is_mistral_api)
+            # If we have active_provider, use that instead of trying to get provider from model
+            if self.active_provider:
+                # Find the provider by name
+                provider = None
+                for p in self.providers:
+                    if p.name == self.active_provider:
+                        provider = p
+                        break
+            else:
+                # Fallback to model-based lookup for compatibility
+                active_model = self.get_active_model()
+                provider = self.get_provider_for_model(active_model)
+
+            if provider:
+                MISTRAL_API_BASES = [
+                    "https://codestral.mistral.ai",
+                    "https://api.mistral.ai",
+                ]
+                is_mistral_api = any(
+                    provider.api_base.startswith(api_base) for api_base in MISTRAL_API_BASES
+                )
+                if is_mistral_api and provider.backend != Backend.MISTRAL:
+                    raise WrongBackendError(provider.backend, is_mistral_api)
 
         except ValueError:
             pass

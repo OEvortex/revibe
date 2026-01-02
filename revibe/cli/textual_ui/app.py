@@ -83,7 +83,7 @@ class BottomApp(StrEnum):
 # ruff: noqa: PLR0904
 class VibeApp(App):
     ENABLE_COMMAND_PALETTE = False
-    CSS_PATH = "app.tcss"
+    CSS_PATH = ["app.tcss", "welcome_banner.tcss", "diff.tcss", "thought.tcss", "input.tcss"]
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("ctrl+c", "clear_quit", "Quit", show=False),
@@ -135,6 +135,7 @@ class VibeApp(App):
 
         self._tools_collapsed = True
         self._todos_collapsed = False
+        self._reasoning_collapsed = False
         self._current_streaming_message: AssistantMessage | None = None
         self._current_streaming_reasoning: ReasoningMessage | None = None
         self._version_update_notifier = version_update_notifier
@@ -196,6 +197,7 @@ class VibeApp(App):
             todo_area_callback=lambda: self.query_one("#todo-area"),
             get_tools_collapsed=lambda: self._tools_collapsed,
             get_todos_collapsed=lambda: self._todos_collapsed,
+            get_reasoning_collapsed=lambda: self._reasoning_collapsed,
         )
 
         self._chat_input_container = self.query_one(ChatInputContainer)

@@ -31,14 +31,17 @@ class EventHandler:
         todo_area_callback: Callable,
         get_tools_collapsed: Callable[[], bool],
         get_todos_collapsed: Callable[[], bool],
+        get_reasoning_collapsed: Callable[[], bool],
     ) -> None:
         self.mount_callback = mount_callback
         self.scroll_callback = scroll_callback
         self.todo_area_callback = todo_area_callback
         self.get_tools_collapsed = get_tools_collapsed
         self.get_todos_collapsed = get_todos_collapsed
+        self.get_reasoning_collapsed = get_reasoning_collapsed
         self.current_tool_call: ToolCallMessage | None = None
         self.current_compact: CompactMessage | None = None
+        self.current_reasoning: ReasoningMessage | None = None
 
     async def handle_event(
         self,
@@ -124,10 +127,24 @@ class EventHandler:
         await self.mount_callback(AssistantMessage(event.content))
 
     async def _handle_reasoning_message(self, event: ReasoningEvent) -> None:
-        tools_collapsed = self.get_tools_collapsed()
-        await self.mount_callback(
-            ReasoningMessage(event.content, collapsed=tools_collapsed)
-        )
+        # If this has content, handle the streaming display
+        if event.content:
+            # If this is the start of new thinking (no current widget exists)
+            if self.current_reasoning is None:
+                # Always start expanded so user can see thinking in progress
+                reasoning_msg = ReasoningMessage(event.content, collapsed=False)
+                self.current_reasoning = reasoning_msg
+                await self.mount_callback(reasoning_msg)
+            else:
+                # Append content to existing reasoning message
+                await self.current_reasoning.append_content(event.content)
+
+        # If thinking is complete (duration provided), update widget and stop tracking
+        if event.duration is not None:
+            if self.current_reasoning:
+                self.current_reasoning.set_thinking_duration(event.duration)
+                self.current_reasoning.stop_spinning()
+            self.current_reasoning = None
 
     async def _handle_compact_start(self) -> None:
         compact_msg = CompactMessage()

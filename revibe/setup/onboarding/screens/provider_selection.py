@@ -110,21 +110,14 @@ class ProviderSelectionScreen(OnboardingScreen):
 
     def action_select(self) -> None:
         selected = self._providers[self._provider_index]
-        # Find a model for this provider
-        config = VibeConfig.model_construct()
-        matching_models = [m for m in config.models if m.provider == selected.name]
-        if not matching_models:
-            # If no models found for this provider, still proceed but don't save
-            self.action_next()
-            return
 
-        model_alias = matching_models[0].alias
+        # Save active_provider
+        updates = {"active_provider": selected.name}
+
         try:
-            VibeConfig.save_updates({"active_model": model_alias})
+            VibeConfig.save_updates(updates)
         except OSError as e:
             # Log the error but don't fail silently - this is critical for setup
             from rich import print as rprint
-
             rprint(f"[yellow]Warning: Could not save provider selection: {e}[/]")
-            # Continue anyway - the API key screen will handle the mismatch
         self.action_next()

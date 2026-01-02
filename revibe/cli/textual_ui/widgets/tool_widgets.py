@@ -8,6 +8,12 @@ from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Markdown, Static
 
+from revibe.cli.textual_ui.widgets.diff_view import (
+    create_diff_view_from_search_replace,
+    DiffHeaderWidget,
+    DiffLineWidget,
+    DiffLine,
+)
 from revibe.cli.textual_ui.widgets.utils import DEFAULT_TOOL_SHORTCUT, TOOL_SHORTCUTS
 from revibe.core.tools.builtins.bash import BashArgs, BashResult
 from revibe.core.tools.builtins.grep import GrepArgs, GrepResult
@@ -198,14 +204,13 @@ class WriteFileResultWidget(ToolResultWidget[WriteFileResult]):
 
 class SearchReplaceApprovalWidget(ToolApprovalWidget[SearchReplaceArgs]):
     def compose(self) -> ComposeResult:
-        yield Static(
-            f"File: {self.args.file_path}", markup=False, classes="approval-description"
+        # Use the enhanced diff view
+        yield create_diff_view_from_search_replace(
+            content=self.args.content,
+            file_path=self.args.file_path,
+            action="Edit",
+            collapsed=False
         )
-        yield Static("")
-
-        diff_lines = parse_search_replace_to_diff(self.args.content)
-        for line in diff_lines:
-            yield render_diff_line(line)
 
 
 class SearchReplaceResultWidget(ToolResultWidget[SearchReplaceResult]):
@@ -213,25 +218,18 @@ class SearchReplaceResultWidget(ToolResultWidget[SearchReplaceResult]):
         yield from self._header()
         if self.collapsed or not self.result:
             return
-        yield Static(
-            f"File: {self.result.file}", markup=False, classes="tool-result-detail"
-        )
-        yield Static(
-            f"Blocks applied: {self.result.blocks_applied}",
-            markup=False,
-            classes="tool-result-detail",
-        )
-        yield Static(
-            f"Lines changed: {self.result.lines_changed}",
-            markup=False,
-            classes="tool-result-detail",
-        )
+
         for warning in self.result.warnings:
             yield Static(f"⚠ {warning}", markup=False, classes="tool-result-warning")
+
         if self.result.content:
-            yield Static("")
-            for line in parse_search_replace_to_diff(self.result.content):
-                yield render_diff_line(line)
+            # Use the enhanced diff view
+            yield create_diff_view_from_search_replace(
+                content=self.result.content,
+                file_path=self.result.file,
+                action="Edit",
+                collapsed=False
+            )
 
 
 class TodoApprovalWidget(ToolApprovalWidget[TodoArgs]):

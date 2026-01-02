@@ -5,11 +5,141 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-01-02
+
+### Added
+
+- **Enhanced Diff View TUI**: Completely redesigned diff display similar to `git diff` with modern features
+  - Created separate `diff.tcss` stylesheet (350 lines) for better organization and maintainability
+  - Dual line number columns (old | new) with visual separator like side-by-side diff
+  - Syntax highlighting for code content (Python, JavaScript keywords, strings, numbers, comments, operators)
+  - Color-coded backgrounds for additions (green `#1d3f1d`) and deletions (red `#3f1d1d`)
+  - Visual whitespace indicators (· for spaces, → for tabs) to help debug formatting issues
+  - Enhanced hunk headers with blue-tinted backgrounds (`@@ -x,y +a,b @@`)
+  - Support for file status indicators (new, deleted, renamed files)
+  - Word-level diff highlighting styles for inline changes
+  - Removed 85 lines of duplicate CSS from `app.tcss`
+- **Thought/Reasoning UI Refactor**: Modern, polished thinking display with real-time streaming
+  - Created separate `thought.tcss` stylesheet (~180 lines) using VSCode/Textual theme variables
+  - **Auto-expand/collapse behavior**: Expands automatically during thinking, auto-collapses when complete
+  - **Theme integration**: Uses `$surface`, `$accent`, `$warning`, `$success`, `$text-muted` for consistent theming
+  - **Modern minimal design**: Removed emoji icons, simplified to just spinner + status + toggle
+  - **Visual states**: Purple border during thinking, green when complete, red for errors
+  - **Smooth transitions**: Natural collapsible content with proper layout updates
+  - **Markdown support**: Code blocks, lists, headers styled within thought content
+  - Removed ~95 lines of reasoning styles from `app.tcss`
+- **Modern Input Box UI**: Completely redesigned input area with premium styling
+  - Created separate `input.tcss` stylesheet for better organization
+  - Left accent border style matching the thought panel design
+  - Surface background for subtle elevation from main area
+  - Dynamic safety state colors (green for safe, yellow for warning, red for YOLO)
+  - Focus states with accent color transitions
+  - Improved prompt symbol styling with mode-specific colors
+  - Better padding and spacing for comfortable user experience
+- **Redesigned Mode Indicator**: Modern text-based design matching Claude/Gemini CLI aesthetics
+  - Changed from colored badge to simple text style: `⏵ default mode (shift+tab to cycle)`
+  - Positioned on the right side above input box
+  - Color changes based on mode (muted for default, colored for other modes)
+  - Cleaner, more professional appearance
+- **Improved Bottom Status Bar**: Better visibility for path and token information
+  - Surface background for visual separation
+  - Added proper spacing between path display and token counter
+  - Bold styling for path display
+  - Muted color for token count
+- **Simplified Welcome Banner**: Completely redesigned welcome banner for better terminal compatibility
+  - Reduced from 405 lines to 65 lines (84% reduction in code)
+  - Removed complex animation system with color interpolation
+  - Removed border frame drawing logic
+  - Now uses responsive `max-height: 40vh` CSS to cap banner at 40% of terminal height
+  - Auto-adjusts size based on terminal dimensions using `height: auto`
+  - Cleaner, more compact ASCII logo with version, model, and workspace info
+  - Simplified TCSS from 120 lines to 20 lines (83% reduction)
+- **KiloCode Provider Integration**: Added support for Kilo Code API with specialized coding models
+  - Created `KiloCodeBackend` inheriting from `OpenAIBackend` with custom header injection
+  - Added 5 free Kilo Code models: x-ai/grok-code-fast-1, mistralai/devstral-2512:free, kwaipilot/kat-coder-pro:free, minimax/minimax-m2:free, mistralai/devstral-small-2512:free
+  - Automatic injection of required Kilo Code headers (X-KiloCode-Version, HTTP-Referer, X-Title, User-Agent)
+  - Full integration with provider selector, model configuration, and backend factory
+  - Uses `KILOCODE_API_KEY` environment variable for authentication
+- **Antigravity Provider Integration**: New backend for accessing Claude and Gemini models via Google OAuth
+  - Created `AntigravityBackend` with full OAuth2 PKCE authentication flow
+  - Browser-based Google login with automatic token refresh and local credential storage (`~/.antigravity/oauth_creds.json`)
+  - Supports 10 models including Claude Sonnet 4.5, Claude Opus 4.5 (with thinking variants), and Gemini 3 series
+  - Available models:
+    - `antigravity-claude-sonnet-4-5` - Claude Sonnet 4.5 (200K context)
+    - `antigravity-claude-sonnet-thinking-low/medium/high` - Claude Sonnet with thinking (16K-64K output)
+    - `antigravity-claude-opus-thinking-low/medium/high` - Claude Opus with thinking (16K-64K output)
+    - `antigravity-gemini-3-flash` - Gemini 3 Flash (1M context)
+    - `antigravity-gemini-3-pro-low/high` - Gemini 3 Pro variants (1M context)
+  - Integrated OAuth flow in onboarding `--setup` with "Sign in with Google" button
+  - Streaming and non-streaming support with SSE parsing
+  - Native tool calls and thinking/reasoning content support
+  - Automatic retry on 401/403 authentication errors with token refresh
+- **Chutes Provider Integration**: Added support for Chutes AI API with 14 high-performance models
+  - Created `ChutesBackend` inheriting from `OpenAIBackend` for full OpenAI compatibility
+  - Added `ChutesProviderConfig` with base URL `https://llm.chutes.ai/v1` and `CHUTES_API_KEY` environment variable
+  - Full integration with provider selector, model configuration, and backend factory
+  - Available models with TEE (Trusted Execution Environment) security:
+    - `qwen3-235b` - Qwen 235B model (262K context, $0.08/$0.55 per M)
+    - `glm-4.7` - GLM 4.7 model (203K context, $0.40/$1.50 per M)
+    - `gpt-oss-120b` - OpenAI OSS 120B model (131K context, $0.04/$0.18 per M)
+    - `glm-4.6` - GLM 4.6 model (203K context, $0.35/$1.50 per M)
+    - `deepseek-r1` - DeepSeek R1 model (164K context, $0.40/$1.75 per M)
+    - `tng-r1t-chimera` - TNG R1T Chimera model (164K context, $0.25/$0.85 per M)
+    - `deepseek-v3.1` - DeepSeek V3.1 model (164K context, $0.20/$0.80 per M)
+    - `deepseek-v3.1-terminus` - DeepSeek V3.1 Terminus model (164K context, $0.23/$0.90 per M)
+    - `kimi-k2-thinking` - Kimi K2 Thinking model (262K context, $0.40/$1.75 per M)
+    - `deepseek-r1-full` - DeepSeek R1 full model (164K context, $0.30/$1.20 per M)
+    - `minimax-m2.1` - MiniMax M2.1 model (197K context, $0.30/$1.20 per M)
+    - `qwen3-coder-480b` - Qwen3 Coder 480B model (262K context, $0.22/$0.95 per M)
+    - `glm-4.5` - GLM 4.5 model (131K context, $0.35/$1.55 per M)
+    - `deepseek-v3.2-speciale` - DeepSeek V3.2 Speciale model (164K context, $0.27/$0.41 per M)
+  - All models support JSON mode, structured outputs, tools, and most support reasoning
+  - Confidential compute (TEE) available on most models for enhanced security
+
+
+### Changed
+
+- **Search/Replace Tool Improvements**: Completely redesigned error messages and tool display for better UX
+  - **Tool Description**: Reduced from 360 to 280 characters with clearer, more concise format
+  - **Tool Call Display**: Now shows `Editing filename.py` or `Editing filename.py (3 changes)` instead of generic `Patch`
+  - **Result Display**: Shows line changes with `✓ Applied 2 changes (+15 lines)` instead of just block count
+  - **Error Messages**: Complete visual redesign with Unicode box drawing and emoji indicators
+    - Invalid format errors now show expected format in a visual box with common issues listed
+    - Search-not-found errors display:
+      - Visual search preview with whitespace indicators (· for space, → for tab)
+      - Context analysis showing where first line was found with line numbers
+      - Fuzzy match with similarity percentage (🟢 95%+, 🟡 90%+, 🟠 <90%)
+      - Side-by-side diff showing exact differences between search and file
+      - Actionable "How to fix" steps with specific guidance
+    - Line markers use Unicode (▶ for matched line, │ for context)
+  - **Warnings**: More concise format `⚠ Block 1: Found 3 matches, replacing first only`
+  - **Context Display**: Enhanced with better formatting, similarity indicators, and partial match suggestions
+- **Real-time Streaming**: Reduced agent batch size from 5 to 1 for immediate character-by-character streaming
+  - Content now appears instantly as it arrives, like `print(c, end="", flush=True)`
+  - No more waiting for batched chunks - smooth, natural streaming experience
+- Updated `grok-code` model pricing to free (0.0 input/output) in model configuration
+
+### Fixed
+
+- **OpenCode Backend**: Fixed `'openai'` KeyError when using OpenCode provider
+  - Set `api_style = "opencode"` in `OpenCodeProviderConfig` to match registered adapter
+  - Removed hardcoded `list_models()` method from OpenCode backend
+- **Thought UI improvements**:
+  - Removed brain emoji for cleaner, more professional appearance
+  - Fixed thought panel to always expand during thinking (previously could start collapsed)
+  - Added auto-collapse on completion for clean conversation flow
+  - Thinking panel now properly uses theme colors instead of hardcoded values
+- Fixed duplicate tick display in Thought reasoning widget by removing redundant icon widget update
+- Cleaned up `SpinnerMixin.stop_spinning()` to prevent duplicate completion indicators
+
+
+
 ## [0.2.1] - 2025-12-31
 
 ### Added
 
 - Added multiple OpenRouter provider models to DEFAULT_MODELS, exposing a wide range of external models for easy selection and usage:
+
   - minimax/minimax-m2.1 (205K context) — $0.30/M input, $1.20/M output
   - z-ai/glm-4.7 (203K context) — $0.40/M input, $1.50/M output
   - google/gemini-3-flash-preview (1.05M context) — $0.50/M input, $3/M output, $1/M audio tokens
@@ -102,11 +232,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added `redact_xml_tool_calls(text)` utility in `revibe/core/utils.py` to remove raw `<tool_call>...<tool_call>` blocks from assistant output stream
   - Refactored `StreamingMessageBase` in `revibe/cli/textual_ui/widgets/messages.py` to track `_displayed_content` for smart UI updates
   - Enhanced premium tool summaries in chat history:
-    * Find now shows as `Find (pattern)` instead of `grep: 'pattern'`
-    * Bash now shows as `Bash (command)` instead of raw command string
-    * Read File now shows as `Read (filename)` with cleaner summary
-    * Write File now shows as `Write (filename)`
-    * Search & Replace now shows as `Patch (filename)`
+    - Find now shows as `Find (pattern)` instead of `grep: 'pattern'`
+    - Bash now shows as `Bash (command)` instead of raw command string
+    - Read File now shows as `Read (filename)` with cleaner summary
+    - Write File now shows as `Write (filename)`
+    - Search & Replace now shows as `Patch (filename)`
   - Applied redaction logic to `ReasoningMessage` in `revibe/cli/textual_ui/widgets/messages.py` to hide raw XML in reasoning blocks
 - Model alias validation now allows same aliases for different providers while maintaining uniqueness within each provider.
 

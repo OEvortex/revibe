@@ -15,9 +15,9 @@ Screen {
     height: auto;
     width: 100%;
     background: $background;
-    padding: 1 0 0 0;
+    padding: 0 2 0 0;
     layout: horizontal;
-    align: left middle;
+    align: right middle;
 }
 
 #loading-area-content {
@@ -62,10 +62,11 @@ Screen {
 #bottom-bar {
     height: auto;
     width: 100%;
-    background: $background;
-    padding: 0 0 1 0;
+    background: $surface;
+    padding: 0 2 0 2;
     align: left middle;
     layout: horizontal;
+    margin-top: 1;
 }
 
 #spacer {
@@ -83,67 +84,7 @@ Screen {
     margin-bottom: 0;
 }
 
-#input-container {
-    height: auto;
-    width: 100%;
-    background: $background;
-    padding: 0;
-    margin: 0;
-}
-
-#completion-popup {
-    width: 100%;
-    padding: 1 1 1 1;
-    color: $text;
-}
-
-#input-box {
-    height: auto;
-    width: 100%;
-    background: $background;
-    border-top: solid $foreground-muted;
-    border-bottom: solid $foreground-muted;
-    padding: 0 1;
-
-    &.border-warning {
-        border-top: solid $warning;
-        border-bottom: solid $warning;
-    }
-
-    &.border-safe {
-        border-top: solid $success;
-        border-bottom: solid $success;
-    }
-
-    &.border-error {
-        border-top: solid $error;
-        border-bottom: solid $error;
-    }
-}
-
-#input-body {
-    height: auto;
-}
-
-#prompt {
-    width: auto;
-    background: transparent;
-    color: $primary;
-    text-style: bold;
-    padding: 0 1 0 0;
-}
-
-#input {
-    width: 1fr;
-    height: auto;
-    max-height: 16;
-    background: transparent;
-    color: $text;
-    border: none;
-    padding: 0;
-    scrollbar-size: 0 0;
-    scrollbar-visibility: hidden;
-}
+/* Input box styles are now in input.tcss */
 
 ToastRack {
     align: left bottom;
@@ -232,66 +173,7 @@ Markdown MarkdownFence {
     margin-bottom: 0;
 }
 
-.reasoning-message {
-    margin-top: 1;
-    width: 100%;
-    height: auto;
-}
-
-.reasoning-message-wrapper {
-    width: 100%;
-    height: auto;
-}
-
-.reasoning-message-header {
-    width: 100%;
-    height: auto;
-}
-
-.reasoning-indicator {
-    width: auto;
-    height: auto;
-    color: $text-muted;
-    margin-right: 1;
-
-    &.success {
-        color: $text-success;
-    }
-}
-
-.reasoning-collapsed-text {
-    width: auto;
-    height: auto;
-    color: $text-muted;
-    text-style: italic;
-}
-
-.reasoning-triangle {
-    width: auto;
-    height: auto;
-    color: $text-muted;
-    text-style: italic;
-    margin-left: 1;
-}
-
-.reasoning-message-content {
-    width: 100%;
-    height: auto;
-    padding: 0;
-    padding-left: 2;
-    margin: 0;
-    color: $text-muted;
-    text-style: italic;
-}
-
-.reasoning-message-content * {
-    color: $text-muted;
-    text-style: italic;
-}
-
-.reasoning-message-content > *:last-child {
-    margin-bottom: 0;
-}
+/* Thought/Reasoning styles are now in thought.tcss */
 
 .interrupt-message {
     margin-top: 0;
@@ -601,31 +483,7 @@ StatusMessage {
     color: $text-warning;
 }
 
-.diff-header {
-    height: auto;
-    color: $text-muted;
-    text-style: bold;
-}
-
-.diff-removed {
-    height: auto;
-    color: $text-error;
-}
-
-.diff-added {
-    height: auto;
-    color: $text-success;
-}
-
-.diff-range {
-    height: auto;
-    color: $primary;
-}
-
-.diff-context {
-    height: auto;
-    color: $text-muted;
-}
+/* Diff styles are now in diff.tcss */
 
 .todo-empty {
     height: auto;
@@ -693,22 +551,6 @@ StatusMessage {
     width: auto;
     height: auto;
     color: $foreground;
-}
-
-WelcomeBanner {
-    width: 100%;
-    height: auto;
-    border: round $surface;
-    border-title-align: center;
-    text-align: center;
-    content-align: center middle;
-    padding: 2 0;
-    margin: 1 0 0 0;
-    color: $foreground;
-
-    .muted {
-        color: $text-muted;
-    }
 }
 
 #config-app {
@@ -951,48 +793,55 @@ ExpandingBorder {
 
 ModeIndicator {
     width: auto;
-    height: 1;
-    background: $surface;
-    padding: 0;
-    margin: 0 1;
-    text-style: bold;
-    align: center middle;
+    height: auto;
+    background: transparent;
+    padding: 0 2;
+    margin: 0;
+    text-style: none;
+    align: right middle;
+    border: none;
+    color: $text-muted;
 }
 
 ModeIndicator.mode-safe {
-    background: $success;
-    color: $text;
+    background: transparent;
+    color: $success;
+    border: none;
 }
 
 ModeIndicator.mode-neutral {
-    background: $primary;
-    color: $text;
+    background: transparent;
+    color: $text-muted;
+    border: none;
 }
 
 ModeIndicator.mode-destructive {
-    background: $warning;
-    color: $text;
+    background: transparent;
+    color: $warning;
+    border: none;
 }
 
 ModeIndicator.mode-yolo {
-    background: $error;
-    color: $text;
+    background: transparent;
+    color: $error;
+    border: none;
 }
 
 PathDisplay {
     width: auto;
     height: auto;
     background: transparent;
-    padding: 0;
+    padding: 0 2 0 0;
     margin: 0;
     color: $primary;
+    text-style: bold;
 }
 
 ContextProgress {
     width: auto;
     height: auto;
     background: transparent;
-    padding: 0;
+    padding: 0 0 0 2;
     margin: 0;
-    color: $foreground;
+    color: $text-muted;
 }
