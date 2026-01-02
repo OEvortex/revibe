@@ -1,63 +1,82 @@
-# Read File Tool – XML Format Guide
+# Read File Tool – XML Format
 
-`read_file` is the safest way to inspect file contents. It streams UTF-8 text with size guards.
+Read the contents of a text file using XML tool call format.
 
-## XML Tool Call Format
+## Required Parameter
+
+**`path`** - **REQUIRED**. The file path to read. You MUST include this parameter.
+
+## XML Format
 
 ```xml
 <tool_call>
 <tool_name>read_file</tool_name>
 <parameters>
-<path>path/to/file</path>
-<offset>0</offset>
+<path>YOUR_FILE_PATH_HERE</path>
+</parameters>
+</tool_call>
+```
+
+## Examples
+
+### Basic file read (path is REQUIRED)
+```xml
+<tool_call>
+<tool_name>read_file</tool_name>
+<parameters>
+<path>pyproject.toml</path>
+</parameters>
+</tool_call>
+```
+
+### Read specific line range
+```xml
+<tool_call>
+<tool_name>read_file</tool_name>
+<parameters>
+<path>src/main.py</path>
+<offset>50</offset>
 <limit>100</limit>
 </parameters>
 </tool_call>
 ```
 
-## Parameters
-- `path` *(required)* – Relative or absolute file path
-- `offset` *(optional, default 0)* – 0-based line to start reading from
-- `limit` *(optional)* – Maximum lines to return
-
-## Output
-- `content` – Raw text chunk
-- `lines_read` – Number of lines returned
-- `was_truncated` – `True` if more content remains
-
-## Example XML Calls
-
+### Read from a specific offset
 ```xml
-<!-- Read entire file -->
 <tool_call>
 <tool_name>read_file</tool_name>
 <parameters>
-<path>revibe/core/agent.py</path>
-</parameters>
-</tool_call>
-
-<!-- Read specific line range -->
-<tool_call>
-<tool_name>read_file</tool_name>
-<parameters>
-<path>src/service.py</path>
-<offset>120</offset>
-<limit>80</limit>
-</parameters>
-</tool_call>
-
-<!-- Paged reading for large files -->
-<tool_call>
-<tool_name>read_file</tool_name>
-<parameters>
-<path>logs/run.log</path>
-<offset>0</offset>
-<limit>500</limit>
+<path>logs/app.log</path>
+<offset>200</offset>
 </parameters>
 </tool_call>
 ```
 
-## Best Practices
-- Always inspect a file with `read_file` before modifying it
-- Set `offset`/`limit` to keep responses concise
-- If `was_truncated` is true, continue reading with updated offset
+## Parameters
+
+| Parameter | Required | Type | Description |
+|-----------|----------|------|-------------|
+| `path` | **YES** | string | File path to read |
+| `offset` | No | integer | Start line (0-indexed), default: 0 |
+| `limit` | No | integer | Max lines to return |
+
+## Common Mistakes
+
+❌ **WRONG** - Missing path:
+```xml
+<tool_call>
+<tool_name>read_file</tool_name>
+<parameters>
+</parameters>
+</tool_call>
+```
+
+✅ **CORRECT** - Always include path:
+```xml
+<tool_call>
+<tool_name>read_file</tool_name>
+<parameters>
+<path>README.md</path>
+</parameters>
+</tool_call>
+```

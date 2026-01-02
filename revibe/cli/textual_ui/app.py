@@ -392,7 +392,59 @@ class VibeApp(App):
     ) -> None:
         model_alias = message.model_alias
         model_name = message.model_name
-        provider = message.provider
+        provider_name = message.provider
+
+        # Find the provider config to check for API key requirement
+        from revibe.core.config import DEFAULT_PROVIDERS
+        import os
+
+        providers_map: dict[str, ProviderConfigUnion] = {}
+        for p in DEFAULT_PROVIDERS:
+            providers_map[p.name] = p
+        for p in self.config.providers:
+            providers_map[p.name] = p
+
+        provider = providers_map.get(provider_name)
+
+        # Check if API key is required and missing
+        if provider and provider.api_key_env_var and not os.getenv(provider.api_key_env_var):
+            # Save the model selection first
+            try:
+                existing_aliases = {m.alias for m in self.config.models}
+                if model_alias not in existing_aliases:
+                    from revibe.core.config import ModelConfig
+
+                    models_list = [
+                        m.model_dump(mode="json", exclude_none=True)
+                        for m in self.config.models
+                    ]
+                    new_model = ModelConfig(
+                        name=model_name, provider=provider_name, alias=model_alias
+                    )
+                    models_list.append(new_model.model_dump(mode="json", exclude_none=True))
+
+                    VibeConfig.save_updates({
+                        "models": models_list,
+                        "active_model": model_alias,
+                    })
+                else:
+                    VibeConfig.save_updates({"active_model": model_alias})
+            except Exception as e:
+                await self._mount_and_scroll(
+                    ErrorMessage(f"Failed to persist model selection: {e}")
+                )
+                await self._switch_to_input_app()
+                return
+
+            # Prompt user to enter API key
+            await self._mount_and_scroll(
+                WarningMessage(
+                    f"API key required for {provider_name}. "
+                    f"Please enter your {provider.api_key_env_var}."
+                )
+            )
+            await self._switch_to_api_key_input(provider)
+            return
 
         # Persist the model if it's not already present in configuration
         try:
@@ -405,7 +457,7 @@ class VibeApp(App):
                     for m in self.config.models
                 ]
                 new_model = ModelConfig(
-                    name=model_name, provider=provider, alias=model_alias
+                    name=model_name, provider=provider_name, alias=model_alias
                 )
                 models_list.append(new_model.model_dump(mode="json", exclude_none=True))
 

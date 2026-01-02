@@ -251,25 +251,56 @@ class GeminicliBackend:
     def _parse_tool_calls(
         self, tool_calls: list[dict[str, Any]] | None
     ) -> list[ToolCall] | None:
-        """Parse tool calls from Code Assist API response."""
+        """Parse tool calls from Code Assist API response.
+
+        Handles various formats:
+        - Direct: {"name": "fn", "args": {...}}
+        - Wrapped: {"functionCall": {"name": "fn", "args": {...}}}
+        - With 'arguments' key: {"name": "fn", "arguments": {...}}
+        """
         if not tool_calls:
             return None
 
         result = []
-        for tc in tool_calls:
-            fc = tc.get("functionCall") or tc
-            # Arguments from API come as dict - serialize to JSON string
-            args = fc.get("args")
+        for idx, tc in enumerate(tool_calls):
+            # Handle wrapped format: {"functionCall": {...}}
+            if "functionCall" in tc:
+                fc = tc["functionCall"]
+            else:
+                fc = tc
+
+            # Get function name
+            name = fc.get("name")
+
+            # Get arguments - try multiple keys
+            # Gemini API uses "args", OpenAI format uses "arguments"
+            args = fc.get("args") or fc.get("arguments")
+
+            # Convert dict args to JSON string
             if isinstance(args, dict):
                 args = json.dumps(args)
+            elif args is None:
+                # If args is None, check if it's an empty object that should be {}
+                args = "{}"
+
+            # Get ID from various locations
+            tc_id = tc.get("id") or fc.get("id")
+
+            # Get index, fallback to enumeration index
+            tc_index = tc.get("index")
+            if tc_index is None:
+                tc_index = fc.get("index")
+            if tc_index is None:
+                tc_index = idx
+
             result.append(
                 ToolCall(
-                    id=tc.get("id"),
-                    index=tc.get("index", 0),
-                    function=FunctionCall(name=fc.get("name"), arguments=args),
+                    id=tc_id,
+                    index=tc_index,
+                    function=FunctionCall(name=name, arguments=args),
                 )
             )
-        return result
+        return result if result else None
 
     async def _ensure_project_id(self, access_token: str) -> str:
         """Ensure we have a valid project ID.
@@ -772,6 +803,11 @@ class GeminicliBackend:
             model, messages, temperature, tools, max_tokens, tool_choice, project_id
         )
 
+        # Track tool call indices across chunks to ensure unique indices per tool call
+        # Key: tool name, Value: assigned index
+        tool_call_index_tracker: dict[str, int] = {}
+        next_tool_call_index = 0
+
         try:
             client = self._get_client()
             async with client.stream(
@@ -809,6 +845,16 @@ class GeminicliBackend:
                     content, reasoning_content, tool_calls, usage = (
                         self._handle_chunk_data(chunk_data)
                     )
+
+                    # Assign unique indices to tool calls based on their name
+                    if tool_calls:
+                        for tc in tool_calls:
+                            tool_name = tc.function.name
+                            if tool_name:
+                                if tool_name not in tool_call_index_tracker:
+                                    tool_call_index_tracker[tool_name] = next_tool_call_index
+                                    next_tool_call_index += 1
+                                tc.index = tool_call_index_tracker[tool_name]
 
                     yield self._create_llm_chunk(
                         content, reasoning_content, tool_calls, usage

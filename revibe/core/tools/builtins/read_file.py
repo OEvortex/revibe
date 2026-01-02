@@ -26,13 +26,19 @@ class _ReadResult(NamedTuple):
 
 
 class ReadFileArgs(BaseModel):
-    path: str
+    """Arguments for read_file tool. The 'path' parameter is REQUIRED."""
+
+    path: str = Field(
+        ...,  # ... means required
+        description="REQUIRED. The file path to read. Can be relative to project root or absolute.",
+    )
     offset: int = Field(
         default=0,
-        description="Line number to start reading from (0-indexed, inclusive).",
+        description="Optional. Line number to start reading from (0-indexed, inclusive). Defaults to 0 (start of file).",
     )
     limit: int | None = Field(
-        default=None, description="Maximum number of lines to read."
+        default=None,
+        description="Optional. Maximum number of lines to read. None means read until byte limit is reached.",
     )
 
 
@@ -65,8 +71,9 @@ class ReadFile(
     ToolUIData[ReadFileArgs, ReadFileResult],
 ):
     description: ClassVar[str] = (
-        "Read a UTF-8 file, returning content from a specific line range. "
-        "Reading is capped by a byte limit for safety."
+        "Read the contents of a file. REQUIRES the 'path' argument specifying which file to read. "
+        "Returns UTF-8 text content from the file. Optionally specify 'offset' (start line) and 'limit' (max lines). "
+        "Example: read_file(path='src/main.py') or read_file(path='README.md', offset=10, limit=50)."
     )
 
     @final

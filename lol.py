@@ -1,4 +1,4 @@
-from openai import OpenAI
+from openai import OpenAI  # ty:ignore[unresolved-import]
 import json
 
 client = OpenAI(api_key="", base_url="https://llm.chutes.ai/v1")
