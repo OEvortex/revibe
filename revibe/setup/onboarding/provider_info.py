@@ -24,6 +24,7 @@ PROVIDER_DESCRIPTIONS: dict[str, str] = {
     "opencode": "OpenCode - Multi-provider access (Claude, GPT, Gemini, GLM, Kimi, Qwen, Grok)",
     "kilocode": "Kilo Code - Free coding models (Grok Code Fast, Devstral, KAT-Coder-Pro, MiniMax M2)",
     "antigravity": "Antigravity - Free Claude & Gemini models via Google OAuth",
+    "chutes": "Chutes AI - Chutes AI provider",
 }
 
 # Help links for providers requiring API keys
@@ -39,6 +40,7 @@ PROVIDER_HELP: dict[str, tuple[str, str]] = {
     "openrouter": ("https://openrouter.ai/keys", "OpenRouter Dashboard"),
     "opencode": ("https://opencode.ai", "OpenCode Platform"),
     "kilocode": ("https://app.kilo.ai/profile", "Kilo Code Profile"),
+    "chutes": ("https://chutes.ai/app/api", "Chutes AI Platform"),
 }
 
 
@@ -104,6 +106,8 @@ def build_provider_description(
             lines.append("Docs: Use /auth in `gemini` CLI for OAuth setup")
         elif provider.name == "antigravity":
             lines.append("Auth: Google OAuth (browser-based login)")
+        elif provider.name == "chutes":
+            lines.append("Features: TEE security, reasoning models, JSON mode")
 
         # Data retention warning for KiloCode
         if provider.name == "kilocode":
