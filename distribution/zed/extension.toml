@@ -1,7 +1,7 @@
 id = "revibe"
 name = "ReVibe"
 description = "Multi-provider CLI coding agent"
-version = "0.2.3"
+version = "0.2.4"
 schema_version = 1
 authors = ["OEvortex"]
 repository = "https://github.com/OEvortex/revibe"
@@ -11,25 +11,25 @@ name = "ReVibe"
 icon = "./icons/revibe.svg"
 
 [agent_servers.revibe.targets.darwin-aarch64]
-archive = "https://github.com/OEvortex/revibe/releases/download/v0.2.3/revibe-acp-darwin-aarch64-0.2.3.zip"
+archive = "https://github.com/OEvortex/revibe/releases/download/v0.2.4/revibe-acp-darwin-aarch64-0.2.4.zip"
 cmd = "./revibe-acp"
 
 [agent_servers.revibe.targets.darwin-x86_64]
-archive = "https://github.com/OEvortex/revibe/releases/download/v0.2.3/revibe-acp-darwin-x86_64-0.2.3.zip"
+archive = "https://github.com/OEvortex/revibe/releases/download/v0.2.4/revibe-acp-darwin-x86_64-0.2.4.zip"
 cmd = "./revibe-acp"
 
 [agent_servers.revibe.targets.linux-aarch64]
-archive = "https://github.com/OEvortex/revibe/releases/download/v0.2.3/revibe-acp-linux-aarch64-0.2.3.zip"
+archive = "https://github.com/OEvortex/revibe/releases/download/v0.2.4/revibe-acp-linux-aarch64-0.2.4.zip"
 cmd = "./revibe-acp"
 
 [agent_servers.revibe.targets.linux-x86_64]
-archive = "https://github.com/OEvortex/revibe/releases/download/v0.2.3/revibe-acp-linux-x86_64-0.2.3.zip"
+archive = "https://github.com/OEvortex/revibe/releases/download/v0.2.4/revibe-acp-linux-x86_64-0.2.4.zip"
 cmd = "./revibe-acp"
 
 [agent_servers.revibe.targets.windows-aarch64]
-archive = "https://github.com/OEvortex/revibe/releases/download/v0.2.3/revibe-acp-windows-aarch64-0.2.3.zip"
+archive = "https://github.com/OEvortex/revibe/releases/download/v0.2.4/revibe-acp-windows-aarch64-0.2.4.zip"
 cmd = "./revibe-acp.exe"
 
 [agent_servers.revibe.targets.windows-x86_64]
-archive = "https://github.com/OEvortex/revibe/releases/download/v0.2.3/revibe-acp-windows-x86_64-0.2.3.zip"
+archive = "https://github.com/OEvortex/revibe/releases/download/v0.2.4/revibe-acp-windows-x86_64-0.2.4.zip"
 cmd = "./revibe-acp.exe"

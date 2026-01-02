@@ -216,7 +216,7 @@ class AntigravityBackend:
 
                 for name, prop in props.items():
                     prop_data = cast(dict[str, Any], prop)
-                    prop_type = prop_data.get("type", "string")
+                    prop_type = self._extract_property_type(prop_data)
                     prop_desc = prop_data.get("description")
                     # Explicitly type the properties dict
                     properties = cast(
@@ -235,6 +235,26 @@ class AntigravityBackend:
 
         # Wrap in functionDeclarations key as per API spec
         return [{"functionDeclarations": func_decls}]
+
+    def _extract_property_type(self, prop_data: dict[str, Any]) -> str:
+        """Extract the property type from schema data, handling anyOf/oneOf."""
+        # Direct type
+        if "type" in prop_data:
+            return prop_data["type"]
+
+        # Handle anyOf (e.g., Optional[int] becomes anyOf: [{type: integer}, {type: null}])
+        if "anyOf" in prop_data:
+            for option in prop_data["anyOf"]:
+                if isinstance(option, dict) and option.get("type") != "null":
+                    return option.get("type", "string")
+
+        # Handle oneOf similarly
+        if "oneOf" in prop_data:
+            for option in prop_data["oneOf"]:
+                if isinstance(option, dict) and option.get("type") != "null":
+                    return option.get("type", "string")
+
+        return "string"
 
     def _prepare_tool_config(
         self, tool_choice: StrToolChoice | AvailableTool | None

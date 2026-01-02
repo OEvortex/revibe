@@ -426,9 +426,13 @@ class VibeApp(App):
                     VibeConfig.save_updates({
                         "models": models_list,
                         "active_model": model_alias,
+                        "active_provider": provider_name,
                     })
                 else:
-                    VibeConfig.save_updates({"active_model": model_alias})
+                    VibeConfig.save_updates({
+                        "active_model": model_alias,
+                        "active_provider": provider_name,
+                    })
             except Exception as e:
                 await self._mount_and_scroll(
                     ErrorMessage(f"Failed to persist model selection: {e}")
@@ -464,12 +468,17 @@ class VibeApp(App):
                 VibeConfig.save_updates({
                     "models": models_list,
                     "active_model": model_alias,
+                    "active_provider": provider_name,
                 })
             else:
-                VibeConfig.save_updates({"active_model": model_alias})
+                # Save both active_model and active_provider to handle duplicate aliases
+                VibeConfig.save_updates({
+                    "active_model": model_alias,
+                    "active_provider": provider_name,
+                })
 
             await self._mount_and_scroll(
-                UserCommandMessage(f"Model switched to: {model_alias}")
+                UserCommandMessage(f"Model switched to: {model_alias} ({provider_name})")
             )
             await self._reload_config()
         except Exception as e:

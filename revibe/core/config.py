@@ -495,17 +495,63 @@ class VibeConfig(BaseSettings):
         return custom_sp_path.read_text()
 
     def get_active_model(self) -> ModelConfig:
+        """Get the active model configuration.
+
+        Supports intelligent model selection:
+        - Explicit provider syntax: "provider/alias" (e.g., "chutes/glm-4.7")
+        - Provider-aware selection: if active_provider is set, prefer models from that provider
+        - Fallback: first matching alias if no provider context
+        """
+        active = self.active_model
+
+        # Check for explicit provider/alias syntax
+        if "/" in active:
+            provider_name, alias = active.split("/", 1)
+            for model in self.models:
+                m_alias = (
+                    model.alias if isinstance(model, ModelConfig) else model.get("alias")
+                )
+                m_provider = (
+                    model.provider if isinstance(model, ModelConfig) else model.get("provider")
+                )
+                if m_alias == alias and m_provider == provider_name:
+                    return (
+                        model
+                        if isinstance(model, ModelConfig)
+                        else ModelConfig.model_validate(model)
+                    )
+            raise ValueError(
+                f"Model '{alias}' not found for provider '{provider_name}'."
+            )
+
+        # If active_provider is set, prefer models from that provider
+        if self.active_provider:
+            for model in self.models:
+                m_alias = (
+                    model.alias if isinstance(model, ModelConfig) else model.get("alias")
+                )
+                m_provider = (
+                    model.provider if isinstance(model, ModelConfig) else model.get("provider")
+                )
+                if m_alias == active and m_provider == self.active_provider:
+                    return (
+                        model
+                        if isinstance(model, ModelConfig)
+                        else ModelConfig.model_validate(model)
+                    )
+
+        # Fallback: first matching alias
         for model in self.models:
-            # Handle both ModelConfig objects and dicts (can happen with model_construct)
             m_alias = (
                 model.alias if isinstance(model, ModelConfig) else model.get("alias")
             )
-            if m_alias == self.active_model:
+            if m_alias == active:
                 return (
                     model
                     if isinstance(model, ModelConfig)
                     else ModelConfig.model_validate(model)
                 )
+
         raise ValueError(
             f"Active model '{self.active_model}' not found in configuration."
         )
