@@ -3,6 +3,7 @@ from __future__ import annotations
 from revibe.core.config import Backend
 from revibe.core.llm.backend.antigravity import AntigravityBackend
 from revibe.core.llm.backend.cerebras import CerebrasBackend
+from revibe.core.llm.backend.chutes import ChutesBackend
 from revibe.core.llm.backend.geminicli import GeminicliBackend
 from revibe.core.llm.backend.groq import GroqBackend
 from revibe.core.llm.backend.huggingface import HuggingFaceBackend
@@ -30,5 +31,6 @@ BACKEND_FACTORY = {
     Backend.OPENCODE: OpenCodeBackend,
     Backend.KILOCODE: KiloCodeBackend,
     Backend.ANTIGRAVITY: AntigravityBackend,
+    Backend.CHUTES: ChutesBackend,
 }
 

@@ -28,6 +28,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Smooth transitions**: Natural collapsible content with proper layout updates
   - **Markdown support**: Code blocks, lists, headers styled within thought content
   - Removed ~95 lines of reasoning styles from `app.tcss`
+- **Modern Input Box UI**: Completely redesigned input area with premium styling
+  - Created separate `input.tcss` stylesheet for better organization
+  - Left accent border style matching the thought panel design
+  - Surface background for subtle elevation from main area
+  - Dynamic safety state colors (green for safe, yellow for warning, red for YOLO)
+  - Focus states with accent color transitions
+  - Improved prompt symbol styling with mode-specific colors
+  - Better padding and spacing for comfortable user experience
+- **Redesigned Mode Indicator**: Modern text-based design matching Claude/Gemini CLI aesthetics
+  - Changed from colored badge to simple text style: `⏵ default mode (shift+tab to cycle)`
+  - Positioned on the right side above input box
+  - Color changes based on mode (muted for default, colored for other modes)
+  - Cleaner, more professional appearance
+- **Improved Bottom Status Bar**: Better visibility for path and token information
+  - Surface background for visual separation
+  - Added proper spacing between path display and token counter
+  - Bold styling for path display
+  - Muted color for token count
 - **Simplified Welcome Banner**: Completely redesigned welcome banner for better terminal compatibility
   - Reduced from 405 lines to 65 lines (84% reduction in code)
   - Removed complex animation system with color interpolation
@@ -56,6 +74,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Streaming and non-streaming support with SSE parsing
   - Native tool calls and thinking/reasoning content support
   - Automatic retry on 401/403 authentication errors with token refresh
+- **Chutes Provider Integration**: Added support for Chutes AI API with 14 high-performance models
+  - Created `ChutesBackend` inheriting from `OpenAIBackend` for full OpenAI compatibility
+  - Added `ChutesProviderConfig` with base URL `https://llm.chutes.ai/v1` and `CHUTES_API_KEY` environment variable
+  - Full integration with provider selector, model configuration, and backend factory
+  - Available models with TEE (Trusted Execution Environment) security:
+    - `qwen3-235b` - Qwen 235B model (262K context, $0.08/$0.55 per M)
+    - `glm-4.7` - GLM 4.7 model (203K context, $0.40/$1.50 per M)
+    - `gpt-oss-120b` - OpenAI OSS 120B model (131K context, $0.04/$0.18 per M)
+    - `glm-4.6` - GLM 4.6 model (203K context, $0.35/$1.50 per M)
+    - `deepseek-r1` - DeepSeek R1 model (164K context, $0.40/$1.75 per M)
+    - `tng-r1t-chimera` - TNG R1T Chimera model (164K context, $0.25/$0.85 per M)
+    - `deepseek-v3.1` - DeepSeek V3.1 model (164K context, $0.20/$0.80 per M)
+    - `deepseek-v3.1-terminus` - DeepSeek V3.1 Terminus model (164K context, $0.23/$0.90 per M)
+    - `kimi-k2-thinking` - Kimi K2 Thinking model (262K context, $0.40/$1.75 per M)
+    - `deepseek-r1-full` - DeepSeek R1 full model (164K context, $0.30/$1.20 per M)
+    - `minimax-m2.1` - MiniMax M2.1 model (197K context, $0.30/$1.20 per M)
+    - `qwen3-coder-480b` - Qwen3 Coder 480B model (262K context, $0.22/$0.95 per M)
+    - `glm-4.5` - GLM 4.5 model (131K context, $0.35/$1.55 per M)
+    - `deepseek-v3.2-speciale` - DeepSeek V3.2 Speciale model (164K context, $0.27/$0.41 per M)
+  - All models support JSON mode, structured outputs, tools, and most support reasoning
+  - Confidential compute (TEE) available on most models for enhanced security
 
 
 ### Changed

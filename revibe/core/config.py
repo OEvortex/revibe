@@ -141,6 +141,7 @@ class Backend(StrEnum):
     OPENCODE = auto()
     KILOCODE = auto()
     ANTIGRAVITY = auto()
+    CHUTES = auto()
 
 
 class ToolFormat(StrEnum):
@@ -220,6 +221,10 @@ class AntigravityProviderConfig(_ProviderBase):
     api_style: str = "antigravity"
 
 
+class ChutesProviderConfig(_ProviderBase):
+    backend: Literal[Backend.CHUTES] = Backend.CHUTES
+
+
 ProviderConfigUnion = Annotated[
     MistralProviderConfig
     | OpenAIProviderConfig
@@ -234,7 +239,8 @@ ProviderConfigUnion = Annotated[
     | GeminicliProviderConfig
     | OpenCodeProviderConfig
     | KiloCodeProviderConfig
-    | AntigravityProviderConfig,
+    | AntigravityProviderConfig
+    | ChutesProviderConfig,
     Field(discriminator="backend")
 ]
 
@@ -387,6 +393,11 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
         name="antigravity",
         api_base="",  # Uses Antigravity endpoints
         api_key_env_var="",  # Uses OAuth authentication
+    ),
+    ChutesProviderConfig(
+        name="chutes",
+        api_base="https://llm.chutes.ai/v1",
+        api_key_env_var="CHUTES_API_KEY",
     ),
 ]
 
