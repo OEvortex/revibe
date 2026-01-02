@@ -129,11 +129,7 @@ Examples:
             ".vscode/launch.json",
             [(f'"version": "{current_version}"', f'"version": "{new_version}"')],
         )
-        # Update vibe/core/__init__.py
-        update_hard_values_files(
-            "vibe/__init__.py",
-            [(f'__version__ = "{current_version}"', f'__version__ = "{new_version}"')],
-        )
+        # Update revibe/__init__.py is handled dynamically via pyproject.toml
         # Update tests/acp/test_initialize.py
         update_hard_values_files(
             "tests/acp/test_initialize.py",

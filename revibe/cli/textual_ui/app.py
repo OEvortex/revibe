@@ -49,12 +49,16 @@ from revibe.cli.textual_ui.widgets.tools import ToolCallMessage, ToolResultMessa
 from revibe.cli.textual_ui.widgets.welcome import WelcomeBanner
 from revibe.cli.update_notifier import (
     FileSystemUpdateCacheRepository,
+    GitHubVersionUpdateGateway,
     PyPIVersionUpdateGateway,
     UpdateCacheRepository,
     VersionUpdateAvailability,
     VersionUpdateError,
     VersionUpdateGateway,
     get_update_if_available,
+)
+from revibe.cli.update_notifier.adapters.composite_version_update_gateway import (
+    CompositeVersionUpdateGateway,
 )
 from revibe.core.agent import Agent
 from revibe.core.autocompletion.path_prompt_adapter import render_path_prompt
@@ -1608,7 +1612,11 @@ class VibeApp(App):
         if self._update_notification_shown:
             return
 
-        message = f'{self._current_version} => {update.latest_version}\nRun "uv tool upgrade revibe" to update'
+        # Use utility function to detect installation type and get appropriate command
+        from revibe.cli.utils.installation_utils import get_update_command
+
+        update_cmd = get_update_command()
+        message = f'{self._current_version} => {update.latest_version}\nRun "{update_cmd}" to update'
 
         self.notify(
             message, title="Update available", severity="information", timeout=10
@@ -1643,7 +1651,9 @@ def run_textual_ui(
     initial_prompt: str | None = None,
     loaded_messages: list[LLMMessage] | None = None,
 ) -> None:
-    update_notifier = PyPIVersionUpdateGateway(project_name="revibe")
+    pypi_gateway = PyPIVersionUpdateGateway(project_name="revibe")
+    github_gateway = GitHubVersionUpdateGateway(owner="OEvortex", repository="revibe")
+    update_notifier = CompositeVersionUpdateGateway(pypi_gateway, github_gateway)
     update_cache_repository = FileSystemUpdateCacheRepository()
     app = VibeApp(
         config=config,

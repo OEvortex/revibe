@@ -101,6 +101,12 @@ def parse_arguments() -> argparse.Namespace:
         "'xml' for XML-based tool calling in prompts.",
     )
 
+    parser.add_argument(
+        "--installation-info",
+        action="store_true",
+        help="Show installation type and update instructions",
+    )
+
     continuation_group = parser.add_mutually_exclusive_group()
     continuation_group.add_argument(
         "-c",
@@ -143,6 +149,33 @@ def check_and_resolve_trusted_folder() -> None:
 
 def main() -> None:
     args = parse_arguments()
+
+    # Handle installation info flag
+    if args.installation_info:
+        from revibe.cli.utils.installation_utils import get_installation_info
+
+        info = get_installation_info()
+        rprint(f"[bold]ReVibe Installation Information[/]")
+        rprint(f"Package: {info['package_name']}")
+        rprint(f"Version: {info['version']}")
+        rprint(f"Installation Type: {info['installation_type']}")
+        rprint(f"Location: {info['location']}")
+        rprint()
+        rprint(f"[bold]Update Instructions:[/]")
+        rprint(f"Command: {info['update_command']}")
+
+        if info['installation_type'] == 'editable':
+            rprint()
+            rprint("[yellow]Note: You're using an editable installation.[/]")
+            rprint("This means you're running directly from source code.")
+            rprint("To update, pull the latest changes and reinstall:")
+            rprint("  git pull")
+            rprint("  pip install -e .")
+        else:
+            rprint()
+            rprint("[green]You're using a regular installation.[/]")
+            rprint("To update, use the command shown above.")
+        return
 
     is_interactive = args.prompt is None
     if is_interactive:

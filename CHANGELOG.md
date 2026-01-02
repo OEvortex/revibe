@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2026-01-02
+
+### Fixed
+
+- **Version Display Issue**: Fixed version showing as "v0.0.0" in UI banner instead of actual version
+  - Enhanced version reading logic in `revibe/__init__.py` to properly handle editable installations
+  - Added fallback to `importlib.metadata.version()` for regular installations
+  - Version now correctly displays "0.2.2" (or current version) in all UI components
+- **Update Installation Issue**: Fixed `pip install -U revibe` requiring `--force-reinstall` flag for editable installations
+  - Created comprehensive installation detection system in `revibe/cli/utils/installation_utils.py`
+  - Added smart update notifications that provide appropriate commands based on installation type
+  - Editable installs: `cd your-revibe-source && git pull && pip install -e .`
+  - Regular installs: `uv tool upgrade revibe`
+- **Installation Information Command**: Added `--installation-info` flag to `revibe` command
+  - Shows detailed installation information including type, version, location, and update instructions
+  - Provides clear guidance for both editable and regular installations
+  - Helps users understand their setup and proper update methods
+- **Type Safety**: Fixed type errors in installation utilities using proper type annotations and None handling
+- **Version Bumping Script**: Fixed incorrect file path reference in `scripts/bump_version.py`
+  - Removed reference to non-existent `vibe/__init__.py` file
+  - Version is now handled dynamically via `pyproject.toml`
+
 ## [0.2.2] - 2026-01-02
 
 ### Added
@@ -96,7 +118,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All models support JSON mode, structured outputs, tools, and most support reasoning
   - Confidential compute (TEE) available on most models for enhanced security
 
-
 ### Changed
 
 - **Search/Replace Tool Improvements**: Completely redesigned error messages and tool display for better UX
@@ -131,8 +152,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Thinking panel now properly uses theme colors instead of hardcoded values
 - Fixed duplicate tick display in Thought reasoning widget by removing redundant icon widget update
 - Cleaned up `SpinnerMixin.stop_spinning()` to prevent duplicate completion indicators
-
-
 
 ## [0.2.1] - 2025-12-31
 
