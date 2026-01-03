@@ -343,7 +343,13 @@ class BashOutputMessage(Static):
 
 
 class ErrorMessage(Static):
-    def __init__(self, error: str, collapsed: bool = True) -> None:
+    """Error message display with collapsible full error details.
+
+    Shows expanded by default for easier debugging. When collapsed,
+    shows first line of error as summary.
+    """
+
+    def __init__(self, error: str, collapsed: bool = False) -> None:
         super().__init__()
         self.add_class("error-message")
         self._error = error
@@ -358,10 +364,26 @@ class ErrorMessage(Static):
             )
             yield self._content_widget
 
+    def _get_first_line(self) -> str:
+        """Get first meaningful line of error for summary."""
+        lines = self._error.split("\n")
+        for line in lines:
+            stripped = line.strip()
+            if stripped and not stripped.startswith("─"):
+                # Truncate if too long
+                if len(stripped) > 100:
+                    return stripped[:100] + "..."
+                return stripped
+        return "Error occurred"
+
     def _get_text(self) -> str:
         if self.collapsed:
-            return "Error. (ctrl+o to expand)"
-        return f"Error: {self._error}"
+            return f"⚠ {self._get_first_line()} (ctrl+o to expand)"
+        return f"⚠ Error Details:\n\n{self._error}"
+
+    async def on_click(self) -> None:
+        """Toggle collapsed state on click."""
+        self.set_collapsed(not self.collapsed)
 
     def set_collapsed(self, collapsed: bool) -> None:
         if self.collapsed == collapsed:

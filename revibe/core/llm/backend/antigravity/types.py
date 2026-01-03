@@ -32,8 +32,23 @@ ANTIGRAVITY_OAUTH_SCOPES = [
 
 # API Endpoints
 ANTIGRAVITY_ENDPOINT_DAILY = "https://daily-cloudcode-pa.sandbox.googleapis.com"
+ANTIGRAVITY_ENDPOINT_AUTOPUSH = "https://autopush-cloudcode-pa.sandbox.googleapis.com"
 ANTIGRAVITY_ENDPOINT_PROD = "https://cloudcode-pa.googleapis.com"
 ANTIGRAVITY_API_VERSION = "v1internal"
+
+# Endpoint fallback order (daily → autopush → prod)
+ANTIGRAVITY_ENDPOINT_FALLBACKS = [
+    ANTIGRAVITY_ENDPOINT_DAILY,
+    ANTIGRAVITY_ENDPOINT_AUTOPUSH,
+    ANTIGRAVITY_ENDPOINT_PROD,
+]
+
+# Preferred endpoint order for project discovery (prod first, then fallbacks)
+ANTIGRAVITY_LOAD_ENDPOINTS = [
+    ANTIGRAVITY_ENDPOINT_PROD,
+    ANTIGRAVITY_ENDPOINT_DAILY,
+    ANTIGRAVITY_ENDPOINT_AUTOPUSH,
+]
 
 # Default to daily endpoint for development
 ANTIGRAVITY_DEFAULT_ENDPOINT = ANTIGRAVITY_ENDPOINT_DAILY
@@ -56,6 +71,7 @@ DEFAULT_PROJECT_ID = "rising-fact-p41fc"
 ANTIGRAVITY_DEFAULT_HEADERS = {
     "User-Agent": "antigravity/1.11.5 windows/amd64",
     "X-Goog-Api-Client": "google-cloud-sdk vscode_cloudshelleditor/0.1",
+    "Client-Metadata": '{"ideType":"IDE_UNSPECIFIED","platform":"PLATFORM_UNSPECIFIED","pluginType":"GEMINI"}',
 }
 
 
@@ -89,21 +105,21 @@ class AntigravityModelInfo:
 ANTIGRAVITY_MODELS: dict[str, AntigravityModelInfo] = {
     # Gemini 3 series
     "gemini-3-flash": AntigravityModelInfo(
-        id="antigravity-gemini-3-flash",
+        id="gemini-3-flash",
         name="Gemini 3 Flash",
         context_window=1_048_576,
         max_output=8_192,
         supports_thinking=True,
     ),
     "gemini-3-pro-low": AntigravityModelInfo(
-        id="antigravity-gemini-3-pro-low",
+        id="gemini-3-pro-low",
         name="Gemini 3 Pro Low",
         context_window=1_048_576,
         max_output=8_192,
         supports_thinking=True,
     ),
     "gemini-3-pro-high": AntigravityModelInfo(
-        id="antigravity-gemini-3-pro-high",
+        id="gemini-3-pro-high",
         name="Gemini 3 Pro High",
         context_window=1_048_576,
         max_output=8_192,
@@ -111,28 +127,28 @@ ANTIGRAVITY_MODELS: dict[str, AntigravityModelInfo] = {
     ),
     # Claude Sonnet 4.5 series
     "claude-sonnet-4-5": AntigravityModelInfo(
-        id="antigravity-claude-sonnet-4-5",
+        id="claude-sonnet-4-5",
         name="Claude Sonnet 4.5",
         context_window=200_000,
         max_output=8_192,
         supports_thinking=False,
     ),
     "claude-sonnet-4-5-thinking-low": AntigravityModelInfo(
-        id="antigravity-claude-sonnet-4-5-thinking-low",
+        id="claude-sonnet-4-5-thinking-low",
         name="Claude Sonnet 4.5 Thinking Low",
         context_window=200_000,
         max_output=16_000,
         supports_thinking=True,
     ),
     "claude-sonnet-4-5-thinking-medium": AntigravityModelInfo(
-        id="antigravity-claude-sonnet-4-5-thinking-medium",
+        id="claude-sonnet-4-5-thinking-medium",
         name="Claude Sonnet 4.5 Thinking Medium",
         context_window=200_000,
         max_output=32_000,
         supports_thinking=True,
     ),
     "claude-sonnet-4-5-thinking-high": AntigravityModelInfo(
-        id="antigravity-claude-sonnet-4-5-thinking-high",
+        id="claude-sonnet-4-5-thinking-high",
         name="Claude Sonnet 4.5 Thinking High",
         context_window=200_000,
         max_output=64_000,
@@ -140,21 +156,21 @@ ANTIGRAVITY_MODELS: dict[str, AntigravityModelInfo] = {
     ),
     # Claude Opus 4.5 series
     "claude-opus-4-5-thinking-low": AntigravityModelInfo(
-        id="antigravity-claude-opus-4-5-thinking-low",
+        id="claude-opus-4-5-thinking-low",
         name="Claude Opus 4.5 Thinking Low",
         context_window=200_000,
         max_output=16_000,
         supports_thinking=True,
     ),
     "claude-opus-4-5-thinking-medium": AntigravityModelInfo(
-        id="antigravity-claude-opus-4-5-thinking-medium",
+        id="claude-opus-4-5-thinking-medium",
         name="Claude Opus 4.5 Thinking Medium",
         context_window=200_000,
         max_output=32_000,
         supports_thinking=True,
     ),
     "claude-opus-4-5-thinking-high": AntigravityModelInfo(
-        id="antigravity-claude-opus-4-5-thinking-high",
+        id="claude-opus-4-5-thinking-high",
         name="Claude Opus 4.5 Thinking High",
         context_window=200_000,
         max_output=64_000,

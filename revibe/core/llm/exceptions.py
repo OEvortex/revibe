@@ -23,6 +23,11 @@ class PayloadSummary(BaseModel):
     temperature: float
     has_tools: bool
     tool_choice: StrToolChoice | AvailableTool | None
+    tool_names: list[str] | None = None
+    system_prompt_preview: str | None = None
+    last_user_message_preview: str | None = None
+    last_assistant_message_preview: str | None = None
+    message_roles: list[str] | None = None
 
 
 class BackendError(RuntimeError):
@@ -61,17 +66,55 @@ class BackendError(RuntimeError):
         status_label = (
             f"{self.status} {HTTPStatus(self.status).phrase}" if self.status else "N/A"
         )
+
+        # Build detailed error message
         parts = [
             f"LLM backend error [{self.provider}]",
-            f"  status: {status_label}",
-            f"  reason: {self.reason or 'N/A'}",
-            f"  request_id: {rid or 'N/A'}",
+            "",
+            "─── Request Info ───",
             f"  endpoint: {self.endpoint}",
             f"  model: {self.model}",
+            f"  request_id: {rid or 'N/A'}",
+            "",
+            "─── Response Info ───",
+            f"  status: {status_label}",
+            f"  reason: {self.reason or 'N/A'}",
             f"  provider_message: {self.parsed_error or 'N/A'}",
-            f"  body_excerpt: {self._excerpt(self.body_text)}",
-            f"  payload_summary: {self.payload_summary.model_dump_json(exclude_none=True)}",
         ]
+
+        # Add body excerpt if available
+        if self.body_text:
+            parts.append(f"  body_excerpt: {self._excerpt(self.body_text, n=600)}")
+        else:
+            parts.append("  body_excerpt: (empty)")
+
+        # Add payload details
+        parts.append("")
+        parts.append("─── Payload Details ───")
+        parts.append(f"  message_count: {self.payload_summary.message_count}")
+        parts.append(f"  approx_chars: {self.payload_summary.approx_chars}")
+        parts.append(f"  temperature: {self.payload_summary.temperature}")
+        parts.append(f"  has_tools: {self.payload_summary.has_tools}")
+        parts.append(f"  tool_choice: {self.payload_summary.tool_choice}")
+
+        # Add tool names if available
+        if self.payload_summary.tool_names:
+            parts.append(f"  tool_names: {', '.join(self.payload_summary.tool_names)}")
+
+        # Add message roles
+        if self.payload_summary.message_roles:
+            parts.append(f"  message_roles: {' → '.join(self.payload_summary.message_roles)}")
+
+        # Add message previews
+        parts.append("")
+        parts.append("─── Message Previews ───")
+        if self.payload_summary.system_prompt_preview:
+            parts.append(f"  system: {self.payload_summary.system_prompt_preview}")
+        if self.payload_summary.last_user_message_preview:
+            parts.append(f"  last_user: {self.payload_summary.last_user_message_preview}")
+        if self.payload_summary.last_assistant_message_preview:
+            parts.append(f"  last_assistant: {self.payload_summary.last_assistant_message_preview}")
+
         return "\n".join(parts)
 
     @staticmethod
@@ -118,6 +161,7 @@ class BackendErrorBuilder:
         temperature: float,
         has_tools: bool,
         tool_choice: StrToolChoice | AvailableTool | None,
+        tools: list[AvailableTool] | None = None,
     ) -> BackendError:
         try:
             body_text = response.text
@@ -134,7 +178,7 @@ class BackendErrorBuilder:
             parsed_error=cls._parse_provider_error(body_text),
             model=model,
             payload_summary=cls._payload_summary(
-                model, messages, temperature, has_tools, tool_choice
+                model, messages, temperature, has_tools, tool_choice, tools
             ),
         )
 
@@ -150,6 +194,7 @@ class BackendErrorBuilder:
         temperature: float,
         has_tools: bool,
         tool_choice: StrToolChoice | AvailableTool | None,
+        tools: list[AvailableTool] | None = None,
     ) -> BackendError:
         return BackendError(
             provider=provider,
@@ -161,7 +206,7 @@ class BackendErrorBuilder:
             parsed_error="Network error",
             model=model,
             payload_summary=cls._payload_summary(
-                model, messages, temperature, has_tools, tool_choice
+                model, messages, temperature, has_tools, tool_choice, tools
             ),
         )
 
@@ -183,8 +228,39 @@ class BackendErrorBuilder:
         temperature: float,
         has_tools: bool,
         tool_choice: StrToolChoice | AvailableTool | None,
+        tools: list[AvailableTool] | None = None,
     ) -> PayloadSummary:
         total_chars = sum(len(m.content or "") for m in messages)
+
+        # Extract tool names
+        tool_names: list[str] | None = None
+        if tools:
+            tool_names = [t.function.name for t in tools]
+
+        # Extract message role sequence
+        message_roles = [m.role.value for m in messages] if messages else None
+
+        # Extract system prompt preview (first system message)
+        system_preview: str | None = None
+        for m in messages:
+            if m.role.value == "system" and m.content:
+                system_preview = m.content[:150] + ("..." if len(m.content) > 150 else "")
+                break
+
+        # Extract last user message preview
+        last_user_preview: str | None = None
+        for m in reversed(messages):
+            if m.role.value == "user" and m.content:
+                last_user_preview = m.content[:150] + ("..." if len(m.content) > 150 else "")
+                break
+
+        # Extract last assistant message preview
+        last_assistant_preview: str | None = None
+        for m in reversed(messages):
+            if m.role.value == "assistant" and m.content:
+                last_assistant_preview = m.content[:150] + ("..." if len(m.content) > 150 else "")
+                break
+
         return PayloadSummary(
             model=model_name,
             message_count=len(messages),
@@ -192,4 +268,9 @@ class BackendErrorBuilder:
             temperature=temperature,
             has_tools=has_tools,
             tool_choice=tool_choice,
+            tool_names=tool_names,
+            system_prompt_preview=system_preview,
+            last_user_message_preview=last_user_preview,
+            last_assistant_message_preview=last_assistant_preview,
+            message_roles=message_roles,
         )

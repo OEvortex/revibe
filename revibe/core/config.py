@@ -498,15 +498,18 @@ class VibeConfig(BaseSettings):
         """Get the active model configuration.
 
         Supports intelligent model selection:
-        - Explicit provider syntax: "provider/alias" (e.g., "chutes/glm-4.7")
+        - Explicit provider syntax: "provider<>alias" (e.g., "kilocode<>x-ai/grok-code-fast-1")
         - Provider-aware selection: if active_provider is set, prefer models from that provider
         - Fallback: first matching alias if no provider context
+
+        Note: We use '<>' as the separator instead of '/' because some model names
+        (like 'x-ai/grok-code-fast-1') contain '/' in their actual name.
         """
         active = self.active_model
 
-        # Check for explicit provider/alias syntax
-        if "/" in active:
-            provider_name, alias = active.split("/", 1)
+        # Check for explicit provider<>alias syntax
+        if "<>" in active:
+            provider_name, alias = active.split("<>", 1)
             for model in self.models:
                 m_alias = (
                     model.alias if isinstance(model, ModelConfig) else model.get("alias")

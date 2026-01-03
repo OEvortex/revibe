@@ -742,7 +742,7 @@ class VibeApp(App):
         except Exception as e:
             self.agent = None
             await self._mount_and_scroll(
-                ErrorMessage(str(e), collapsed=self._tools_collapsed)
+                ErrorMessage(str(e))  # Always show agent init errors expanded for debugging
             )
         finally:
             self._agent_initializing = False
@@ -876,7 +876,7 @@ class VibeApp(App):
             if self.event_handler:
                 self.event_handler.stop_current_tool_call()
             await self._mount_and_scroll(
-                ErrorMessage(str(e), collapsed=self._tools_collapsed)
+                ErrorMessage(str(e))  # Always show provider errors expanded for debugging
             )
         finally:
             self._agent_running = False

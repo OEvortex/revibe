@@ -22,6 +22,8 @@ from revibe.core.llm.backend.antigravity.types import (
     ANTIGRAVITY_API_VERSION,
     ANTIGRAVITY_DEFAULT_ENDPOINT,
     ANTIGRAVITY_DEFAULT_HEADERS,
+    ANTIGRAVITY_ENDPOINT_FALLBACKS,
+    ANTIGRAVITY_LOAD_ENDPOINTS,
     ANTIGRAVITY_OAUTH_AUTH_ENDPOINT,
     ANTIGRAVITY_OAUTH_CLIENT_ID,
     ANTIGRAVITY_OAUTH_CLIENT_SECRET,
@@ -324,36 +326,42 @@ class AntigravityOAuthManager:
         return credentials
 
     async def _fetch_project_id(self, client: httpx.AsyncClient, access_token: str) -> str:
-        """Fetch project ID from the API."""
+        """Fetch project ID from the API with endpoint fallback."""
         headers = {
             "Authorization": f"Bearer {access_token}",
             "Content-Type": "application/json",
-            **ANTIGRAVITY_DEFAULT_HEADERS,
+            "User-Agent": "google-api-nodejs-client/9.15.1",
+            "X-Goog-Api-Client": "google-cloud-sdk vscode_cloudshelleditor/0.1",
+            "Client-Metadata": ANTIGRAVITY_DEFAULT_HEADERS["Client-Metadata"],
         }
 
-        try:
-            response = await client.post(
-                f"{self._endpoint}/{ANTIGRAVITY_API_VERSION}:loadCodeAssist",
-                headers=headers,
-                json={
-                    "metadata": {
-                        "ideType": "IDE_UNSPECIFIED",
-                        "platform": "PLATFORM_UNSPECIFIED",
-                        "pluginType": "GEMINI",
-                    }
-                },
-                timeout=10.0,
-            )
+        # Combine load endpoints and fallback endpoints, removing duplicates
+        all_endpoints = list(dict.fromkeys(ANTIGRAVITY_LOAD_ENDPOINTS + ANTIGRAVITY_ENDPOINT_FALLBACKS))
 
-            if response.status_code == HTTP_OK:
-                data = response.json()
-                project = data.get("cloudaicompanionProject", "")
-                if isinstance(project, str) and project:
-                    return project
-                if isinstance(project, dict):
-                    return project.get("id", "")
-        except Exception:
-            pass
+        for base_endpoint in all_endpoints:
+            try:
+                response = await client.post(
+                    f"{base_endpoint}/{ANTIGRAVITY_API_VERSION}:loadCodeAssist",
+                    headers=headers,
+                    json={
+                        "metadata": {
+                            "ideType": "IDE_UNSPECIFIED",
+                            "platform": "PLATFORM_UNSPECIFIED",
+                            "pluginType": "GEMINI",
+                        }
+                    },
+                    timeout=10.0,
+                )
+
+                if response.status_code == HTTP_OK:
+                    data = response.json()
+                    project = data.get("cloudaicompanionProject", "")
+                    if isinstance(project, str) and project:
+                        return project
+                    if isinstance(project, dict):
+                        return project.get("id", "")
+            except Exception:
+                continue
 
         return ""
 
@@ -389,6 +397,7 @@ class AntigravityOAuthManager:
                 "refresh_token": credentials.refresh_token,
                 "client_id": self._client_id,
                 "client_secret": self._client_secret,
+                "scope": " ".join(ANTIGRAVITY_OAUTH_SCOPES),
             }
 
             async with httpx.AsyncClient() as client:
