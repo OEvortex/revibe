@@ -241,7 +241,7 @@ ProviderConfigUnion = Annotated[
     | KiloCodeProviderConfig
     | AntigravityProviderConfig
     | ChutesProviderConfig,
-    Field(discriminator="backend")
+    Field(discriminator="backend"),
 ]
 
 
@@ -483,6 +483,21 @@ class VibeConfig(BaseSettings):
         return self.workdir if self.workdir is not None else Path.cwd()
 
     @property
+    def effective_tool_format(self) -> ToolFormat:
+        """Get the effective tool format, auto-switching to XML for antigravity models.
+
+        Antigravity backend only supports XML format, so we auto-select it when
+        using an antigravity model to ensure compatibility.
+        """
+        try:
+            active_model = self.get_active_model()
+            if active_model.provider == "antigravity":
+                return ToolFormat.XML
+        except ValueError:
+            pass
+        return self.tool_format
+
+    @property
     def system_prompt(self) -> str:
         try:
             return SystemPrompt[self.system_prompt_id.upper()].read()
@@ -512,10 +527,14 @@ class VibeConfig(BaseSettings):
             provider_name, alias = active.split("<>", 1)
             for model in self.models:
                 m_alias = (
-                    model.alias if isinstance(model, ModelConfig) else model.get("alias")
+                    model.alias
+                    if isinstance(model, ModelConfig)
+                    else model.get("alias")
                 )
                 m_provider = (
-                    model.provider if isinstance(model, ModelConfig) else model.get("provider")
+                    model.provider
+                    if isinstance(model, ModelConfig)
+                    else model.get("provider")
                 )
                 if m_alias == alias and m_provider == provider_name:
                     return (
@@ -531,10 +550,14 @@ class VibeConfig(BaseSettings):
         if self.active_provider:
             for model in self.models:
                 m_alias = (
-                    model.alias if isinstance(model, ModelConfig) else model.get("alias")
+                    model.alias
+                    if isinstance(model, ModelConfig)
+                    else model.get("alias")
                 )
                 m_provider = (
-                    model.provider if isinstance(model, ModelConfig) else model.get("provider")
+                    model.provider
+                    if isinstance(model, ModelConfig)
+                    else model.get("provider")
                 )
                 if m_alias == active and m_provider == self.active_provider:
                     return (
@@ -623,7 +646,11 @@ class VibeConfig(BaseSettings):
                         provider = p
                         break
 
-                if provider and provider.api_key_env_var and not os.getenv(provider.api_key_env_var):
+                if (
+                    provider
+                    and provider.api_key_env_var
+                    and not os.getenv(provider.api_key_env_var)
+                ):
                     raise MissingAPIKeyError(provider.api_key_env_var, provider.name)
             else:
                 # Fallback to model-based lookup for compatibility
@@ -660,7 +687,8 @@ class VibeConfig(BaseSettings):
                     "https://api.mistral.ai",
                 ]
                 is_mistral_api = any(
-                    provider.api_base.startswith(api_base) for api_base in MISTRAL_API_BASES
+                    provider.api_base.startswith(api_base)
+                    for api_base in MISTRAL_API_BASES
                 )
                 if is_mistral_api and provider.backend != Backend.MISTRAL:
                     raise WrongBackendError(provider.backend, is_mistral_api)

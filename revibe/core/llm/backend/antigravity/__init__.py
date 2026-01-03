@@ -3,7 +3,7 @@
 Features:
 - OAuth2 PKCE authentication with Google
 - Streaming support with SSE
-- Native tool calls support
+- XML tool calls support
 - Token usage tracking
 - Thinking/reasoning content support
 - Multi-model support (Claude, Gemini, GPT-OSS)
@@ -55,14 +55,14 @@ RETRYABLE_STATUS_CODES = frozenset({HTTP_UNAUTHORIZED, HTTP_FORBIDDEN})
 
 
 class AntigravityBackend:
-    supported_formats: ClassVar[list[str]] = ["native", "xml"]
+    supported_formats: ClassVar[list[str]] = ["xml"]
 
     """Backend for Antigravity Unified Gateway API.
 
     Features:
     - Google OAuth2 PKCE authentication
     - Streaming with SSE
-    - Native tool calls support
+    - XML tool calls support
     - Thinking/reasoning blocks
     - Token usage tracking
     - Multi-model support
@@ -137,10 +137,7 @@ class AntigravityBackend:
 
         Returns headers with OAuth token.
         """
-        headers = {
-            "Content-Type": "application/json",
-            **ANTIGRAVITY_DEFAULT_HEADERS,
-        }
+        headers = {"Content-Type": "application/json", **ANTIGRAVITY_DEFAULT_HEADERS}
 
         access_token = await self._oauth_manager.ensure_authenticated(
             force_refresh=force_refresh
@@ -149,7 +146,9 @@ class AntigravityBackend:
 
         return headers
 
-    def _prepare_messages(self, messages: list[LLMMessage]) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
+    def _prepare_messages(
+        self, messages: list[LLMMessage]
+    ) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
         """Convert LLMMessages to Antigravity format.
 
         Returns:
@@ -166,7 +165,7 @@ class AntigravityBackend:
                 if msg.content:
                     system_instruction = {
                         "role": "user",
-                        "parts": [{"text": msg.content}]
+                        "parts": [{"text": msg.content}],
                     }
                 continue
 
@@ -197,7 +196,7 @@ class AntigravityBackend:
                         "functionCall": {
                             "name": tc.function.name,
                             "args": args_dict,
-                            "id": tc.id or f"call_{tc.function.name}"
+                            "id": tc.id or f"call_{tc.function.name}",
                         }
                     })
 
@@ -208,7 +207,7 @@ class AntigravityBackend:
                     "functionResponse": {
                         "name": msg.name or "unknown_function",
                         "response": {"result": msg.content},
-                        "id": msg.tool_call_id
+                        "id": msg.tool_call_id,
                     }
                 })
 
@@ -231,8 +230,17 @@ class AntigravityBackend:
 
         # Fields that are not allowed in Antigravity tool schemas
         disallowed_fields = {
-            "$schema", "$ref", "$defs", "const", "anyOf", "oneOf", "allOf",
-            "definitions", "title", "examples", "default"
+            "$schema",
+            "$ref",
+            "$defs",
+            "const",
+            "anyOf",
+            "oneOf",
+            "allOf",
+            "definitions",
+            "title",
+            "examples",
+            "default",
         }
 
         def clean_schema(obj: Any) -> Any:
@@ -316,7 +324,9 @@ class AntigravityBackend:
         return "string"
 
     def _prepare_tool_config(
-        self, tool_choice: StrToolChoice | AvailableTool | None, model_name: str | None = None
+        self,
+        tool_choice: StrToolChoice | AvailableTool | None,
+        model_name: str | None = None,
     ) -> dict[str, Any] | None:
         """Convert tool choice to toolConfig format.
 
@@ -375,14 +385,12 @@ class AntigravityBackend:
             # Convert dict args to JSON string
             if isinstance(args, dict):
                 if not args:  # Empty dict
-                    # Don't create a tool call with empty arguments
-                    # This would cause validation errors for tools that require parameters
-                    continue
-                args = json.dumps(args)
+                    args = "{}"
+                else:
+                    args = json.dumps(args)
             elif args is None:
-                # Skip tool calls with no arguments
-                # This prevents validation errors for tools that require parameters
-                continue
+                # If args is None, use empty object JSON
+                args = "{}"
 
             # Get ID from various locations
             tc_id = tc.get("id") or fc.get("id")
@@ -448,6 +456,10 @@ class AntigravityBackend:
                 toolConfig?: ToolConfig,
                 generationConfig?: {
                     temperature?: number,
+                    thinkingConfig?: {
+                        thinkingBudget: number,
+                        includeThoughts?: boolean,
+                    },
                 },
                 sessionId?: string
             }
@@ -456,6 +468,13 @@ class AntigravityBackend:
         # Build generation config with camelCase keys
         # Note: maxOutputTokens is NOT included as per Antigravity API requirements
         generation_config: dict[str, Any] = {"temperature": temperature}
+
+        # Add thinkingConfig for thinking-capable models
+        if model.supports_thinking:
+            generation_config["thinkingConfig"] = {
+                "thinkingBudget": -1,
+                "includeThoughts": True,
+            }
 
         # Build request payload
         messages_contents, system_instruction = self._prepare_messages(messages)
@@ -470,6 +489,7 @@ class AntigravityBackend:
 
         # Add sessionId (required by Antigravity API)
         import random
+
         session_id = f"-{random.randint(1000000000000000000, 9999999999999999999)}"
         request_body["sessionId"] = session_id
 
@@ -484,6 +504,7 @@ class AntigravityBackend:
 
         # Generate unique request ID
         import secrets
+
         request_id = f"py-{secrets.token_hex(8)}"
 
         # Build payload according to Antigravity API spec
@@ -841,7 +862,9 @@ class AntigravityBackend:
                             tool_name = tc.function.name
                             if tool_name:
                                 if tool_name not in tool_call_index_tracker:
-                                    tool_call_index_tracker[tool_name] = next_tool_call_index
+                                    tool_call_index_tracker[tool_name] = (
+                                        next_tool_call_index
+                                    )
                                     next_tool_call_index += 1
                                 tc.index = tool_call_index_tracker[tool_name]
 

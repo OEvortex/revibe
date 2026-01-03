@@ -415,7 +415,7 @@ def _get_tool_prompts_section(
 
     from revibe.core.config import ToolFormat
 
-    use_xml_prompts = config.tool_format == ToolFormat.XML
+    use_xml_prompts = config.effective_tool_format == ToolFormat.XML
 
     tool_prompts = [
         tool_class.get_xml_tool_prompt()
@@ -430,7 +430,7 @@ def _get_tool_prompts_section(
 def _get_xml_tool_section(tool_manager: ToolManager, config: VibeConfig) -> str | None:
     from revibe.core.config import ToolFormat
 
-    if config.tool_format != ToolFormat.XML:
+    if config.effective_tool_format != ToolFormat.XML:
         return None
 
     from revibe import VIBE_ROOT

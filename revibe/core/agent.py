@@ -112,8 +112,10 @@ class Agent:
         self.skill_manager = SkillManager(config)
 
         # Select format handler based on config
-        if config.tool_format == ToolFormat.XML:
-            self.format_handler: APIToolFormatHandler | XMLToolFormatHandler = XMLToolFormatHandler()
+        if config.effective_tool_format == ToolFormat.XML:
+            self.format_handler: APIToolFormatHandler | XMLToolFormatHandler = (
+                XMLToolFormatHandler()
+            )
         else:
             self.format_handler = APIToolFormatHandler()
 
@@ -166,7 +168,10 @@ class Agent:
         active_model = self.config.get_active_model()
         provider = self.config.get_provider_for_model(active_model)
         timeout = self.config.api_timeout
-        return cast(BackendLike, BACKEND_FACTORY[provider.backend](provider=provider, timeout=timeout))
+        return cast(
+            BackendLike,
+            BACKEND_FACTORY[provider.backend](provider=provider, timeout=timeout),
+        )
 
     def add_message(self, message: LLMMessage) -> None:
         self.messages.append(message)
@@ -278,7 +283,9 @@ class Agent:
                     yield event
 
                 last_message = self.messages[-1]
-                should_break_loop = not self.format_handler.is_tool_response(last_message)
+                should_break_loop = not self.format_handler.is_tool_response(
+                    last_message
+                )
 
                 self._flush_new_messages()
 
@@ -362,7 +369,9 @@ class Agent:
                         thinking_duration = time.perf_counter() - thinking_start_time
                     # Emit any remaining reasoning content with duration
                     if reasoning_buffer:
-                        yield ReasoningEvent(content=reasoning_buffer, duration=thinking_duration)
+                        yield ReasoningEvent(
+                            content=reasoning_buffer, duration=thinking_duration
+                        )
                         reasoning_buffer = ""
                         chunks_with_reasoning = 0
                     else:
@@ -728,11 +737,20 @@ class Agent:
         self._fill_missing_tool_responses()
         self._ensure_assistant_after_tools()
 
+    def _is_xml_mode(self) -> bool:
+        """Check if we're using XML tool format."""
+        return isinstance(self.format_handler, XMLToolFormatHandler)
+
+    def _has_xml_tool_calls(self, content: str) -> bool:
+        """Check if content contains XML tool calls."""
+        return "<tool_call>" in content and "</tool_call>" in content
+
     def _fill_missing_tool_responses(self) -> None:
         i = 1
         while i < len(self.messages):  # noqa: PLR1702
             msg = self.messages[i]
 
+            # Handle native tool_calls
             if msg.role == "assistant" and msg.tool_calls:
                 expected_responses = len(msg.tool_calls)
 
@@ -768,6 +786,56 @@ class Agent:
                     i = i + 1 + expected_responses
                     continue
 
+            # Handle XML tool calls in message content
+            if msg.role == "assistant" and self._is_xml_mode():
+                content = msg.content or ""
+                if self._has_xml_tool_calls(content):
+                    # Count expected XML tool calls
+                    import re
+
+                    tool_call_pattern = re.compile(
+                        r"<tool_call>.*?</tool_call>", re.DOTALL | re.IGNORECASE
+                    )
+                    expected_calls = len(tool_call_pattern.findall(content))
+
+                    if expected_calls > 0:
+                        # Count actual XML tool results
+                        actual_responses = 0
+                        j = i + 1
+                        while j < len(self.messages):
+                            result_msg = self.messages[j]
+                            result_content = result_msg.content or ""
+                            if (
+                                result_msg.role == Role.user
+                                and result_content.strip().startswith("<tool_result")
+                            ):
+                                actual_responses += 1
+                                j += 1
+                            else:
+                                break
+
+                        if actual_responses < expected_calls:
+                            insertion_point = i + 1 + actual_responses
+                            for _call_idx in range(actual_responses, expected_calls):
+                                # Generate a call_id for the empty response
+                                from uuid import uuid4
+
+                                call_id = f"xml_{uuid4().hex[:12]}"
+                                empty_response = LLMMessage(
+                                    role=Role.user,
+                                    content=(
+                                        f'<tool_result name="unknown" call_id="{call_id}">\n'
+                                        f"<status>error</status>\n"
+                                        f"<error>No response received</error>\n"
+                                        f"</tool_result>"
+                                    ),
+                                )
+                                self.messages.insert(insertion_point, empty_response)
+                                insertion_point += 1
+
+                    i = i + 1 + expected_calls
+                    continue
+
             i += 1
 
     def _ensure_assistant_after_tools(self) -> None:
@@ -776,9 +844,23 @@ class Agent:
             return
 
         last_msg = self.messages[-1]
+
+        # Handle native tool responses
         if last_msg.role is Role.tool:
             empty_assistant_msg = LLMMessage(role=Role.assistant, content="Understood.")
             self.messages.append(empty_assistant_msg)
+            return
+
+        # Handle XML tool responses (role=user with <tool_result> content)
+        if self._is_xml_mode():
+            last_content = last_msg.content or ""
+            if last_msg.role == Role.user and last_content.strip().startswith(
+                "<tool_result"
+            ):
+                empty_assistant_msg = LLMMessage(
+                    role=Role.assistant, content="Understood."
+                )
+                self.messages.append(empty_assistant_msg)
 
     def _reset_session(self) -> None:
         self.session_id = str(uuid4())

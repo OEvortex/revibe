@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.2.5] - 2026-01-03
 
+### Added
+
+- **Antigravity XML-Only Mode**: Complete XML tool calling support for Antigravity backend
+  - All 6 antigravity models now only support XML format (`supported_formats=["xml"]`)
+  - Auto-switches `tool_format` to XML when using antigravity models via `effective_tool_format` property
+  - Native tool calling disabled: `get_available_tools()` returns `None`, `get_tool_choice()` returns `None`
+  - Tool definitions embedded in system prompt via `_get_xml_tool_section()`
+  - Updated `agent.py` and `system_prompt.py` to use `effective_tool_format` for consistent behavior
+
+- **Antigravity Thinking Support**: Added `thinkingConfig` for thinking-capable models
+  - Added `supports_thinking` field to `ModelConfig` to track thinking capability
+  - Updated antigravity thinking models with `supports_thinking=True`:
+    - `antigravity-claude-sonnet-4-5-thinking`
+    - `antigravity-claude-opus-4-5-thinking`
+    - `antigravity-gemini-3-pro-high`
+    - `antigravity-gemini-3-pro-low`
+  - Added `thinkingConfig` to API requests for thinking models:
+    - `thinkingBudget: -1` (unlimited)
+    - `includeThoughts: true`
+  - Based on reference implementation from AIClient-2-API
+
+- **XML Tool Call Handling**: Enhanced message history management for XML format
+  - Added `_is_xml_mode()` helper to detect XML format handler
+  - Added `_has_xml_tool_calls()` to detect `<tool_call>` blocks in message content
+  - Updated `_fill_missing_tool_responses()` to handle both native and XML tool calls
+    - Native: Checks `msg.tool_calls` (existing behavior preserved)
+    - XML: Parses `<tool_call>` blocks from content, counts expected vs actual responses
+  - Updated `_ensure_assistant_after_tools()` to handle XML tool responses
+    - Native: Checks `Role.tool` messages
+    - XML: Checks for `<tool_result>` messages (Role.user with XML content)
+
 ### Fixed
 
 - **Antigravity Backend 400 Bad Request Error**: Complete fix for API compatibility issues
@@ -28,9 +59,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Verified with actual API calls to ensure compatibility
     - Tested with complex tool schemas containing disallowed fields
     - Confirmed working with both simple and complex tool definitions
-
-
-### Fixed
 
 - **Model Selection with Slash in Names**: Fixed issue where models with `/` in their name (e.g., `x-ai/grok-code-fast-1`) were incorrectly parsed
   - Changed provider/model separator from `/` to `<>` to avoid conflicts with model names containing slashes

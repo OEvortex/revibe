@@ -13,6 +13,7 @@ class ModelConfig(BaseModel):
             - "native": Uses API's native function/tool calling
             - "xml": Uses XML-based tool calling in prompts
             Models default to supporting both formats.
+        supports_thinking: Whether the model supports thinking/reasoning content.
     """
 
     name: str
@@ -24,6 +25,7 @@ class ModelConfig(BaseModel):
     context: int = 128000
     max_output: int = 32000
     supported_formats: list[str] = Field(default_factory=lambda: ["native", "xml"])
+    supports_thinking: bool = False
 
     @model_validator(mode="before")
     @classmethod
@@ -559,7 +561,7 @@ DEFAULT_MODELS = [
         alias="claude-opus-4-5",
         input_price=5.0,
         output_price=15.0,
-        context=200000
+        context=200000,
     ),
     ModelConfig(
         name="claude-opus-4-1",
@@ -801,7 +803,7 @@ DEFAULT_MODELS = [
         output_price=0.0,
         context=262144,
     ),
-    # Antigravity models (Claude, Gemini via unified gateway)
+    # Antigravity models (Claude, Gemini via unified gateway) - XML only
     ModelConfig(
         name="claude-sonnet-4-5",
         provider="antigravity",
@@ -810,6 +812,8 @@ DEFAULT_MODELS = [
         output_price=0.0,
         context=200000,
         max_output=8192,
+        supported_formats=["xml"],
+        supports_thinking=False,
     ),
     ModelConfig(
         name="claude-sonnet-4-5-thinking",
@@ -819,6 +823,8 @@ DEFAULT_MODELS = [
         output_price=0.0,
         context=200000,
         max_output=64000,
+        supported_formats=["xml"],
+        supports_thinking=True,
     ),
     ModelConfig(
         name="claude-opus-4-5-thinking",
@@ -828,6 +834,8 @@ DEFAULT_MODELS = [
         output_price=0.0,
         context=200000,
         max_output=64000,
+        supported_formats=["xml"],
+        supports_thinking=True,
     ),
     ModelConfig(
         name="gemini-3-pro-high",
@@ -837,6 +845,8 @@ DEFAULT_MODELS = [
         output_price=0.0,
         context=1048576,
         max_output=8192,
+        supported_formats=["xml"],
+        supports_thinking=True,
     ),
     ModelConfig(
         name="gemini-3-pro-low",
@@ -846,6 +856,8 @@ DEFAULT_MODELS = [
         output_price=0.0,
         context=1048576,
         max_output=8192,
+        supported_formats=["xml"],
+        supports_thinking=True,
     ),
     ModelConfig(
         name="gpt-oss-120b-medium",
@@ -855,6 +867,7 @@ DEFAULT_MODELS = [
         output_price=0.0,
         context=131072,
         max_output=8192,
+        supported_formats=["xml"],
     ),
     # Chutes models
     ModelConfig(
@@ -984,4 +997,3 @@ DEFAULT_MODELS = [
         max_output=65536,
     ),
 ]
-

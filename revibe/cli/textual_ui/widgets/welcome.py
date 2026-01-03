@@ -1,4 +1,5 @@
 """Simple, responsive welcome banner for Revibe CLI."""
+
 from __future__ import annotations
 
 from rich.align import Align
