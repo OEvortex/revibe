@@ -149,13 +149,27 @@ class AntigravityBackend:
 
         return headers
 
-    def _prepare_messages(self, messages: list[LLMMessage]) -> list[dict[str, Any]]:
+    def _prepare_messages(self, messages: list[LLMMessage]) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
         """Convert LLMMessages to Antigravity format.
 
-        Uses role "user" or "model" only.
+        Returns:
+            Tuple of (contents, system_instruction)
+            - contents: List of messages with "user" and "model" roles only
+            - system_instruction: System prompt in proper format or None
         """
-        result = []
+        contents = []
+        system_instruction = None
+
         for msg in messages:
+            # Handle system messages separately
+            if msg.role == Role.system:
+                if msg.content:
+                    system_instruction = {
+                        "role": "user",
+                        "parts": [{"text": msg.content}]
+                    }
+                continue
+
             # Antigravity uses "user" and "model" roles
             role = "model" if msg.role == Role.assistant else "user"
             content_parts: list[dict[str, Any]] = []
@@ -164,22 +178,43 @@ class AntigravityBackend:
                 content_parts.append({"text": msg.content})
 
             if msg.tool_calls:
-                # Add tool calls as function responses
+                # Add tool calls as function calls (not responses)
                 for tc in msg.tool_calls:
                     # Arguments must be serialized to JSON string for the API
                     args = tc.function.arguments
                     if args is not None and not isinstance(args, str):
                         args = json.dumps(args)
+                    # Parse args back to dict for functionCall format
+                    if isinstance(args, str):
+                        try:
+                            args_dict = json.loads(args)
+                        except json.JSONDecodeError:
+                            args_dict = {"result": args}
+                    else:
+                        args_dict = args or {}
+
                     content_parts.append({
-                        "functionResponse": {
+                        "functionCall": {
                             "name": tc.function.name,
-                            "response": {"result": args or ""},
+                            "args": args_dict,
+                            "id": tc.id or f"call_{tc.function.name}"
                         }
                     })
 
-            result.append({"role": role, "parts": content_parts})
+            # Handle tool responses (user messages responding to tool calls)
+            if msg.tool_call_id and msg.content:
+                # This is a tool response - format as functionResponse
+                content_parts.append({
+                    "functionResponse": {
+                        "name": msg.name or "unknown_function",
+                        "response": {"result": msg.content},
+                        "id": msg.tool_call_id
+                    }
+                })
 
-        return result
+            contents.append({"role": role, "parts": content_parts})
+
+        return contents, system_instruction
 
     def _prepare_tools(
         self, tools: list[AvailableTool] | None
@@ -187,10 +222,31 @@ class AntigravityBackend:
         """Convert tools to function declarations format.
 
         Returns wrapped in functionDeclarations key.
-        The API expects: [{ functionDeclarations: [...] }]
+        The API expects: [{ functionDeclarations: [...]}]
+
+        Note: Removes disallowed fields like $schema, $ref, $defs, const, anyOf, oneOf, allOf
         """
         if not tools:
             return None
+
+        # Fields that are not allowed in Antigravity tool schemas
+        disallowed_fields = {
+            "$schema", "$ref", "$defs", "const", "anyOf", "oneOf", "allOf",
+            "definitions", "title", "examples", "default"
+        }
+
+        def clean_schema(obj: Any) -> Any:
+            """Recursively clean disallowed fields from schema."""
+            if isinstance(obj, dict):
+                result = {}
+                for key, value in obj.items():
+                    if key not in disallowed_fields:
+                        result[key] = clean_schema(value)
+                return result
+            elif isinstance(obj, list):
+                return [clean_schema(item) for item in obj]
+            else:
+                return obj
 
         # Build function declarations
         func_decls: list[dict[str, Any]] = []
@@ -205,14 +261,17 @@ class AntigravityBackend:
 
             if func.parameters:
                 params = func.parameters
+                # Clean the parameters schema to remove disallowed fields
+                cleaned_params = clean_schema(params)
+
                 func_def["parameters"] = {
                     "type": "object",
                     "properties": {},
                     "required": [],
                 }
 
-                props = cast(dict[str, Any], params.get("properties") or {})
-                required_fields = cast(list[str], params.get("required") or [])
+                props = cast(dict[str, Any], cleaned_params.get("properties") or {})
+                required_fields = cast(list[str], cleaned_params.get("required") or [])
 
                 for name, prop in props.items():
                     prop_data = cast(dict[str, Any], prop)
@@ -257,30 +316,27 @@ class AntigravityBackend:
         return "string"
 
     def _prepare_tool_config(
-        self, tool_choice: StrToolChoice | AvailableTool | None
+        self, tool_choice: StrToolChoice | AvailableTool | None, model_name: str | None = None
     ) -> dict[str, Any] | None:
         """Convert tool choice to toolConfig format.
 
         Returns: {"functionCallingConfig": {"mode": "..."}} or None
+
+        Note: Antigravity API requires VALIDATED mode for all models when tools are present.
         """
         if tool_choice is None:
             return None
 
-        mode_map: dict[str, str] = {
-            "auto": "AUTO",
-            "none": "NONE",
-            "any": "ANY",
-            "required": "REQUIRED",
-        }
+        # Antigravity requires VALIDATED mode for all models with tools
+        mode = "VALIDATED"
 
         if isinstance(tool_choice, str):
-            mode = mode_map.get(tool_choice, "AUTO")
             return {"functionCallingConfig": {"mode": mode}}
 
         # AvailableTool case
         return {
             "functionCallingConfig": {
-                "mode": "ANY",
+                "mode": mode,
                 "allowedFunctionNames": [tool_choice.function.name],
             }
         }
@@ -384,36 +440,49 @@ class AntigravityBackend:
                 toolConfig?: ToolConfig,
                 generationConfig?: {
                     temperature?: number,
-                    maxOutputTokens?: number,
-                }
+                },
+                sessionId?: string
             }
         }
         """
         # Build generation config with camelCase keys
+        # Note: maxOutputTokens is NOT included as per Antigravity API requirements
         generation_config: dict[str, Any] = {"temperature": temperature}
-        if max_tokens is not None:
-            generation_config["maxOutputTokens"] = max_tokens
 
         # Build request payload
+        messages_contents, system_instruction = self._prepare_messages(messages)
         request_body: dict[str, Any] = {
-            "contents": self._prepare_messages(messages),
+            "contents": messages_contents,
             "generationConfig": generation_config,
         }
+
+        # Add system instruction if present
+        if system_instruction:
+            request_body["systemInstruction"] = system_instruction
+
+        # Add sessionId (required by Antigravity API)
+        import random
+        session_id = f"-{random.randint(1000000000000000000, 9999999999999999999)}"
+        request_body["sessionId"] = session_id
 
         # Tools go INSIDE the request object (not at top level)
         if tools:
             request_body["tools"] = self._prepare_tools(tools)
 
         # ToolConfig goes inside request object
-        tool_config = self._prepare_tool_config(tool_choice)
+        tool_config = self._prepare_tool_config(tool_choice, model.name)
         if tool_config:
             request_body["toolConfig"] = tool_config
 
+        # Generate unique request ID
         import secrets
+        request_id = f"py-{secrets.token_hex(8)}"
+
+        # Build payload according to Antigravity API spec
         payload: dict[str, Any] = {
             "model": model.name,
             "userAgent": "antigravity",
-            "requestId": f"py-{secrets.token_hex(8)}",
+            "requestId": request_id,
             "request": request_body,
         }
 

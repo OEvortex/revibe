@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - 2026-01-03
+
+### Fixed
+
+- **Antigravity Backend 400 Bad Request Error**: Complete fix for API compatibility issues
+  - **System Message Handling**: Fixed system prompts incorrectly placed in contents array
+    - Moved system messages to `systemInstruction` field with required `role: "user"`
+    - Contents array now only contains `user` and `model` roles as required by API
+  - **Request Payload Structure**: Added missing required fields and removed unsupported fields
+    - Added `sessionId` field with format `"-{random_number}"` for all requests
+    - Removed `maxOutputTokens` from generationConfig (not supported by Antigravity)
+  - **Tool Configuration**: Fixed tool calling mode and schema validation
+    - Set `VALIDATED` mode for all models with tools (required by Antigravity API)
+    - Previously only applied to Claude models, now applies to all models
+    - Added recursive cleaning of disallowed fields from tool schemas
+    - Removes: `$schema`, `$ref`, `$defs`, `const`, `anyOf`, `oneOf`, `allOf`, `definitions`, `title`, `examples`, `default`
+  - **Tool Call Format**: Corrected function call/response formatting
+    - Model tool calls use `functionCall` format (not `functionResponse`)
+    - User tool responses use `functionResponse` format with proper ID matching
+  - **API Compliance**: All changes based on reference implementation from AIClient-2-API
+    - Verified with actual API calls to ensure compatibility
+    - Tested with complex tool schemas containing disallowed fields
+    - Confirmed working with both simple and complex tool definitions
+
+
+### Fixed
+
+- **Model Selection with Slash in Names**: Fixed issue where models with `/` in their name (e.g., `x-ai/grok-code-fast-1`) were incorrectly parsed
+  - Changed provider/model separator from `/` to `<>` to avoid conflicts with model names containing slashes
+  - Old format: `provider/alias` (e.g., `chutes/glm-4.7`) - still supported but deprecated
+  - New format: `provider<>alias` (e.g., `kilocode<>x-ai/grok-code-fast-1`)
+  - Models with `/` in their names now work correctly by using the `active_provider` field instead of parsing the separator
+  - Fixes error: `Model 'grok-code-fast-1' not found for provider 'x-ai'` when selecting models like `x-ai/grok-code-fast-1` from KiloCode provider
+
 ## [0.2.4] - 2026-01-02
 
 ### Added
