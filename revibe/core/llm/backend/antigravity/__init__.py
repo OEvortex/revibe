@@ -364,6 +364,9 @@ class AntigravityBackend:
 
             # Get function name
             name = fc.get("name")
+            if not name:
+                # Skip tool calls without a function name
+                continue
 
             # Get arguments - try multiple keys
             # Gemini API uses "args", OpenAI format uses "arguments"
@@ -371,10 +374,15 @@ class AntigravityBackend:
 
             # Convert dict args to JSON string
             if isinstance(args, dict):
+                if not args:  # Empty dict
+                    # Don't create a tool call with empty arguments
+                    # This would cause validation errors for tools that require parameters
+                    continue
                 args = json.dumps(args)
             elif args is None:
-                # If args is None, check if it's an empty object that should be {}
-                args = "{}"
+                # Skip tool calls with no arguments
+                # This prevents validation errors for tools that require parameters
+                continue
 
             # Get ID from various locations
             tc_id = tc.get("id") or fc.get("id")
