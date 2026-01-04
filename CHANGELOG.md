@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] - 2026-01-04
+
+### Fixed
+
+- **Markdown Widget Initialization Error**: Fixed "Markdown widget not initialized. compose() must be called first" error in streaming message display
+  - **Root Cause**: `write_initial_content()` and `append_content()` methods were being called before Textual's `compose()` method had initialized the markdown widget
+  - **Solution**: Added `on_mount()` method to `StreamingMessageBase` that safely handles content writing after widget is properly mounted and composed
+  - **Implementation Details**:
+    - Modified `write_initial_content()` to check if markdown widget is initialized before writing content
+    - Modified `append_content()` to defer content updates until widget is properly composed
+    - Updated `ReasoningMessage.on_mount()` to call parent method for consistent behavior
+    - Added safety checks to prevent runtime errors while maintaining all existing functionality
+  - **Files Changed**: `revibe/cli/textual_ui/widgets/messages.py` (lines 83-93, 114-121, 128-136, 217-224)
+  - **Testing**: Application now starts and runs without the initialization error, with smooth streaming message display
+
 ## [0.2.5] - 2026-01-03
 
 ### Added

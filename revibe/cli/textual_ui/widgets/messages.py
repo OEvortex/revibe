@@ -86,7 +86,11 @@ class StreamingMessageBase(Static):
 
         self._content += content
         if self._should_write_content():
-            await self._update_display()
+            # Check if widget is mounted and composed
+            if self._markdown is not None:
+                # Widget is already composed, update display immediately
+                await self._update_display()
+            # If not mounted yet, on_mount will handle the full content when it runs
 
     async def _update_display(self) -> None:
         new_displayed = self._process_content_for_display(self._content)
@@ -112,8 +116,13 @@ class StreamingMessageBase(Static):
         return content
 
     async def write_initial_content(self) -> None:
+        """Write initial content. If widget is not yet mounted, this will be handled by on_mount."""
         if self._content and self._should_write_content():
-            await self._update_display()
+            # Check if widget is mounted and composed
+            if self._markdown is not None:
+                # Widget is already composed, write content immediately
+                await self._update_display()
+            # If not mounted yet, on_mount will handle this
 
     async def stop_stream(self) -> None:
         if self._stream is None:
@@ -124,6 +133,16 @@ class StreamingMessageBase(Static):
 
     def _should_write_content(self) -> bool:
         return True
+
+    def on_mount(self) -> None:
+        """Called when the widget is mounted and compose() has been called."""
+        # Schedule initial content writing to happen after mounting is complete
+        self.call_later(self._write_initial_content_safely)
+
+    async def _write_initial_content_safely(self) -> None:
+        """Safely write initial content after the widget is fully mounted."""
+        if self._content and self._should_write_content():
+            await self._update_display()
 
 
 class AssistantMessage(StreamingMessageBase):
@@ -196,6 +215,8 @@ class ReasoningMessage(SpinnerMixin, StreamingMessageBase):
             yield markdown
 
     def on_mount(self) -> None:
+        # Call parent method first to handle initial content writing
+        super().on_mount()
         self.start_spinner_timer()
         # Add thinking class for animation
         wrapper = self.query_one(".reasoning-message-wrapper")
@@ -349,6 +370,9 @@ class ErrorMessage(Static):
     shows first line of error as summary.
     """
 
+    # Maximum length for error summary before truncation
+    _MAX_SUMMARY_LENGTH = 100
+
     def __init__(self, error: str, collapsed: bool = False) -> None:
         super().__init__()
         self.add_class("error-message")
@@ -371,8 +395,8 @@ class ErrorMessage(Static):
             stripped = line.strip()
             if stripped and not stripped.startswith("─"):
                 # Truncate if too long
-                if len(stripped) > 100:
-                    return stripped[:100] + "..."
+                if len(stripped) > self._MAX_SUMMARY_LENGTH:
+                    return stripped[:self._MAX_SUMMARY_LENGTH] + "..."
                 return stripped
         return "Error occurred"
 
