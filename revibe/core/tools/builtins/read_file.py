@@ -29,16 +29,28 @@ class ReadFileArgs(BaseModel):
     """Arguments for read_file tool. The 'path' parameter is REQUIRED."""
 
     path: str = Field(
-        ...,  # ... means required
-        description="REQUIRED. The file path to read. Can be relative to project root or absolute.",
+        ...,
+        description=(
+            "REQUIRED. File path to read (relative to project root or absolute path). "
+            "Examples: 'src/main.py', 'README.md', './config.json'. "
+            "Must point to an existing file (not a directory)."
+        ),
     )
     offset: int = Field(
         default=0,
-        description="Optional. Line number to start reading from (0-indexed, inclusive). Defaults to 0 (start of file).",
+        description=(
+            "Optional. Starting line number (0-indexed, inclusive). Default: 0 (start of file). "
+            "Use to skip header lines or read from a specific position. "
+            "Example: offset=10 starts reading from line 11 (0-indexed)."
+        ),
     )
     limit: int | None = Field(
         default=None,
-        description="Optional. Maximum number of lines to read. None means read until byte limit is reached.",
+        description=(
+            "Optional. Maximum number of lines to return. Default: None (reads until byte limit). "
+            "Useful for reading specific sections. Combined with offset for pagination. "
+            "Example: offset=50, limit=100 reads lines 51-150."
+        ),
     )
 
 
@@ -71,9 +83,10 @@ class ReadFile(
     ToolUIData[ReadFileArgs, ReadFileResult],
 ):
     description: ClassVar[str] = (
-        "Read the contents of a file. REQUIRES the 'path' argument specifying which file to read. "
-        "Returns UTF-8 text content from the file. Optionally specify 'offset' (start line) and 'limit' (max lines). "
-        "Example: read_file(path='src/main.py') or read_file(path='README.md', offset=10, limit=50)."
+        "Read file contents as UTF-8 text. REQUIRED: 'path' parameter (file path, relative or absolute). "
+        "OPTIONAL: 'offset' (start line, 0-indexed, default=0), 'limit' (max lines, default=None). "
+        "Returns: content, lines_read, was_truncated. Always read files before editing with search_replace. "
+        "Examples: read_file(path='src/main.py'), read_file(path='config.json', offset=5, limit=20)."
     )
 
     @final

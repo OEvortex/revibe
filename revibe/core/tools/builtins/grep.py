@@ -77,13 +77,35 @@ class GrepState(BaseToolState):
 
 
 class GrepArgs(BaseModel):
-    pattern: str
-    path: str = "."
+    pattern: str = Field(
+        description=(
+            "REQUIRED. Regex pattern to search for. Supports full regex syntax. "
+            "Examples: 'def ', 'TODO|FIXME', 'class\\s+\\w+', 'import\\s+\\w+'. "
+            "Special characters may need escaping. Use simple patterns when possible."
+        )
+    )
+    path: str = Field(
+        default=".",
+        description=(
+            "Optional. Directory or file path to search (relative to project root or absolute). "
+            "Default: '.' (current directory). Examples: 'src/', 'tests/', './config.py'. "
+            "Searches recursively in directories."
+        ),
+    )
     max_matches: int | None = Field(
-        default=None, description="Override the default maximum number of matches."
+        default=None,
+        description=(
+            "Optional. Maximum number of matches to return. Default: 100. "
+            "Use to limit results for common patterns. Output may be truncated if exceeded."
+        ),
     )
     use_default_ignore: bool = Field(
-        default=True, description="Whether to respect .gitignore and .ignore files."
+        default=True,
+        description=(
+            "Optional. Whether to respect .gitignore and .revibeignore files. Default: True. "
+            "Set to False to search ignored files (e.g., node_modules, .venv). "
+            "When using ripgrep, .gitignore is automatically respected."
+        ),
     )
 
 
@@ -100,8 +122,12 @@ class Find(
     ToolUIData[GrepArgs, GrepResult],
 ):
     description: ClassVar[str] = (
-        "Recursively search files for a regex pattern using ripgrep (rg) or grep. "
-        "Respects .gitignore and .ignore files by default when using ripgrep."
+        "Search files for text patterns using regex. REQUIRED: 'pattern' (regex to find). "
+        "OPTIONAL: 'path' (search directory, default='.'), 'max_matches' (limit results, default=100), "
+        "'use_default_ignore' (respect .gitignore, default=True). "
+        "Uses ripgrep (rg) if available, falls back to grep. Respects .gitignore by default. "
+        "Returns: matches (formatted results), match_count, was_truncated. "
+        "Examples: grep(pattern='def ', path='src/'), grep(pattern='TODO|FIXME', max_matches=50)."
     )
 
     def _detect_backend(self) -> FindBackend:

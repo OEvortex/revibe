@@ -18,10 +18,27 @@ from revibe.core.types import ToolCallEvent, ToolResultEvent
 
 
 class WriteFileArgs(BaseModel):
-    path: str
-    content: str
+    path: str = Field(
+        description=(
+            "REQUIRED. File path to create or overwrite (relative to project root or absolute). "
+            "Parent directories created automatically. Examples: 'src/utils.py', 'config.json', './new_file.txt'. "
+            "Path must be within project directory. For partial edits, use search_replace instead."
+        )
+    )
+    content: str = Field(
+        description=(
+            "REQUIRED. Complete UTF-8 file content. This replaces the entire file. "
+            "For editing parts of a file, use search_replace instead. "
+            "Content size limited by max_write_bytes (default ~64KB)."
+        )
+    )
     overwrite: bool = Field(
-        default=False, description="Must be set to true to overwrite an existing file."
+        default=False,
+        description=(
+            "Optional. Default: False. Must be True to overwrite existing files. "
+            "If file exists and overwrite=False, operation fails to prevent accidental data loss. "
+            "Always read existing files first with read_file before overwriting."
+        ),
     )
 
 
@@ -47,7 +64,11 @@ class WriteFile(
     ToolUIData[WriteFileArgs, WriteFileResult],
 ):
     description: ClassVar[str] = (
-        "Create or overwrite a UTF-8 file. Fails if file exists unless 'overwrite=True'."
+        "Create new files or completely overwrite existing files with UTF-8 content. "
+        "REQUIRED: 'path' (file path) and 'content' (full file content). "
+        "OPTIONAL: 'overwrite' (default=False, must be True to replace existing files). "
+        "Use for: new files, complete rewrites. For partial edits, use search_replace instead. "
+        "Examples: write_file(path='new.py', content='...'), write_file(path='config.json', content='{}', overwrite=True)."
     )
 
     @classmethod

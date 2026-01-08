@@ -37,9 +37,20 @@ class TodoItem(BaseModel):
 
 
 class TodoArgs(BaseModel):
-    action: str = Field(description="Either 'read' or 'write'")
+    action: str = Field(
+        description=(
+            "REQUIRED. Action to perform: 'read' (view current todos) or 'write' (update todos). "
+            "For 'read': todos parameter not needed. For 'write': must provide complete todos list."
+        )
+    )
     todos: list[TodoItem] | None = Field(
-        default=None, description="Complete list of todos when writing."
+        default=None,
+        description=(
+            "Optional. Complete list of TodoItem objects when action='write'. "
+            "Each TodoItem requires: id (unique string), content (description), "
+            "status (PENDING|IN_PROGRESS|COMPLETED|CANCELLED), priority (LOW|MEDIUM|HIGH). "
+            "Must provide ALL todos (not incremental updates). Max 100 todos."
+        ),
     )
 
 
@@ -63,7 +74,10 @@ class Todo(
     ToolUIData[TodoArgs, TodoResult],
 ):
     description: ClassVar[str] = (
-        "Manage todos. Use action='read' to view, action='write' with complete list to update."
+        "Manage task todos. REQUIRED: 'action' ('read' to view current todos, 'write' to update). "
+        "For 'write': provide 'todos' (complete list of TodoItem objects with id, content, status, priority). "
+        "Returns: message, todos list, total_count. Use to track multi-step tasks. "
+        "Examples: todo(action='read'), todo(action='write', todos=[TodoItem(id='1', content='Fix bug', ...)])."
     )
 
     @classmethod

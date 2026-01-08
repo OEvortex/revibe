@@ -1,39 +1,153 @@
 # Write File Tool – Creating & Overwriting Files
 
-Use `write_file` when you need to create a brand-new file or fully overwrite an existing one. For partial edits or patch-style updates, prefer `search_replace` instead.
+Create new files or completely overwrite existing files with UTF-8 content. **For partial edits, use `search_replace` instead.**
 
-## Arguments
-- `path` *(str, required)* – Target file path (project-relative or absolute inside workspace).
-- `content` *(str, required)* – UTF‑8 text to persist.
-- `overwrite` *(bool, default False)* – Must be `true` to replace an existing file.
+## Required Parameters
 
-## Safety Guarantees
-1. **Size limit:** Content larger than the configured `max_write_bytes` (~64 KB) is rejected.
-2. **Workspace confinement:** Paths outside the project root are blocked.
-3. **Overwrite guard:** If the file exists and `overwrite` is false, the call fails to prevent accidental data loss.
-4. **Parent directories:** Created automatically when `create_parent_dirs=True` (default).
+- **`path`** (string) - File path to create or overwrite (relative to project root or absolute). Parent directories created automatically.
+- **`content`** (string) - Complete UTF-8 file content. This replaces the entire file.
 
-## Workflow Recommendations
-- ALWAYS inspect the file with `read_file` before overwriting it so you understand the current content.
-- Prefer `search_replace` for edits within a file; `write_file` should be reserved for new files or when you intentionally rewrite the entire file.
-- Avoid generating boilerplate or documentation unless explicitly requested.
-- Remove temporary/testing files you created before finishing the task unless the user asked to keep them.
+## Optional Parameters
 
-## Example Calls
+- **`overwrite`** (boolean, default: False) - Must be `True` to overwrite existing files. If file exists and `overwrite=False`, operation fails to prevent accidental data loss.
+
+## When to Use write_file
+
+✅ **Use write_file for:**
+- Creating brand new files
+- Complete file rewrites (when you want to replace everything)
+- Generating new configuration files
+- Creating new source files from scratch
+
+❌ **Use search_replace for:**
+- Editing specific parts of existing files
+- Making targeted changes
+- Updating function implementations
+- Changing configuration values
+
+## Safety Features
+
+1. **Size limit** - Content larger than ~64KB (`max_write_bytes`) is rejected
+2. **Workspace confinement** - Paths outside project root are blocked
+3. **Overwrite protection** - Existing files require `overwrite=True` to prevent accidental data loss
+4. **Auto-create directories** - Parent directories created automatically (default behavior)
+
+## Complete Workflow
+
 ```python
-# Create a new helper module
+# For NEW files - just create
 write_file(
-    path="revibe/core/tools/prompts/README.md",
-    content="# Tool Prompts\nGuidelines..."
+    path="src/utils/helpers.py",
+    content="""def helper_function():
+    \"\"\"A helper function.\"\"\"
+    return True
+"""
 )
 
-# Overwrite an existing fixture AFTER reading it
-# read_file(path="tests/data/sample.json")
+# For EXISTING files - ALWAYS read first, then overwrite
+# Step 1: Read to understand current content
+current = read_file(path="config.json")
+
+# Step 2: Create new content (can be based on current)
+new_content = """{
+  "version": "2.0",
+  "settings": {
+    "debug": true
+  }
+}"""
+
+# Step 3: Overwrite with new content
 write_file(
-    path="tests/data/sample.json",
-    content="{\n  \"items\": []\n}\n",
+    path="config.json",
+    content=new_content,
+    overwrite=True  # REQUIRED for existing files
+)
+```
+
+## Example Usage
+
+```python
+# Create a new Python module
+write_file(
+    path="src/calculator.py",
+    content="""def add(a: int, b: int) -> int:
+    \"\"\"Add two numbers.\"\"\"
+    return a + b
+
+def multiply(a: int, b: int) -> int:
+    \"\"\"Multiply two numbers.\"\"\"
+    return a * b
+"""
+)
+
+# Create a new configuration file
+write_file(
+    path=".env.example",
+    content="""API_KEY=your_key_here
+DEBUG=false
+PORT=8000
+"""
+)
+
+# Overwrite existing file (after reading it first)
+read_file(path="package.json")  # Understand current structure
+write_file(
+    path="package.json",
+    content='{"name": "my-app", "version": "1.0.0"}',
     overwrite=True
 )
 ```
 
-Remember: `write_file` replaces the entire file with the provided `content`. Double-check your buffer before sending the command.
+## Important Rules
+
+1. **Read before overwriting** - Always use `read_file` first to understand existing content
+2. **Complete replacement** - `write_file` replaces the ENTIRE file - there's no partial update
+3. **Overwrite flag** - Must set `overwrite=True` for existing files (prevents accidents)
+4. **Content size** - Keep content under ~64KB (use `search_replace` for larger files)
+5. **Check your content** - Double-check the `content` parameter before calling - it replaces everything
+
+## Common Mistakes
+
+❌ **WRONG** - Overwriting without reading first:
+```python
+write_file(path="config.py", content="...", overwrite=True)
+# You don't know what you're replacing!
+```
+
+✅ **CORRECT** - Read first, then overwrite:
+```python
+read_file(path="config.py")  # See what's there
+write_file(path="config.py", content="...", overwrite=True)
+```
+
+❌ **WRONG** - Using write_file for small edits:
+```python
+write_file(path="large_file.py", content="[entire 1000-line file with one change]")
+# Use search_replace instead!
+```
+
+✅ **CORRECT** - Use search_replace for edits:
+```python
+read_file(path="large_file.py")
+search_replace(file_path="large_file.py", content="""<<<<<<< SEARCH
+[small section to change]
+=======
+[new content]
+>>>>>>> REPLACE""")
+```
+
+## Output
+
+Returns:
+- **`path`** (string) - The resolved file path
+- **`bytes_written`** (integer) - Number of bytes written
+- **`file_existed`** (boolean) - True if file already existed
+- **`content`** (string) - The content that was written (echo of input)
+
+## Best Practices
+
+1. **Read existing files first** - Understand structure before overwriting
+2. **Use for new files** - Primary use case is creating new files
+3. **Prefer search_replace** - For edits, use `search_replace` instead
+4. **Verify content** - Double-check your content string before writing
+5. **Clean up** - Remove temporary files unless user wants them kept

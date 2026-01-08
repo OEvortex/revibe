@@ -43,8 +43,21 @@ class BlockApplyResult(NamedTuple):
 
 
 class SearchReplaceArgs(BaseModel):
-    file_path: str
-    content: str
+    file_path: str = Field(
+        description=(
+            "REQUIRED. Path to file to edit (relative to project root or absolute). "
+            "File must exist. Examples: 'src/main.py', 'config.json', './README.md'. "
+            "ALWAYS read the file first with read_file to see exact content before editing."
+        )
+    )
+    content: str = Field(
+        description=(
+            "REQUIRED. SEARCH/REPLACE blocks containing edits. Format: "
+            "<<<<<<< SEARCH\\n[exact text from file]\\n=======\\n[new text]\\n>>>>>>> REPLACE. "
+            "Multiple blocks allowed (executed sequentially). SEARCH text must match file exactly - "
+            "copy directly from read_file output, don't retype. Whitespace (spaces, tabs, newlines) must match exactly."
+        )
+    )
 
 
 class SearchReplaceResult(BaseModel):
@@ -72,10 +85,11 @@ class SearchReplace(
     ToolUIData[SearchReplaceArgs, SearchReplaceResult],
 ):
     description: ClassVar[str] = (
-        "Make targeted edits to a file using SEARCH/REPLACE blocks. "
-        "WORKFLOW: 1) Read file first with read_file  2) Copy EXACT text to change  3) Create SEARCH/REPLACE block. "
-        "FORMAT: <<<<<<< SEARCH\\n[exact_text]\\n=======\\n[new_text]\\n>>>>>>> REPLACE. "
-        "RULES: SEARCH must match file exactly (whitespace matters). Multiple blocks run in order. First match only."
+        "Edit files using SEARCH/REPLACE blocks. REQUIRED: 'file_path' and 'content' (with SEARCH/REPLACE blocks). "
+        "WORKFLOW: 1) ALWAYS read_file first to see exact content 2) Copy text EXACTLY (whitespace matters) "
+        "3) Create blocks: <<<<<<< SEARCH\\n[exact_text]\\n=======\\n[new_text]\\n>>>>>>> REPLACE. "
+        "RULES: SEARCH must match exactly (spaces/tabs/newlines). Multiple blocks execute sequentially. "
+        "First occurrence only per block. Use for targeted edits; use write_file for complete rewrites."
     )
 
     @classmethod

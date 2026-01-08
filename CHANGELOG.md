@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.7] - 2026-01-04
+
+### Changed
+
+- **Enhanced Tool Descriptions and Prompts**: Comprehensive improvements to all tool documentation for better model guidance
+  - **Tool ClassVar Descriptions**: Enhanced all tool descriptions with structured format including required/optional parameters, clear examples, use cases, and warnings about common mistakes
+    - `read_file`: Added clear parameter descriptions, workflow guidance, and examples
+    - `bash`: Enhanced with tool priority rules and when to use vs dedicated tools
+    - `search_replace`: Improved with exact matching requirements and workflow steps
+    - `write_file`: Added safety features documentation and when to use vs search_replace
+    - `grep`: Enhanced with regex pattern tips and search best practices
+    - `todo`: Improved with complete workflow examples and status management guidance
+  - **Parameter Field Descriptions**: Enhanced all tool parameter descriptions with detailed explanations, examples, and usage guidance
+    - All required parameters now clearly marked with "REQUIRED" and include examples
+    - Optional parameters include default values and when to use them
+    - Added type information and format requirements
+  - **Prompt Markdown Files**: Completely rewritten all tool prompt files with:
+    - Clear "When to Use" sections with ✅/❌ indicators
+    - Complete workflow examples showing step-by-step usage
+    - Common mistakes sections with solutions
+    - Best practices and tips for each tool
+    - Visual examples and comparisons
+  - **XML Tool Format Template**: Enhanced `xml_tools.md` with:
+    - Better overall guidance for XML tool calling
+    - Tool priority rules (never use bash for file operations)
+    - Common workflows in XML format
+    - XML-specific examples and error prevention
+  - **XML-Specific Prompt Files**: Enhanced all `_xml.md` files with:
+    - Complete XML format examples for each tool
+    - Escaping and formatting guidance
+    - Step-by-step workflows in XML format
+    - Common mistakes in XML format
+    - Platform compatibility notes
+  - **Files Changed**:
+    - `revibe/core/tools/builtins/*.py` - All tool ClassVar descriptions and parameter Field descriptions
+    - `revibe/core/tools/builtins/prompts/*.md` - All standard prompt files
+    - `revibe/core/tools/builtins/prompts/*_xml.md` - All XML-specific prompt files
+    - `revibe/core/tools/builtins/prompts/xml_tools.md` - XML tool format template
+  - **Impact**: Models will now receive significantly better guidance on how to properly call tools, leading to more accurate tool usage, fewer errors, and better understanding of tool capabilities and limitations
+
 ## [0.2.6] - 2026-01-04
 
 ### Fixed

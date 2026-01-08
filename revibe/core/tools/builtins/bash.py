@@ -155,9 +155,20 @@ class BashToolConfig(BaseToolConfig):
 
 
 class BashArgs(BaseModel):
-    command: str
+    command: str = Field(
+        description=(
+            "REQUIRED. Shell command to execute. Use absolute or project-relative paths. "
+            "Avoid interactive commands (editors, REPLs, shells). Commands are non-interactive. "
+            "Examples: 'git status', 'ls -la src/', 'pwd', 'curl -I https://example.com'. "
+            "DO NOT use for file operations - prefer read_file, write_file, search_replace, grep."
+        )
+    )
     timeout: int | None = Field(
-        default=None, description="Override the default command timeout."
+        default=None,
+        description=(
+            "Optional. Override default timeout (seconds). Default: 30s. "
+            "Long-running commands will be terminated. Use for commands that need more time."
+        ),
     )
 
 
@@ -171,7 +182,12 @@ class Bash(
     BaseTool[BashArgs, BashResult, BashToolConfig, BaseToolState],
     ToolUIData[BashArgs, BashResult],
 ):
-    description: ClassVar[str] = "Run a one-off bash command and capture its output."
+    description: ClassVar[str] = (
+        "Execute shell commands (bash/sh/cmd). USE ONLY for: git operations, directory listings, system info, "
+        "network probes, or tasks without dedicated tools. NEVER use for file operations - use read_file, write_file, "
+        "search_replace, or grep instead. Commands run in clean, non-interactive environment. "
+        "Examples: bash(command='git status'), bash(command='ls -la'), bash(command='pwd')."
+    )
 
     @classmethod
     def get_call_display(cls, event: ToolCallEvent) -> ToolCallDisplay:

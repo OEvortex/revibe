@@ -1,6 +1,6 @@
 [project]
 name = "revibe"
-version = "0.2.5"
+version = "0.2.7"
 description = "ReVibe - Multi-provider CLI coding agent"
 readme = "README.md"
 requires-python = ">=3.12"
