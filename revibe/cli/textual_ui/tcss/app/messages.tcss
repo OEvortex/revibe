@@ -1,0 +1,198 @@
+.user-message {
+    margin-top: 1;
+    padding: 1 0;
+    width: 100%;
+    height: auto;
+    background: $surface;
+
+    &:first-child {
+        margin-top: 0;
+    }
+
+    &.pending {
+        .user-message-prompt,
+        .user-message-content {
+            opacity: 0.7;
+            text-style: italic;
+        }
+    }
+}
+
+.user-message-container {
+    width: 100%;
+    height: auto;
+}
+
+.user-message-prompt {
+    width: auto;
+    height: auto;
+    color: $primary;
+    text-style: bold;
+}
+
+.user-message-content {
+    width: 1fr;
+    height: auto;
+    color: $foreground;
+    text-style: bold;
+}
+
+.assistant-message {
+    margin-top: 1;
+    width: 100%;
+    height: auto;
+}
+
+.assistant-message-container {
+    width: 100%;
+    height: auto;
+    align: left top;
+}
+
+.assistant-message-dot {
+    width: auto;
+    height: auto;
+    color: $foreground;
+}
+
+.assistant-message-content {
+    width: 1fr;
+    height: auto;
+    padding: 0;
+
+    Markdown {
+        width: 100%;
+        height: auto;
+        padding: 0;
+        margin: 0;
+    }
+}
+
+.assistant-message-content Markdown > *:last-child {
+    margin-bottom: 0;
+}
+
+.interrupt-message {
+    margin-top: 0;
+    margin-bottom: 0;
+    height: auto;
+    width: 100%;
+}
+
+.interrupt-container {
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0;
+}
+
+.interrupt-border {
+    width: auto;
+    height: 100%;
+    padding: 0 1 0 2;
+    color: $foreground-muted;
+}
+
+.interrupt-content {
+    width: 1fr;
+    height: auto;
+    margin: 0;
+    color: $text-warning;
+}
+
+.error-message {
+    margin-top: 0;
+    margin-bottom: 0;
+    height: auto;
+    width: 100%;
+}
+
+.error-container {
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0;
+}
+
+.error-border {
+    width: auto;
+    height: 100%;
+    padding: 0 1 0 2;
+    color: $foreground-muted;
+}
+
+.error-content {
+    width: 1fr;
+    height: auto;
+    margin: 0;
+    color: $error;
+    text-style: bold;
+}
+
+.warning-message {
+    margin-top: 0;
+    margin-bottom: 0;
+    height: auto;
+    width: 100%;
+}
+
+.warning-container {
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0;
+}
+
+.warning-border {
+    width: auto;
+    height: 100%;
+    padding: 0 1 0 2;
+    color: $foreground-muted;
+}
+
+.warning-content {
+    width: 1fr;
+    height: auto;
+    margin: 0;
+    color: $text-warning;
+}
+
+.user-command-message {
+    margin-top: 0;
+    margin-bottom: 0;
+    height: auto;
+    width: 100%;
+}
+
+.user-command-container {
+    width: 100%;
+    height: auto;
+    margin: 0;
+    padding: 0;
+}
+
+.user-command-border {
+    width: auto;
+    height: 100%;
+    padding: 0 1 0 2;
+    color: $foreground-muted;
+}
+
+.user-command-content {
+    width: 1fr;
+    height: auto;
+    margin: 0;
+
+    Markdown {
+        margin: 0;
+        padding: 0;
+    }
+
+    Markdown > *:first-child {
+        margin-top: 0;
+    }
+
+    Markdown > *:last-child {
+        margin-bottom: 0;
+    }
+}

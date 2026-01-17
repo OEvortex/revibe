@@ -1,0 +1,48 @@
+#input-container {
+    height: auto;
+    width: 100%;
+    background: transparent;
+    padding: 1 0 0 0;
+    margin: 0;
+}
+
+#input-box {
+    height: auto;
+    min-height: 3;
+    width: 100%;
+    background: $surface;
+    border-left: thick $primary;
+    border-top: none;
+    border-right: none;
+    border-bottom: none;
+    padding: 1 2;
+    margin: 0 1;
+}
+
+#input-box.border-warning {
+    border-left: thick $warning;
+    background: $surface;
+}
+
+#input-box.border-safe {
+    border-left: thick $success;
+    background: $surface;
+}
+
+#input-box.border-error {
+    border-left: thick $error;
+    background: $surface;
+}
+
+#input-body {
+    height: auto;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+#input-body > Horizontal {
+    width: 100%;
+    height: auto;
+    align: left middle;
+}

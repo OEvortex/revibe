@@ -57,10 +57,12 @@ class TestSkillMetadata:
         assert "name" in str(exc_info.value).lower()
 
     def test_parses_allowed_tools_from_space_delimited_string(self) -> None:
-        meta = SkillMetadata(
-            name="test",
-            description="A test skill",
-            allowed_tools="bash read_file grep",  # type: ignore[arg-type]
+        meta = SkillMetadata.model_validate(
+            {
+                "name": "test",
+                "description": "A test skill",
+                "allowed_tools": "bash read_file grep",
+            }
         )
 
         assert meta.allowed_tools == ["bash", "read_file", "grep"]
@@ -73,32 +75,36 @@ class TestSkillMetadata:
         assert meta.allowed_tools == ["bash", "read_file"]
 
     def test_parses_allowed_tools_handles_none(self) -> None:
-        meta = SkillMetadata(
-            name="test",
-            description="A test skill",
-            allowed_tools=None,  # type: ignore[arg-type]
+        meta = SkillMetadata.model_validate(
+            {
+                "name": "test",
+                "description": "A test skill",
+                "allowed_tools": None,
+            }
         )
 
         assert meta.allowed_tools == []
 
     def test_normalizes_metadata_values_to_strings(self) -> None:
-        meta = SkillMetadata(
-            name="test",
-            description="A test skill",
-            metadata={"version": 1.0, "count": 42},  # type: ignore[dict-item]
+        meta = SkillMetadata.model_validate(
+            {
+                "name": "test",
+                "description": "A test skill",
+                "metadata": {"version": 1.0, "count": 42},
+            }
         )
 
         assert meta.metadata == {"version": "1.0", "count": "42"}
 
     def test_raises_error_for_missing_name(self) -> None:
         with pytest.raises(ValidationError) as exc_info:
-            SkillMetadata(description="A test skill")  # type: ignore[call-arg]
+            SkillMetadata(description="A test skill")
 
         assert "name" in str(exc_info.value)
 
     def test_raises_error_for_missing_description(self) -> None:
         with pytest.raises(ValidationError) as exc_info:
-            SkillMetadata(name="test")  # type: ignore[call-arg]
+            SkillMetadata(name="test")
 
         assert "description" in str(exc_info.value)
 

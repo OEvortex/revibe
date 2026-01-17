@@ -1,0 +1,46 @@
+.reasoning-message-content {
+    width: 100%;
+    height: auto;
+    padding: 1 0 0 2;
+    margin: 0;
+    color: $text-muted;
+    border-top: solid $surface-darken-1;
+}
+
+.reasoning-message-content * {
+    color: $text-muted;
+}
+
+.reasoning-message-content MarkdownFence {
+    background: $surface-darken-1;
+    padding: 1;
+    margin: 1 0;
+}
+
+.reasoning-message-content MarkdownBulletList {
+    margin: 0 0 0 2;
+    color: $text-muted;
+}
+
+.reasoning-message-content MarkdownOrderedList {
+    margin: 0 0 0 2;
+    color: $text-muted;
+}
+
+.reasoning-message-content MarkdownH1,
+.reasoning-message-content MarkdownH2,
+.reasoning-message-content MarkdownH3 {
+    color: $foreground;
+    text-style: bold;
+    margin: 1 0 0 0;
+}
+
+.reasoning-message-content MarkdownLink {
+    color: $accent;
+    text-style: underline;
+}
+
+.reasoning-message-content MarkdownInlineCode {
+    background: $surface-darken-1;
+    color: $foreground;
+}

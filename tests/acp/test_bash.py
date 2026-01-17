@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Coroutine
-from types import MethodType
-from typing import Any, cast
+from collections.abc import Callable
 
 from acp.schema import TerminalOutputResponse, WaitForTerminalExitResponse
 import pytest
@@ -41,6 +39,31 @@ class MockTerminalHandle:
         pass
 
 
+class RecordingTerminalHandle(MockTerminalHandle):
+    def __init__(
+        self,
+        *args,
+        on_release: Callable[[], None] | None = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        self._on_release = on_release
+
+    async def release(self) -> None:
+        if self._on_release is not None:
+            self._on_release()
+
+
+class FailingKillTerminalHandle(MockTerminalHandle):
+    async def kill(self) -> None:
+        raise RuntimeError("Kill failed")
+
+
+class FailingReleaseTerminalHandle(MockTerminalHandle):
+    async def release(self) -> None:
+        raise RuntimeError("Release failed")
+
+
 class MockConnection:
     def __init__(self, terminal_handle: MockTerminalHandle | None = None) -> None:
         self._terminal_handle = terminal_handle or MockTerminalHandle()
@@ -60,6 +83,11 @@ class MockConnection:
         self._session_update_called = True
 
 
+class FailingSessionUpdateConnection(MockConnection):
+    async def sessionUpdate(self, notification) -> None:
+        raise RuntimeError("Session update failed")
+
+
 @pytest.fixture
 def mock_connection() -> MockConnection:
     return MockConnection()
@@ -70,7 +98,7 @@ def acp_bash_tool(mock_connection: MockConnection) -> Bash:
     config = BashToolConfig()
     # Use model_construct to bypass Pydantic validation for testing
     state = AcpBashState.model_construct(
-        connection=mock_connection,  # type: ignore[arg-type]
+        connection=mock_connection,
         session_id="test_session_123",
         tool_call_id="test_tool_call_456",
     )
@@ -159,7 +187,7 @@ class TestAcpBashExecution:
         tool = Bash(
             config=BashToolConfig(),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -188,7 +216,7 @@ class TestAcpBashExecution:
         tool = Bash(
             config=BashToolConfig(),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -212,7 +240,7 @@ class TestAcpBashExecution:
         tool = Bash(
             config=BashToolConfig(),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -251,7 +279,7 @@ class TestAcpBashExecution:
         tool = Bash(
             config=BashToolConfig(),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id=None,
                 tool_call_id="test_call",
             ),
@@ -278,7 +306,7 @@ class TestAcpBashExecution:
         tool = Bash(
             config=BashToolConfig(),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -307,7 +335,7 @@ class TestAcpBashTimeout:
         tool = Bash(
             config=BashToolConfig(default_timeout=30),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -324,24 +352,16 @@ class TestAcpBashTimeout:
     async def test_run_timeout_handles_kill_failure(
         self, mock_connection: MockConnection
     ) -> None:
-        custom_handle = MockTerminalHandle(
+        custom_handle = FailingKillTerminalHandle(
             terminal_id="kill_failure_terminal",
             wait_delay=20,  # Longer than the 1 second timeout
         )
         mock_connection._terminal_handle = custom_handle
 
-        async def failing_kill(self) -> None:
-            raise RuntimeError("Kill failed")
-
-        custom_handle.kill = cast(  # type: ignore[assignment]
-            Callable[[], Coroutine[Any, Any, None]],
-            MethodType(failing_kill, custom_handle),
-        )
-
         tool = Bash(
             config=BashToolConfig(),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -361,7 +381,7 @@ class TestAcpBashEmbedding:
         tool = Bash(
             config=BashToolConfig(),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -379,7 +399,7 @@ class TestAcpBashEmbedding:
         tool = Bash(
             config=BashToolConfig(),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id=None,
             ),
@@ -395,19 +415,12 @@ class TestAcpBashEmbedding:
     async def test_run_embedding_handles_exception(
         self, mock_connection: MockConnection
     ) -> None:
-        # Make sessionUpdate raise an exception
-        async def failing_session_update(self, notification) -> None:
-            raise RuntimeError("Session update failed")
-
-        mock_connection.sessionUpdate = cast(  # type: ignore[assignment]
-            Callable[..., Coroutine[Any, Any, None]],
-            MethodType(failing_session_update, mock_connection),
-        )
+        failing_connection = FailingSessionUpdateConnection()
 
         tool = Bash(
             config=BashToolConfig(),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=failing_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -435,7 +448,7 @@ class TestAcpBashConfig:
         tool = Bash(
             config=BashToolConfig(default_timeout=30),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -453,21 +466,22 @@ class TestAcpBashCleanup:
     async def test_run_releases_terminal_on_success(
         self, mock_connection: MockConnection
     ) -> None:
-        custom_handle = MockTerminalHandle(terminal_id="cleanup_terminal")
-        mock_connection._terminal_handle = custom_handle
-
         release_called = False
 
-        async def mock_release(self) -> None:
+        def mark_release() -> None:
             nonlocal release_called
             release_called = True
 
-        custom_handle.release = MethodType(mock_release, custom_handle)  # type: ignore[assignment]
+        custom_handle = RecordingTerminalHandle(
+            terminal_id="cleanup_terminal",
+            on_release=mark_release,
+        )
+        mock_connection._terminal_handle = custom_handle
 
         tool = Bash(
             config=BashToolConfig(),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -484,24 +498,23 @@ class TestAcpBashCleanup:
     ) -> None:
         # The handle will wait 2 seconds, but timeout is 1 second,
         # so asyncio.wait_for() will raise TimeoutError
-        custom_handle = MockTerminalHandle(
-            terminal_id="timeout_cleanup_terminal",
-            wait_delay=2.0,  # Longer than the 1 second timeout
-        )
-        mock_connection._terminal_handle = custom_handle
-
         release_called = False
 
-        async def mock_release(self) -> None:
+        def mark_release() -> None:
             nonlocal release_called
             release_called = True
 
-        custom_handle.release = MethodType(mock_release, custom_handle)  # type: ignore[assignment]
+        custom_handle = RecordingTerminalHandle(
+            terminal_id="timeout_cleanup_terminal",
+            wait_delay=2.0,  # Longer than the 1 second timeout
+            on_release=mark_release,
+        )
+        mock_connection._terminal_handle = custom_handle
 
         tool = Bash(
             config=BashToolConfig(),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -520,21 +533,15 @@ class TestAcpBashCleanup:
     async def test_run_handles_release_failure(
         self, mock_connection: MockConnection
     ) -> None:
-        custom_handle = MockTerminalHandle(terminal_id="release_failure_terminal")
-
-        async def failing_release(self) -> None:
-            raise RuntimeError("Release failed")
-
-        custom_handle.release = cast(  # type: ignore[assignment]
-            Callable[[], Coroutine[Any, Any, None]],
-            MethodType(failing_release, custom_handle),
+        custom_handle = FailingReleaseTerminalHandle(
+            terminal_id="release_failure_terminal"
         )
         mock_connection._terminal_handle = custom_handle
 
         tool = Bash(
             config=BashToolConfig(),
             state=AcpBashState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),

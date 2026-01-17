@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from acp import WriteTextFileRequest
-import pytest  # type: ignore
+import pytest
 
 from revibe.acp.tools.builtins.write_file import AcpWriteFileState, WriteFile
 from revibe.core.tools.base import ToolError
@@ -45,7 +45,7 @@ def mock_connection() -> MockConnection:
 def acp_write_file_tool(mock_connection: MockConnection, tmp_path: Path) -> WriteFile:
     config = WriteFileConfig(workdir=tmp_path)
     state = AcpWriteFileState.model_construct(
-        connection=mock_connection,  # type: ignore[arg-type]
+        connection=mock_connection,
         session_id="test_session_123",
         tool_call_id="test_tool_call_456",
     )
@@ -91,7 +91,7 @@ class TestAcpWriteFileExecution:
         tool = WriteFile(
             config=WriteFileConfig(workdir=tmp_path),
             state=AcpWriteFileState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -128,7 +128,7 @@ class TestAcpWriteFileExecution:
         tool = WriteFile(
             config=WriteFileConfig(workdir=tmp_path),
             state=AcpWriteFileState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -165,7 +165,7 @@ class TestAcpWriteFileExecution:
         tool = WriteFile(
             config=WriteFileConfig(workdir=tmp_path),
             state=AcpWriteFileState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id=None,
                 tool_call_id="test_call",
             ),
@@ -234,7 +234,7 @@ class TestAcpWriteFileSessionUpdates:
         event = ToolCallEvent.model_construct(
             tool_name="write_file",
             tool_call_id="test_call_123",
-            args=InvalidArgs(),  # type: ignore[arg-type]
+            args=InvalidArgs(),
             tool_class=WriteFile,
             llm_tool_call=ToolCall(
                 function=FunctionCall(name="write_file", arguments="{}"),
@@ -295,7 +295,7 @@ class TestAcpWriteFileSessionUpdates:
         event = ToolResultEvent.model_construct(
             tool_name="write_file",
             tool_call_id="test_call_123",
-            result=InvalidResult(),  # type: ignore[arg-type]
+            result=InvalidResult(),
             tool_class=WriteFile,
         )
 

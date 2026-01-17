@@ -1,0 +1,32 @@
+.diff-scroll-container {
+    width: 100%;
+    height: auto;
+    overflow-x: auto;
+    scrollbar-size: 1 0;
+}
+
+.diff-no-changes {
+    color: $text-muted;
+    text-style: italic;
+    padding: 1 2;
+}
+
+.diff-summary {
+    height: auto;
+    padding: 1 0 0 0;
+    color: $text-muted;
+    border-top: solid $surface;
+    margin-top: 1;
+}
+
+.diff-summary-files {
+    color: $foreground;
+}
+
+.diff-summary-insertions {
+    color: $text-success;
+}
+
+.diff-summary-deletions {
+    color: $text-error;
+}

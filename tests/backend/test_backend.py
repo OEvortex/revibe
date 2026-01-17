@@ -15,8 +15,8 @@ from __future__ import annotations
 import json
 
 import httpx
-import pytest  # type: ignore
-import respx  # type: ignore
+import pytest
+import respx
 
 from revibe.core.config import (
     Backend,

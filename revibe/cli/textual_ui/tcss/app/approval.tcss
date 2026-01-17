@@ -1,0 +1,103 @@
+#approval-app {
+    width: 100%;
+    height: auto;
+    max-height: 16;
+    background: $background;
+    border: round $foreground-muted;
+    padding: 0 1;
+    margin: 0 0 1 0;
+}
+
+#approval-content {
+    width: 100%;
+    height: auto;
+}
+
+.approval-tool-info-scroll {
+    width: 100%;
+    height: auto;
+    max-height: 8;
+    scrollbar-size: 0 0;
+    scrollbar-visibility: hidden;
+}
+
+.approval-title {
+    height: auto;
+    text-style: bold;
+    color: $warning;
+}
+
+.approval-tool-info-container {
+    width: 100%;
+    height: auto;
+}
+
+.tool-approval-widget {
+    width: 100%;
+    height: auto;
+
+    Static {
+        width: 100%;
+        height: auto;
+    }
+
+    Vertical {
+        width: 100%;
+        height: auto;
+    }
+}
+
+.approval-option {
+    height: auto;
+    color: $foreground;
+}
+
+.approval-cursor-selected {
+    &.approval-option-yes {
+        color: $text-success;
+        text-style: bold;
+    }
+
+    &.approval-option-no {
+        color: $text-error;
+        text-style: bold;
+    }
+}
+
+.approval-option-selected {
+    &.approval-option-yes {
+        color: $success;
+    }
+
+    &.approval-option-no {
+        color: $error;
+    }
+}
+
+.approval-help {
+    height: auto;
+    color: $text-muted;
+}
+
+.approval-description {
+    height: auto;
+    color: $foreground;
+}
+
+.code-block {
+    height: auto;
+    color: $foreground;
+    background: $surface;
+    padding: 1;
+}
+
+Horizontal {
+    width: 100%;
+    height: auto;
+}
+
+ExpandingBorder {
+    width: auto;
+    height: 100%;
+    content-align: left bottom;
+}

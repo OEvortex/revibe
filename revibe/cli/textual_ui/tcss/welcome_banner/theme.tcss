@@ -1,0 +1,5 @@
+WelcomeBanner {
+    color: #FFFFFF;
+    background: transparent;
+    border: none;
+}

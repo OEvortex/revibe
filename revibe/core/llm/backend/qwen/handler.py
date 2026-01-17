@@ -360,7 +360,7 @@ class QwenBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-                has_tools=bool(tools),
+
                 tool_choice=tool_choice,
             ) from e
         except httpx.RequestError as e:
@@ -371,7 +371,7 @@ class QwenBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-                has_tools=bool(tools),
+
                 tool_choice=tool_choice,
             ) from e
 
@@ -626,7 +626,7 @@ class QwenBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-                has_tools=bool(tools),
+
                 tool_choice=tool_choice,
             ) from e
         except httpx.RequestError as e:
@@ -637,7 +637,7 @@ class QwenBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-                has_tools=bool(tools),
+
                 tool_choice=tool_choice,
             ) from e
 

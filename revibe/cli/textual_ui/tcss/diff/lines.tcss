@@ -1,0 +1,60 @@
+.diff-line {
+    height: 1;
+    width: 100%;
+    padding: 0 1;
+}
+
+DiffLineWidget {
+    width: 100%;
+    height: 1;
+    padding: 0 1;
+}
+
+.diff-line-removed {
+    background: #3f1d1d;
+}
+
+DiffLineWidget.diff-line-removed {
+    background: #3f1d1d;
+}
+
+.diff-line-added {
+    background: #1d3f1d;
+}
+
+DiffLineWidget.diff-line-added {
+    background: #1d3f1d;
+}
+
+.diff-line-context {
+    background: $surface;
+}
+
+DiffLineWidget.diff-line-context {
+    background: $surface;
+}
+
+.diff-line-range {
+    background: #2d3a55;
+    padding: 0 1;
+    margin: 1 0;
+    height: auto;
+}
+
+DiffLineWidget.diff-line-range {
+    background: #2d3a55;
+    padding: 0 1;
+    margin: 1 0 0 0;
+    height: auto;
+}
+
+.diff-line-header {
+    background: $surface;
+    text-style: bold;
+    padding: 0 1;
+}
+
+DiffLineWidget.diff-line-header {
+    background: $surface;
+    text-style: bold;
+}

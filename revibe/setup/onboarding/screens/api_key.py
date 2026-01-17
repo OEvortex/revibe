@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import ClassVar
+from typing import ClassVar, Protocol
 
 from dotenv import set_key
 from pydantic import TypeAdapter
@@ -25,8 +25,8 @@ MODEL_CONFIG_ADAPTER = TypeAdapter(list[ModelConfig])
 PROVIDER_ADAPTER = TypeAdapter(list[ProviderConfigUnion])
 
 
-MODEL_CONFIG_ADAPTER = TypeAdapter(list[ModelConfig])
-PROVIDER_ADAPTER = TypeAdapter(list[ProviderConfigUnion])
+class _CredentialLike(Protocol):
+    email: str | None
 
 
 def _save_api_key_to_env_file(env_key: str, api_key: str) -> None:
@@ -54,6 +54,30 @@ def _apply_gradient(text: str, offset: int) -> str:
         color = GRADIENT_COLORS[(i + offset) % len(GRADIENT_COLORS)]
         result.append(f"[bold {color}]{char}[/]")
     return "".join(result)
+
+
+def _resolve_provider(config: VibeConfig) -> ProviderConfigUnion | None:
+    active_provider = getattr(config, "active_provider", None)
+    if active_provider:
+        for provider in config.providers:
+            if provider.name == active_provider:
+                return provider
+        for provider in DEFAULT_PROVIDERS:
+            if provider.name == active_provider:
+                return provider
+        return None
+
+    try:
+        active_model = config.get_active_model()
+        return config.get_provider_for_model(active_model)
+    except (ValueError, KeyError):
+        active_model_name = getattr(config, "active_model", "")
+        if "-" in active_model_name:
+            provider_name = active_model_name.split("-")[0]
+            for provider in config.providers:
+                if provider.name == provider_name:
+                    return provider
+    return None
 
 
 class ApiKeyScreen(OnboardingScreen):
@@ -105,35 +129,13 @@ class ApiKeyScreen(OnboardingScreen):
     def on_show(self) -> None:
         """Reload config when screen becomes visible to pick up saved provider selection."""
         config = self._load_config()
+        self.provider = _resolve_provider(config)
 
-        # Try to get active_provider first (new setup flow), fallback to active_model (existing flow)
-        active_provider = getattr(config, 'active_provider', None)
-
-        if active_provider:
-            # New flow: provider is saved directly
-            for provider in config.providers:
-                if provider.name == active_provider:
-                    self.provider = provider
-                    break
-            else:
-                # Fallback to DEFAULT_PROVIDERS if not in config
-                for provider in DEFAULT_PROVIDERS:
-                    if provider.name == active_provider:
-                        self.provider = provider
-                        break
-        else:
-            # Existing flow: try to get provider from model
-            try:
-                active_model = config.get_active_model()
-                self.provider = config.get_provider_for_model(active_model)
-            except (ValueError, KeyError):
-                # If model lookup fails, try to find provider by name
-                if hasattr(config, 'active_model') and "-" in config.active_model:
-                    provider_name = config.active_model.split("-")[0]
-                    for provider in config.providers:
-                        if provider.name == provider_name:
-                            self.provider = provider
-                            break
+    def _ensure_provider_loaded(self) -> None:
+        if self.provider is not None:
+            return
+        config = self._load_config()
+        self.provider = _resolve_provider(config)
 
     def _compose_provider_link(self, provider_name: str) -> ComposeResult:
         if not self.provider or getattr(self.provider, "name", "") not in PROVIDER_HELP:
@@ -160,11 +162,13 @@ class ApiKeyScreen(OnboardingScreen):
     def _compose_no_api_key_content(self) -> ComposeResult:
         if not self.provider:
             return
-        provider_name = getattr(self.provider, 'name', '')
+        provider_name = getattr(self.provider, "name", "")
 
         if provider_name == "antigravity":
             # Check if already authenticated
-            from revibe.core.llm.backend.antigravity.types import get_antigravity_credential_path
+            from revibe.core.llm.backend.antigravity.types import (
+                get_antigravity_credential_path,
+            )
             cred_path = get_antigravity_credential_path()
             if cred_path.exists():
                 yield Static(
@@ -229,127 +233,84 @@ class ApiKeyScreen(OnboardingScreen):
         yield Static("", id="feedback")
 
 
-    def compose(self) -> ComposeResult:
-        # Ensure provider is loaded (in case on_show hasn't been called yet)
-        if self.provider is None:
-            config = self._load_config()
+    def _compose_no_api_key_screen(self) -> ComposeResult:
+        with Vertical(id="api-key-outer"):
+            yield Static("Credentials", classes="eyebrow")
+            yield Center(Static("No API Key Required", id="api-key-title"))
+            with Center():
+                with Vertical(id="api-key-content", classes="card"):
+                    yield from self._compose_no_api_key_content()
+            yield Static("", classes="spacer")
 
-            # Try to get active_provider first (new setup flow), fallback to active_model (existing flow)
-            active_provider = getattr(config, 'active_provider', None)
+    def _compose_detected_key_screen(
+        self, env_key: str, existing_key: str
+    ) -> ComposeResult:
+        self.input_widget = Input(
+            password=True,
+            id="key",
+            placeholder="Paste a new API key to replace (optional)",
+            validators=[Length(minimum=1, failure_description="No API key provided.")],
+        )
+        provider_name = getattr(self.provider, "name", "").capitalize()
 
-            if active_provider:
-                # New flow: provider is saved directly
-                for provider in config.providers:
-                    if provider.name == active_provider:
-                        self.provider = provider
-                        break
-                else:
-                    # Fallback to DEFAULT_PROVIDERS if not in config
-                    for provider in DEFAULT_PROVIDERS:
-                        if provider.name == active_provider:
-                            self.provider = provider
-                            break
-            else:
-                # Existing flow: try to get provider from model
-                try:
-                    active_model = config.get_active_model()
-                    self.provider = config.get_provider_for_model(active_model)
-                except (ValueError, KeyError):
-                    # If model lookup fails, try to find provider by name
-                    if hasattr(config, 'active_model') and "-" in config.active_model:
-                        provider_name = config.active_model.split("-")[0]
-                        for provider in config.providers:
-                            if provider.name == provider_name:
-                                self.provider = provider
-                                break
-
-        # Skip API key input for providers that don't require it
-        if not getattr(self.provider, "api_key_env_var", ""):
-            with Vertical(id="api-key-outer"):
-                yield Static("Credentials", classes="eyebrow")
-                yield Center(Static("No API Key Required", id="api-key-title"))
-                with Center():
-                    with Vertical(id="api-key-content", classes="card"):
-                        yield from self._compose_no_api_key_content()
-                yield Static("", classes="spacer")
-            return
-
-        env_key = getattr(self.provider, "api_key_env_var", "")
-        existing_key = os.getenv(env_key)
-        if existing_key:
-            # Show detected key UI
-            self.input_widget = Input(
-                password=True,
-                id="key",
-                placeholder="Paste a new API key to replace (optional)",
-                validators=[
-                    Length(minimum=1, failure_description="No API key provided.")
-                ],
-            )
-            with Vertical(id="api-key-outer"):
-                yield Static("Credentials", classes="eyebrow")
-                yield Center(Static("API Key Detected", id="api-key-title"))
-                yield Center(
-                    Static(
-                        f"{getattr(self.provider, 'name', '').capitalize()} is already connected",
-                        classes="lede",
+        with Vertical(id="api-key-outer"):
+            yield Static("Credentials", classes="eyebrow")
+            yield Center(Static("API Key Detected", id="api-key-title"))
+            yield Center(Static(f"{provider_name} is already connected", classes="lede"))
+            with Center():
+                with Vertical(id="api-key-content", classes="card"):
+                    yield Static(
+                        f"Found {env_key} in environment", id="key-detected-message"
                     )
-                )
-                with Center():
-                    with Vertical(id="api-key-content", classes="card"):
-                        yield Static(
-                            f"Found {env_key} in environment", id="key-detected-message"
+                    yield Static(
+                        f"Masked key: {mask_key(existing_key)}",
+                        id="masked-key",
+                        classes="pill code",
+                    )
+                    yield Static(
+                        "Keep the detected key or replace it with a fresh one.",
+                        classes="subtle",
+                    )
+                    yield Static("", id="feedback")
+                    yield Center(
+                        Button(
+                            "Continue with detected key",
+                            id="continue-button",
+                            variant="success",
+                            classes="primary-action",
                         )
-                        yield Static(
-                            f"Masked key: {mask_key(existing_key)}",
-                            id="masked-key",
-                            classes="pill code",
-                        )
-                        yield Static(
-                            "Keep the detected key or replace it with a fresh one.",
-                            classes="subtle",
-                        )
-                        yield Static("", id="feedback")
-                        yield Center(
-                            Button(
-                                "Continue with detected key",
-                                id="continue-button",
-                                variant="success",
-                                classes="primary-action",
-                            )
-                        )
-                        yield Static(
-                            "Replace it below if you'd prefer to rotate the key.",
-                            id="replace-hint",
-                        )
-                        with Container(id="input-box"):
-                            yield self.input_widget
-                yield Static("", classes="spacer")
-                yield Vertical(
-                    Vertical(
-                        *self._compose_config_docs(),
-                        id="config-docs-group",
-                        classes="footer-card",
-                    ),
-                    id="config-docs-section",
-                )
-            return
+                    )
+                    yield Static(
+                        "Replace it below if you'd prefer to rotate the key.",
+                        id="replace-hint",
+                    )
+                    with Container(id="input-box"):
+                        yield self.input_widget
+            yield Static("", classes="spacer")
+            yield Vertical(
+                Vertical(
+                    *self._compose_config_docs(),
+                    id="config-docs-group",
+                    classes="footer-card",
+                ),
+                id="config-docs-section",
+            )
 
+    def _compose_new_key_screen(self, env_key: str) -> ComposeResult:
         self.input_widget = Input(
             password=True,
             id="key",
             placeholder="Paste your API key here",
             validators=[Length(minimum=1, failure_description="No API key provided.")],
         )
+        provider_name = getattr(self.provider, "name", "").capitalize()
 
         with Vertical(id="api-key-outer"):
             yield Static("Credentials", classes="eyebrow")
             yield Center(Static("Connect your API key", id="api-key-title"))
             with Center():
                 with Vertical(id="api-key-content", classes="card"):
-                    yield from self._compose_provider_link(
-                        getattr(self.provider, 'name', '').capitalize()
-                    )
+                    yield from self._compose_provider_link(provider_name)
                     yield Static(f"Env variable: {env_key}", classes="pill code")
                     yield Static(
                         "Your key stays on your machine. Paste it to continue.",
@@ -367,6 +328,22 @@ class ApiKeyScreen(OnboardingScreen):
                 ),
                 id="config-docs-section",
             )
+
+    def compose(self) -> ComposeResult:
+        self._ensure_provider_loaded()
+        if not self.provider:
+            return
+
+        if not getattr(self.provider, "api_key_env_var", ""):
+            yield from self._compose_no_api_key_screen()
+            return
+
+        env_key = getattr(self.provider, "api_key_env_var", "")
+        if existing_key := os.getenv(env_key):
+            yield from self._compose_detected_key_screen(env_key, existing_key)
+            return
+
+        yield from self._compose_new_key_screen(env_key)
 
     def _start_gradient_animation(self) -> None:
         self._gradient_timer = self.set_interval(0.08, self._animate_gradient)
@@ -462,10 +439,12 @@ class ApiKeyScreen(OnboardingScreen):
         button.label = "Opening browser..."
         feedback.update("[dim]Please complete the authentication in your browser...[/]")
 
-        def run_auth():
+        def run_auth() -> None:
             """Run the async OAuth flow."""
             try:
-                from revibe.core.llm.backend.antigravity.oauth import AntigravityOAuthManager
+                from revibe.core.llm.backend.antigravity.oauth import (
+                    AntigravityOAuthManager,
+                )
 
                 oauth_manager = AntigravityOAuthManager()
 
@@ -488,7 +467,7 @@ class ApiKeyScreen(OnboardingScreen):
         thread = threading.Thread(target=run_auth, daemon=True)
         thread.start()
 
-    def _on_auth_success(self, credentials) -> None:
+    def _on_auth_success(self, credentials: _CredentialLike) -> None:
         """Called when OAuth authentication succeeds."""
         feedback = self.query_one("#feedback", Static)
         feedback.update(f"[green]✓ Authenticated as: {credentials.email or 'Unknown'}[/]")

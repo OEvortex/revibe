@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import cast
 
 from acp import ReadTextFileRequest, ReadTextFileResponse, WriteTextFileRequest
+from acp.schema import (
+    FileEditToolCallContent,
+    ToolCallLocation,
+    ToolCallProgress,
+    ToolCallStart,
+)
 import pytest
 
 from revibe.acp.tools.builtins.search_replace import (
@@ -67,7 +74,7 @@ def acp_search_replace_tool(
 ) -> SearchReplace:
     config = SearchReplaceConfig(workdir=tmp_path)
     state = AcpSearchReplaceState.model_construct(
-        connection=mock_connection,  # type: ignore[arg-type]
+        connection=mock_connection,
         session_id="test_session_123",
         tool_call_id="test_tool_call_456",
     )
@@ -127,7 +134,7 @@ class TestAcpSearchReplaceExecution:
         tool = SearchReplace(
             config=config,
             state=AcpSearchReplaceState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -158,7 +165,7 @@ class TestAcpSearchReplaceExecution:
         tool = SearchReplace(
             config=SearchReplaceConfig(workdir=tmp_path),
             state=AcpSearchReplaceState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -190,7 +197,7 @@ class TestAcpSearchReplaceExecution:
         tool = SearchReplace(
             config=SearchReplaceConfig(workdir=tmp_path),
             state=AcpSearchReplaceState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -233,7 +240,7 @@ class TestAcpSearchReplaceExecution:
         tool = SearchReplace(
             config=SearchReplaceConfig(workdir=tmp_path),
             state=AcpSearchReplaceState.model_construct(
-                connection=connection,  # type: ignore[arg-type]
+                connection=connection,
                 session_id=session_id,
                 tool_call_id="test_call",
             ),
@@ -265,36 +272,26 @@ class TestAcpSearchReplaceSessionUpdates:
 
         update = SearchReplace.tool_call_session_update(event)
         assert update is not None
-        # Use hasattr to check for attributes before accessing them
-        assert hasattr(update, "sessionUpdate")
         assert update.sessionUpdate == "tool_call"
-        assert hasattr(update, "toolCallId")
-        assert update.toolCallId == "test_call_123"
-        assert hasattr(update, "kind")
-        assert update.kind == "edit"
-        assert hasattr(update, "title")
-        assert update.title is not None
-        assert hasattr(update, "content")
-        if hasattr(update, "content") and update.content is not None:
-            assert len(update.content) == 1  # type: ignore[union-attr]
-            # Check if content supports indexing before accessing
-            if len(update.content) > 0:  # type: ignore[union-attr]
-                content_item = update.content[0]
-                assert hasattr(content_item, "type")
-                assert content_item.type == "diff"
-                assert hasattr(content_item, "path")
-                assert content_item.path == "/tmp/test.txt"
-                assert hasattr(content_item, "oldText")
-                assert content_item.oldText == "old text"
-                assert hasattr(content_item, "newText")
-                assert content_item.newText == "new text"
-        assert hasattr(update, "locations")
-        if hasattr(update, "locations") and update.locations is not None:
-            assert len(update.locations) == 1  # type: ignore[union-attr]
-            if len(update.locations) > 0:  # type: ignore[union-attr]
-                location = update.locations[0]
-                assert hasattr(location, "path")
-                assert location.path == "/tmp/test.txt"
+        call_update = cast(ToolCallStart, update)
+        assert call_update.toolCallId == "test_call_123"
+        assert call_update.kind == "edit"
+        assert call_update.title is not None
+        content = call_update.content
+        assert content is not None
+        assert len(content) == 1
+        content_item = content[0]
+        assert isinstance(content_item, FileEditToolCallContent)
+        assert content_item.type == "diff"
+        assert content_item.path == "/tmp/test.txt"
+        assert content_item.oldText == "old text"
+        assert content_item.newText == "new text"
+        locations = call_update.locations
+        assert locations is not None
+        assert len(locations) == 1
+        location = locations[0]
+        assert isinstance(location, ToolCallLocation)
+        assert location.path == "/tmp/test.txt"
 
     def test_tool_call_session_update_invalid_args(self) -> None:
         class InvalidArgs:
@@ -303,7 +300,7 @@ class TestAcpSearchReplaceSessionUpdates:
         event = ToolCallEvent.model_construct(
             tool_name="search_replace",
             tool_call_id="test_call_123",
-            args=InvalidArgs(),  # type: ignore[arg-type]
+            args=InvalidArgs(),
             tool_class=SearchReplace,
         )
 
@@ -331,34 +328,25 @@ class TestAcpSearchReplaceSessionUpdates:
 
         update = SearchReplace.tool_result_session_update(event)
         assert update is not None
-        # Use hasattr to check for attributes before accessing them
-        assert hasattr(update, "sessionUpdate")
         assert update.sessionUpdate == "tool_call_update"
-        assert hasattr(update, "toolCallId")
-        assert update.toolCallId == "test_call_123"
-        assert hasattr(update, "status")
-        assert update.status == "completed"
-        assert hasattr(update, "content")
-        if hasattr(update, "content") and update.content is not None:
-            assert len(update.content) == 1  # type: ignore[union-attr]
-            # Check if content supports indexing before accessing
-            if len(update.content) > 0:  # type: ignore[union-attr]
-                content_item = update.content[0]
-                assert hasattr(content_item, "type")
-                assert content_item.type == "diff"
-                assert hasattr(content_item, "path")
-                assert content_item.path == "/tmp/test.txt"
-                assert hasattr(content_item, "oldText")
-                assert content_item.oldText == "old text"
-                assert hasattr(content_item, "newText")
-                assert content_item.newText == "new text"
-        assert hasattr(update, "locations")
-        if hasattr(update, "locations") and update.locations is not None:
-            assert len(update.locations) == 1  # type: ignore[union-attr]
-            if len(update.locations) > 0:  # type: ignore[union-attr]
-                location = update.locations[0]
-                assert hasattr(location, "path")
-                assert location.path == "/tmp/test.txt"
+        result_update = cast(ToolCallProgress, update)
+        assert result_update.toolCallId == "test_call_123"
+        assert result_update.status == "completed"
+        result_content = result_update.content
+        assert result_content is not None
+        assert len(result_content) == 1
+        result_item = result_content[0]
+        assert isinstance(result_item, FileEditToolCallContent)
+        assert result_item.type == "diff"
+        assert result_item.path == "/tmp/test.txt"
+        assert result_item.oldText == "old text"
+        assert result_item.newText == "new text"
+        result_locations = result_update.locations
+        assert result_locations is not None
+        assert len(result_locations) == 1
+        result_location = result_locations[0]
+        assert isinstance(result_location, ToolCallLocation)
+        assert result_location.path == "/tmp/test.txt"
 
     def test_tool_result_session_update_invalid_result(self) -> None:
         class InvalidResult:
@@ -367,7 +355,7 @@ class TestAcpSearchReplaceSessionUpdates:
         event = ToolResultEvent.model_construct(
             tool_name="search_replace",
             tool_call_id="test_call_123",
-            result=InvalidResult(),  # type: ignore[arg-type]
+            result=InvalidResult(),
             tool_class=SearchReplace,
         )
 

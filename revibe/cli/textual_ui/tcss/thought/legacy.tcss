@@ -1,0 +1,21 @@
+.reasoning-icon {
+    width: auto;
+    height: auto;
+    margin-right: 1;
+    color: $accent;
+}
+
+.reasoning-icon.success {
+    color: $success;
+}
+
+.reasoning-icon.error {
+    color: $error;
+}
+
+.reasoning-collapsed-text {
+    width: auto;
+    height: auto;
+    color: $foreground;
+    text-style: bold;
+}

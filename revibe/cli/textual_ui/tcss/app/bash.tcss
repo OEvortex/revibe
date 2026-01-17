@@ -1,0 +1,61 @@
+.bash-output-message {
+    margin-top: 1;
+    width: 100%;
+    height: auto;
+}
+
+.bash-output-container {
+    width: 100%;
+    height: auto;
+    padding: 1 2;
+    background: $surface;
+}
+
+.bash-cwd-line,
+.bash-command-line {
+    width: 100%;
+    height: auto;
+    margin-bottom: 1;
+    align: left middle;
+}
+
+.bash-cwd {
+    width: auto;
+    color: $text-muted;
+}
+
+.bash-cwd-spacer,
+.bash-command-spacer {
+    width: 1fr;
+}
+
+.bash-chevron {
+    width: auto;
+    color: $primary;
+    text-style: bold;
+}
+
+.bash-command {
+    width: auto;
+    color: $foreground;
+}
+
+.bash-output {
+    width: 100%;
+    color: $foreground;
+}
+
+.bash-exit-success {
+    width: auto;
+    color: $text-success;
+}
+
+.bash-exit-failure {
+    width: auto;
+    color: $text-error;
+}
+
+.bash-exit-code {
+    width: auto;
+    color: $text-muted;
+}

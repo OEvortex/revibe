@@ -1,0 +1,15 @@
+#input-box:focus-within {
+    border-left: thick $accent;
+}
+
+#input-box.border-warning:focus-within {
+    border-left: thick $warning;
+}
+
+#input-box.border-safe:focus-within {
+    border-left: thick $success;
+}
+
+#input-box.border-error:focus-within {
+    border-left: thick $error;
+}

@@ -3,7 +3,31 @@ from __future__ import annotations
 
 import importlib.metadata
 from pathlib import Path
-from typing import Any
+
+
+def _get_distribution_path(dist: importlib.metadata.Distribution) -> Path | None:
+    dist_path = getattr(dist, "_path", None)
+    return Path(dist_path) if isinstance(dist_path, (str, Path)) else None
+
+
+def _has_source_markers(base_path: Path) -> bool:
+    for parent in [base_path, base_path.parent, base_path.parent.parent]:
+        if (parent / "pyproject.toml").exists() or (parent / "setup.py").exists():
+            return True
+    return False
+
+
+def _is_editable_from_source() -> bool:
+    try:
+        import revibe
+
+        revibe_file = getattr(revibe, "__file__", None)
+        if isinstance(revibe_file, str):
+            source_dir = Path(revibe_file).parent
+            return (source_dir.parent / "pyproject.toml").exists()
+    except Exception:
+        return False
+    return False
 
 
 def is_editable_installation(package_name: str = "revibe") -> bool:
@@ -17,44 +41,18 @@ def is_editable_installation(package_name: str = "revibe") -> bool:
     """
     try:
         dist = importlib.metadata.distribution(package_name)
-
-        # Method 1: Check for direct_url.json which indicates editable installation
-        if hasattr(dist, '_path'):
-            dist_path = getattr(dist, '_path', None)
-            if isinstance(dist_path, (str, Path)):
-                dist_info = Path(dist_path)
-                direct_url_file = dist_info / 'direct_url.json'
-                if direct_url_file.exists():
-                    return True
-
-        # Method 2: Check if the package location points to a source directory
-        if hasattr(dist, '_path'):
-            dist_path = getattr(dist, '_path', None)
-            if isinstance(dist_path, (str, Path)):
-                package_path = Path(dist_path).parent
-                # Look for pyproject.toml or setup.py in parent directories
-                for parent in [package_path, package_path.parent, package_path.parent.parent]:
-                    if (parent / 'pyproject.toml').exists() or (parent / 'setup.py').exists():
-                        return True
-
-        # Method 3: Check the metadata for editable indicators
-        if hasattr(dist, 'metadata'):
-            origin = dist.metadata.get('Origin', '')
-            if 'editable' in origin.lower():
-                return True
-
     except Exception:
-        # Fallback: try to import the package and check if we're running from source
-        try:
-            import revibe
-            revibe_file = getattr(revibe, '__file__', None)
-            if revibe_file and isinstance(revibe_file, str):
-                source_dir = Path(revibe_file).parent
-                pyproject_toml = source_dir.parent / 'pyproject.toml'
-                if pyproject_toml.exists():
-                    return True
-        except Exception:
-            pass
+        return _is_editable_from_source()
+
+    if dist_path := _get_distribution_path(dist):
+        if (dist_path / "direct_url.json").exists():
+            return True
+        if _has_source_markers(dist_path.parent):
+            return True
+
+    origin = dist.metadata.get("Origin", "")
+    if "editable" in origin.lower():
+        return True
 
     return False
 

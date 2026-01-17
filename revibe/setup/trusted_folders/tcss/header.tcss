@@ -1,0 +1,26 @@
+#trust-dialog-title {
+    width: 100%;
+    height: auto;
+    text-style: bold;
+    color: $warning;
+    text-align: center;
+    margin-bottom: 1;
+}
+
+#trust-dialog-path {
+    width: 100%;
+    height: auto;
+    color: $primary;
+    text-align: center;
+    text-wrap: wrap;
+    margin-bottom: 1;
+}
+
+#trust-dialog-message {
+    width: 100%;
+    height: auto;
+    color: $foreground;
+    text-align: center;
+    text-wrap: wrap;
+    margin-bottom: 1;
+}

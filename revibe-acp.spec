@@ -8,7 +8,9 @@ a = Analysis(
 datas=[
     ('revibe/core/prompts/*.md', 'revibe/core/prompts'),
     ('revibe/core/tools/builtins/prompts/*.md', 'revibe/core/tools/builtins/prompts'),
-    ('revibe/setup/onboarding/app.tcss', 'revibe/setup/onboarding'),
+    ('revibe/cli/textual_ui/tcss/*/*.tcss', 'revibe/cli/textual_ui/tcss'),
+    ('revibe/setup/onboarding/tcss/*.tcss', 'revibe/setup/onboarding/tcss'),
+    ('revibe/setup/trusted_folders/tcss/*.tcss', 'revibe/setup/trusted_folders/tcss'),
     ('revibe/setup/*', 'revibe/setup'),
     # This is necessary because tools are dynamically called in revibe, meaning there is no static reference to those files
     ('revibe/core/tools/builtins/*.py', 'revibe/core/tools/builtins'),

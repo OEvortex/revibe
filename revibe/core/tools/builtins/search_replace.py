@@ -22,6 +22,15 @@ SEARCH_REPLACE_BLOCK_WITH_FENCE_RE = re.compile(
     flags=re.DOTALL,
 )
 
+FIRST_LINE_PREVIEW_LEN = 60
+CONTEXT_PREVIEW_LEN = 70
+LINE_PREVIEW_LEN = 80
+MATCH_LIST_LIMIT = 5
+CONTENT_PREVIEW_LEN = 200
+SEARCH_PREVIEW_LEN = 300
+MATCH_QUALITY_HIGH = 95
+MATCH_QUALITY_MED = 90
+
 
 class SearchReplaceBlock(NamedTuple):
     search: str
@@ -118,7 +127,7 @@ class SearchReplace(
 
             # Build a more informative message
             if blocks == 1:
-                msg = f"✓ Applied 1 change"
+                msg = "✓ Applied 1 change"
             else:
                 msg = f"✓ Applied {blocks} changes"
 
@@ -222,7 +231,11 @@ class SearchReplace(
         search_replace_blocks = self._parse_search_replace_blocks(content)
         if not search_replace_blocks:
             # Provide helpful error with the actual content received
-            content_preview = content[:200] + "..." if len(content) > 200 else content
+            content_preview = (
+                content[:CONTENT_PREVIEW_LEN] + "..."
+                if len(content) > CONTENT_PREVIEW_LEN
+                else content
+            )
             raise ToolError(
                 f"❌ Invalid SEARCH/REPLACE format\n\n"
                 f"Could not parse any valid blocks from content.\n\n"
@@ -290,7 +303,11 @@ class SearchReplace(
                 )
 
                 # Build clear, visual error message
-                search_preview = search[:300] + "..." if len(search) > 300 else search
+                search_preview = (
+                    search[:SEARCH_PREVIEW_LEN] + "..."
+                    if len(search) > SEARCH_PREVIEW_LEN
+                    else search
+                )
                 search_lines = search.count('\n') + 1
 
                 error_msg = (
@@ -308,7 +325,7 @@ class SearchReplace(
                     # Show whitespace visually
                     visible_line = line.replace(' ', '·').replace('\t', '→   ')
                     error_msg += f"│ {visible_line}\n"
-                error_msg += f"└──────────────────────────────────────\n\n"
+                error_msg += "└──────────────────────────────────────\n\n"
 
                 # Add context analysis
                 error_msg += f"📍 Context Analysis:\n{context}\n"
@@ -362,9 +379,9 @@ class SearchReplace(
         similarity_pct = best_match.similarity * 100
 
         # Visual similarity indicator
-        if similarity_pct >= 95:
+        if similarity_pct >= MATCH_QUALITY_HIGH:
             match_quality = "🟢 Very close"
-        elif similarity_pct >= 90:
+        elif similarity_pct >= MATCH_QUALITY_MED:
             match_quality = "🟡 Close"
         else:
             match_quality = "🟠 Partial"
@@ -513,14 +530,24 @@ class SearchReplace(
                         partial_matches.append(i)
 
                 if partial_matches:
-                    result = f"❌ Exact first line not found.\n\n"
-                    result += f"Looking for: \"{first_search_line[:60]}{'...' if len(first_search_line) > 60 else ''}\"\n\n"
-                    result += f"Similar lines found at:\n"
+                    result = "❌ Exact first line not found.\n\n"
+                    result += (
+                        f'Looking for: "{first_search_line[:FIRST_LINE_PREVIEW_LEN]}'
+                        f"{'...' if len(first_search_line) > FIRST_LINE_PREVIEW_LEN else ''}\"\n\n"
+                    )
+                    result += "Similar lines found at:\n"
                     for idx in partial_matches[:3]:
-                        result += f"  Line {idx + 1}: {lines[idx][:70]}{'...' if len(lines[idx]) > 70 else ''}\n"
+                        result += (
+                            f"  Line {idx + 1}: {lines[idx][:CONTEXT_PREVIEW_LEN]}"
+                            f"{'...' if len(lines[idx]) > CONTEXT_PREVIEW_LEN else ''}\n"
+                        )
                     return result
 
-            return f"❌ First line of search not found anywhere in file:\n   \"{first_search_line[:80]}{'...' if len(first_search_line) > 80 else ''}\""
+            return (
+                "❌ First line of search not found anywhere in file:\n   "
+                f'"{first_search_line[:LINE_PREVIEW_LEN]}'
+                f"{'...' if len(first_search_line) > LINE_PREVIEW_LEN else ''}\""
+            )
 
         # Show where the first line WAS found
         context_lines = []
@@ -529,7 +556,11 @@ class SearchReplace(
         if found_count == 1:
             context_lines.append(f"✓ First line found at line {matches[0] + 1}, but full block doesn't match.")
         else:
-            context_lines.append(f"✓ First line found {found_count} times (lines: {', '.join(str(m+1) for m in matches[:5])}{'...' if found_count > 5 else ''})")
+            context_lines.append(
+                "✓ First line found "
+                f"{found_count} times (lines: {', '.join(str(m + 1) for m in matches[:MATCH_LIST_LIMIT])}"
+                f"{'...' if found_count > MATCH_LIST_LIMIT else ''})"
+            )
 
         context_lines.append("\nShowing context where first line appears:\n")
 
@@ -539,13 +570,10 @@ class SearchReplace(
 
             context_lines.append(f"┌─ Around line {match_idx + 1} ─────────────────────────")
             for i in range(start, end):
-                if i == match_idx:
-                    marker = "▶"
-                    style = ""
-                else:
-                    marker = "│"
-                    style = ""
-                line_content = lines[i][:80] + ("..." if len(lines[i]) > 80 else "")
+                marker = "▶" if i == match_idx else "│"
+                line_content = lines[i][:LINE_PREVIEW_LEN] + (
+                    "..." if len(lines[i]) > LINE_PREVIEW_LEN else ""
+                )
                 context_lines.append(f"{marker} {i + 1:4d} │ {line_content}")
             context_lines.append("└────────────────────────────────────────────")
 

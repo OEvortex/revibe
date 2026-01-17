@@ -1,0 +1,25 @@
+#model-selector-list, #provider-selector-list {
+    height: auto;
+    max-height: 16;
+    background: transparent;
+    border: none;
+    padding: 0;
+    scrollbar-size: 1 1;
+    scrollbar-color: $primary;
+    scrollbar-background: $surface;
+}
+
+OptionList > .option-list--option-highlighted {
+    background: $primary-darken-2;
+    color: $text;
+    text-style: bold;
+}
+
+OptionList > .option-list--option {
+    padding: 0 1;
+}
+
+OptionList > .option-list--separator {
+    color: $text-muted;
+    background: transparent;
+}

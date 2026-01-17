@@ -8,12 +8,7 @@ from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.widgets import Markdown, Static
 
-from revibe.cli.textual_ui.widgets.diff_view import (
-    create_diff_view_from_search_replace,
-    DiffHeaderWidget,
-    DiffLineWidget,
-    DiffLine,
-)
+from revibe.cli.textual_ui.widgets.diff_view import create_diff_view_from_search_replace
 from revibe.cli.textual_ui.widgets.utils import DEFAULT_TOOL_SHORTCUT, TOOL_SHORTCUTS
 from revibe.core.tools.builtins.bash import BashArgs, BashResult
 from revibe.core.tools.builtins.grep import GrepArgs, GrepResult

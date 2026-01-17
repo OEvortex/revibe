@@ -1,0 +1,67 @@
+.todo-empty {
+    height: auto;
+    color: $text-muted;
+}
+
+.todo-pending {
+    height: auto;
+    color: $foreground;
+}
+
+.todo-in_progress {
+    height: auto;
+    color: $warning;
+}
+
+.todo-completed {
+    height: auto;
+    color: $success;
+}
+
+.todo-cancelled {
+    height: auto;
+    color: $text-muted;
+}
+
+#todo-area .tool-result {
+    margin-left: 0;
+}
+
+.loading-widget {
+    width: 100%;
+    height: auto;
+}
+
+.loading-container {
+    width: auto;
+    height: auto;
+}
+
+.loading-indicator {
+    width: auto;
+    height: auto;
+    color: $warning;
+    margin-right: 1;
+}
+
+.loading-status {
+    width: auto;
+    height: auto;
+}
+
+.loading-char {
+    width: auto;
+    height: auto;
+}
+
+.loading-ellipsis {
+    width: auto;
+    height: auto;
+    color: $text-muted;
+}
+
+.loading-hint {
+    width: auto;
+    height: auto;
+    color: $foreground;
+}

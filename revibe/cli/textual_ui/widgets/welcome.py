@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from rich.align import Align
 from rich.console import Group
 from rich.text import Text
@@ -10,20 +12,22 @@ from textual.widgets import Static
 from revibe import __version__
 from revibe.core.config import VibeConfig
 
-
 # Color palette
 ORANGE = "#FF8C00"
 GOLD = "#FFD700"
 WHITE = "#FFFFFF"
 GRAY = "#6B7280"
 DARK_GRAY = "#374151"
+LOGO_GRADIENT_SPLIT = 3
+WORKSPACE_MAX_LEN = 50
+WORKSPACE_TAIL_LEN = 47
 
 
 class WelcomeBanner(Static):
     """Compact, auto-sizing welcome banner."""
 
     # Minimal ASCII art - scales better in small terminals
-    LOGO_SMALL = [
+    LOGO_SMALL: ClassVar[list[str]] = [
         "██████╗ ███████╗██╗   ██╗██╗██████╗ ███████╗",
         "██╔══██╗██╔════╝██║   ██║██║██╔══██╗██╔════╝",
         "██████╔╝█████╗  ██║   ██║██║██████╔╝█████╗  ",
@@ -46,7 +50,7 @@ class WelcomeBanner(Static):
 
         # Logo with gradient effect
         for i, line in enumerate(self.LOGO_SMALL):
-            color = ORANGE if i < 3 else GOLD
+            color = ORANGE if i < LOGO_GRADIENT_SPLIT else GOLD
             lines.append(Text.from_markup(f"[bold {color}]{line}[/]"))
 
         # Spacing
@@ -65,8 +69,8 @@ class WelcomeBanner(Static):
 
         # Workspace path - truncated if too long
         workspace = str(self.config.effective_workdir)
-        if len(workspace) > 50:
-            workspace = "..." + workspace[-47:]
+        if len(workspace) > WORKSPACE_MAX_LEN:
+            workspace = "..." + workspace[-WORKSPACE_TAIL_LEN:]
         lines.append(Text.from_markup(f"[{DARK_GRAY}]{workspace}[/]"))
 
         self.update(Align.center(Group(*lines)))

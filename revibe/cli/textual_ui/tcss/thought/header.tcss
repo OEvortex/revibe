@@ -1,0 +1,39 @@
+.reasoning-message-header {
+    width: 100%;
+    height: auto;
+    padding: 0;
+    align: left middle;
+}
+
+.reasoning-indicator {
+    width: auto;
+    height: auto;
+    color: $warning;
+    margin-right: 1;
+}
+
+.reasoning-indicator.success {
+    color: $success;
+}
+
+.reasoning-indicator.error {
+    color: $error;
+}
+
+.reasoning-status-text {
+    width: auto;
+    height: auto;
+    color: $foreground;
+    text-style: bold;
+}
+
+.reasoning-message-wrapper.completed .reasoning-status-text {
+    color: $text-success;
+}
+
+.reasoning-triangle {
+    width: auto;
+    height: auto;
+    color: $text-muted;
+    margin-left: 1;
+}

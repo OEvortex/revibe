@@ -1,0 +1,22 @@
+#welcome-container {
+    align: center middle;
+}
+
+#welcome-text {
+    border: round $foreground-muted;
+    padding: 2 4;
+    margin-bottom: 2;
+    text-align: center;
+    width: auto;
+    background: $panel;
+}
+
+WelcomeScreen #enter-hint {
+    color: $text-muted;
+    min-width: 16;
+    text-align: center;
+}
+
+WelcomeScreen #enter-hint.hidden {
+    visibility: hidden;
+}

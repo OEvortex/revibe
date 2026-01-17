@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import ClassVar
+
 from rich.style import Style
 from textual.widgets.text_area import TextAreaTheme
 
@@ -28,7 +30,42 @@ def default_config() -> VibeConfig:
 
 
 class BaseSnapshotTestApp(VibeApp):
-    CSS_PATH = "../../vibe/cli/textual_ui/app.tcss"
+    CSS_PATH: ClassVar[list[str]] = [
+        "../../revibe/cli/textual_ui/tcss/app/base.tcss",
+        "../../revibe/cli/textual_ui/tcss/app/messages.tcss",
+        "../../revibe/cli/textual_ui/tcss/app/bash.tcss",
+        "../../revibe/cli/textual_ui/tcss/app/status.tcss",
+        "../../revibe/cli/textual_ui/tcss/app/tool_results.tcss",
+        "../../revibe/cli/textual_ui/tcss/app/todo_loading.tcss",
+        "../../revibe/cli/textual_ui/tcss/app/config.tcss",
+        "../../revibe/cli/textual_ui/tcss/app/bottom_bar.tcss",
+        "../../revibe/cli/textual_ui/tcss/app/approval.tcss",
+        "../../revibe/cli/textual_ui/tcss/app/mode_indicator.tcss",
+        "../../revibe/cli/textual_ui/tcss/welcome_banner/layout.tcss",
+        "../../revibe/cli/textual_ui/tcss/welcome_banner/theme.tcss",
+        "../../revibe/cli/textual_ui/tcss/diff/base.tcss",
+        "../../revibe/cli/textual_ui/tcss/diff/header.tcss",
+        "../../revibe/cli/textual_ui/tcss/diff/hunk.tcss",
+        "../../revibe/cli/textual_ui/tcss/diff/lines.tcss",
+        "../../revibe/cli/textual_ui/tcss/diff/metadata.tcss",
+        "../../revibe/cli/textual_ui/tcss/diff/summary.tcss",
+        "../../revibe/cli/textual_ui/tcss/thought/container.tcss",
+        "../../revibe/cli/textual_ui/tcss/thought/header.tcss",
+        "../../revibe/cli/textual_ui/tcss/thought/content.tcss",
+        "../../revibe/cli/textual_ui/tcss/thought/collapsed.tcss",
+        "../../revibe/cli/textual_ui/tcss/thought/legacy.tcss",
+        "../../revibe/cli/textual_ui/tcss/input/container.tcss",
+        "../../revibe/cli/textual_ui/tcss/input/completion.tcss",
+        "../../revibe/cli/textual_ui/tcss/input/prompt.tcss",
+        "../../revibe/cli/textual_ui/tcss/input/input_area.tcss",
+        "../../revibe/cli/textual_ui/tcss/input/hints.tcss",
+        "../../revibe/cli/textual_ui/tcss/input/focus.tcss",
+        "../../revibe/cli/textual_ui/tcss/selector/container.tcss",
+        "../../revibe/cli/textual_ui/tcss/selector/title.tcss",
+        "../../revibe/cli/textual_ui/tcss/selector/filter.tcss",
+        "../../revibe/cli/textual_ui/tcss/selector/list.tcss",
+        "../../revibe/cli/textual_ui/tcss/selector/options.tcss",
+    ]
 
     def __init__(self, config: VibeConfig | None = None, **kwargs):
         config = config or default_config()

@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.8] - 2026-01-17
+
+### Changed
+
+- **Modern & Fast TUI Selectors**: Complete redesign of `/model` and `/provider` commands for better UX
+  - **Provider Selector (`/provider`) Improvements**:
+    - Added search/filter input to quickly find providers by name or description
+    - Auth status badges showing ✓ (ready) or ○ (needs API key) next to each provider
+    - Active provider indicator (▸ marker) for easy identification
+    - Detail panel displays provider description and required API key env var
+    - Modern keybindings: `/` jumps to search, improved keyboard navigation
+    - Cleaner code using `match` statements and modern Python patterns
+  - **Model Selector (`/model`) Improvements**:
+    - Rich metadata display: pricing (`$0.40/$2.00` format) and context window (`128K ctx` format)
+    - Provider grouping with section headers for multi-provider views
+    - Detail panel shows full model name, thinking support capability, and max output tokens
+    - Enhanced search: now searchable by model name, alias, and provider
+    - Active model indicator (▸ marker) and column-aligned formatting
+    - Helper functions for consistent price and context formatting
+  - **Visual & Style Improvements**:
+    - Modern `round` borders replacing old `double` borders
+    - Improved filter input with focus states and accent colors
+    - Visible scrollbars with themed colors (no more hidden scrollbars)
+    - Better detail row styling with `.provider-detail` and `.model-detail` classes
+    - Cleaner layout with improved spacing and removed heavy borders
+  - **Files Changed**:
+    - `revibe/cli/textual_ui/widgets/provider_selector.py` - Complete redesign with search and detail panel
+    - `revibe/cli/textual_ui/widgets/model_selector.py` - Enhanced with grouping, metadata, and detail panel
+    - `revibe/cli/textual_ui/tcss/selector/*.tcss` - Updated styles for modern look and feel
+  - **Impact**: Faster provider/model selection, better visual feedback, easier discovery with search functionality
+
 ## [0.2.7] - 2026-01-04
 
 ### Changed

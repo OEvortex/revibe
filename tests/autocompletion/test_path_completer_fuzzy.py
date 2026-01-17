@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest  # type: ignore
+import pytest
 
 from revibe.core.autocompletion.completers import PathCompleter
 

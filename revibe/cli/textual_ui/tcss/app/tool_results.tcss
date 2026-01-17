@@ -1,0 +1,84 @@
+.compact-message {
+    width: 100%;
+    height: auto;
+    margin-top: 1;
+}
+
+.tool-call {
+    width: 100%;
+    height: auto;
+    margin-top: 1;
+}
+
+.tool-result {
+    width: 100%;
+    height: auto;
+    margin-top: 0;
+    margin-left: 0;
+    padding: 0;
+    background: transparent;
+    color: $foreground;
+
+    &.error-text {
+        color: $text-error;
+    }
+
+    &.warning-text {
+        color: $text-warning;
+    }
+}
+
+.tool-result-container {
+    width: 100%;
+    height: auto;
+    margin-top: 0;
+    padding: 0;
+}
+
+.tool-result-border {
+    width: auto;
+    height: 100%;
+    padding: 0 1 0 2;
+    color: $foreground-muted;
+}
+
+.tool-result-content {
+    width: 1fr;
+    height: auto;
+    padding: 0;
+}
+
+.tool-call-widget {
+    width: 100%;
+    height: auto;
+    color: $foreground;
+}
+
+.tool-call-detail {
+    height: auto;
+    color: $text-muted;
+}
+
+.tool-result-widget {
+    width: 100%;
+    height: auto;
+    color: $foreground;
+
+    Static {
+        height: auto;
+    }
+}
+
+.tool-result-detail {
+    height: auto;
+    margin-top: 0;
+    color: $text-muted;
+}
+
+.tool-result-error {
+    color: $text-error;
+}
+
+.tool-result-warning {
+    color: $text-warning;
+}

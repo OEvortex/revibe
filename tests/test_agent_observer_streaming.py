@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import cast
-from unittest.mock import AsyncMock
 
 import pytest
 
 from revibe.core.agent import Agent
 from revibe.core.config import SessionLoggingConfig, VibeConfig
+from revibe.core.interaction_logger import InteractionLogger
 from revibe.core.middleware import (
     ConversationContext,
     MiddlewareAction,
@@ -20,6 +20,7 @@ from revibe.core.tools.base import BaseToolConfig, ToolPermission
 from revibe.core.tools.builtins.todo import TodoArgs
 from revibe.core.types import (
     ApprovalResponse,
+    AgentStats,
     AssistantEvent,
     FunctionCall,
     LLMMessage,
@@ -30,6 +31,7 @@ from revibe.core.types import (
     ToolResultEvent,
 )
 from revibe.core.utils import CancellationReason, get_user_cancellation_message
+from revibe.core.tools.manager import ToolManager
 from tests.mock.utils import mock_llm_chunk
 from tests.stubs.fake_backend import FakeBackend
 
@@ -47,6 +49,27 @@ class InjectBeforeMiddleware:
         return MiddlewareResult()
 
     def reset(self, reset_reason: ResetReason = ResetReason.STOP) -> None:
+        return None
+
+
+class SpyInteractionLogger(InteractionLogger):
+    def __init__(self, base_logger: InteractionLogger) -> None:
+        super().__init__(
+            base_logger.session_config,
+            base_logger.session_id,
+            base_logger.auto_approve,
+            base_logger.workdir,
+        )
+        self.calls = 0
+
+    async def save_interaction(
+        self,
+        messages: list[LLMMessage],
+        stats: AgentStats,
+        config: VibeConfig,
+        tool_manager: ToolManager,
+    ) -> str | None:
+        self.calls += 1
         return None
 
 
@@ -345,7 +368,7 @@ async def test_act_handles_user_cancellation_during_streaming() -> None:
             str(get_user_cancellation_message(CancellationReason.OPERATION_CANCELLED)),
         )
     )
-    agent.interaction_logger.save_interaction = AsyncMock(return_value=None)  # type: ignore[assignment]
+    agent.interaction_logger = SpyInteractionLogger(agent.interaction_logger)
 
     events = [event async for event in agent.act("Cancel mid stream?")]
 
@@ -357,13 +380,10 @@ async def test_act_handles_user_cancellation_during_streaming() -> None:
     assert middleware.before_calls == 1
     assert middleware.after_calls == 0
     assert isinstance(events[-1], ToolResultEvent)
-    # Add type check for skipped and skip_reason attributes
-    if hasattr(events[-1], "skipped"):
-        assert events[-1].skipped is True  # type: ignore[union-attr]
-    if hasattr(events[-1], "skip_reason"):
-        assert events[-1].skip_reason is not None  # type: ignore[union-attr]
-        assert "<user_cancellation>" in events[-1].skip_reason  # type: ignore[union-attr]
-    assert agent.interaction_logger.save_interaction.await_count == 1
+    assert events[-1].skipped is True
+    assert events[-1].skip_reason is not None
+    assert "<user_cancellation>" in events[-1].skip_reason
+    assert agent.interaction_logger.calls == 1
 
 
 @pytest.mark.asyncio
@@ -373,13 +393,13 @@ async def test_act_flushes_and_logs_when_streaming_errors(observer_capture) -> N
     agent = Agent(
         make_config(), backend=backend, message_observer=observer, enable_streaming=True
     )
-    agent.interaction_logger.save_interaction = AsyncMock(return_value=None)  # type: ignore[assignment]
+    agent.interaction_logger = SpyInteractionLogger(agent.interaction_logger)
 
     with pytest.raises(RuntimeError, match="boom in streaming"):
         [_ async for _ in agent.act("Trigger stream failure")]
 
     assert [role for role, _ in observed] == [Role.system, Role.user]
-    assert agent.interaction_logger.save_interaction.await_count == 1
+    assert agent.interaction_logger.calls == 1
 
 
 def _snapshot_events(events: list) -> list[tuple[str, str]]:

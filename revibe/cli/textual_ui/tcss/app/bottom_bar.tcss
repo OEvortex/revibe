@@ -1,0 +1,27 @@
+#bottom-bar {
+    height: auto;
+    width: 100%;
+    background: $surface;
+    padding: 0 2 0 2;
+    align: left middle;
+    layout: horizontal;
+    margin-top: 1;
+}
+
+#bottom-bar {
+    height: 1;
+    width: 100%;
+    background: $surface;
+    padding: 0 1;
+    align: left middle;
+    layout: horizontal;
+}
+
+PathDisplay {
+    color: $primary;
+    text-style: bold;
+}
+
+ContextProgress {
+    color: $accent;
+}

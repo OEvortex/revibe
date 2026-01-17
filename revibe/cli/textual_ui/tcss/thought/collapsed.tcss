@@ -1,0 +1,7 @@
+.reasoning-message.collapsed .reasoning-message-content {
+    display: none;
+}
+
+.reasoning-message.collapsed .reasoning-triangle {
+    color: $foreground-muted;
+}

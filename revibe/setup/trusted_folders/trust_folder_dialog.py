@@ -136,7 +136,12 @@ class TrustFolderDialog(CenterMiddle):
 
 
 class TrustFolderApp(App):
-    CSS_PATH = "trust_folder_dialog.tcss"
+    CSS_PATH: ClassVar[list[str]] = [
+        "tcss/base.tcss",
+        "tcss/header.tcss",
+        "tcss/options.tcss",
+        "tcss/footer.tcss",
+    ]
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("ctrl+q", "quit_without_saving", "Quit", show=False, priority=True),

@@ -1,0 +1,54 @@
+ModeIndicator {
+    width: auto;
+    height: auto;
+    background: transparent;
+    padding: 0 2;
+    margin: 0;
+    text-style: none;
+    align: right middle;
+    border: none;
+    color: $text-muted;
+}
+
+ModeIndicator.mode-safe {
+    background: transparent;
+    color: $success;
+    border: none;
+}
+
+ModeIndicator.mode-neutral {
+    background: transparent;
+    color: $text-muted;
+    border: none;
+}
+
+ModeIndicator.mode-destructive {
+    background: transparent;
+    color: $warning;
+    border: none;
+}
+
+ModeIndicator.mode-yolo {
+    background: transparent;
+    color: $error;
+    border: none;
+}
+
+PathDisplay {
+    width: auto;
+    height: auto;
+    background: transparent;
+    padding: 0 2 0 0;
+    margin: 0;
+    color: $primary;
+    text-style: bold;
+}
+
+ContextProgress {
+    width: auto;
+    height: auto;
+    background: transparent;
+    padding: 0 0 0 2;
+    margin: 0;
+    color: $text-muted;
+}

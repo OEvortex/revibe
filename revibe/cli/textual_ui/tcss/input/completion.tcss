@@ -1,0 +1,38 @@
+#completion-popup {
+    width: 100%;
+    height: auto;
+    padding: 0 2 1 2;
+    color: $text;
+    background: $surface;
+    border-left: thick $primary;
+    margin: 0 0 0 1;
+}
+
+#completion-popup:empty {
+    display: none;
+}
+
+.completion-item {
+    width: 100%;
+    height: auto;
+    padding: 0 1;
+    color: $foreground;
+}
+
+.completion-item.selected {
+    background: $primary;
+    color: $text;
+    text-style: bold;
+}
+
+.completion-item-command {
+    width: auto;
+    color: $primary;
+    text-style: bold;
+}
+
+.completion-item-description {
+    width: 1fr;
+    color: $text-muted;
+    padding-left: 2;
+}

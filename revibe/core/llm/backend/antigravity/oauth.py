@@ -8,13 +8,13 @@ from __future__ import annotations
 import asyncio
 import base64
 import hashlib
+from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import secrets
-import time
-import webbrowser
-from http.server import BaseHTTPRequestHandler, HTTPServer
 from threading import Thread
+import time
 from urllib.parse import parse_qs, urlencode, urlparse
+import webbrowser
 
 import httpx
 
@@ -37,6 +37,7 @@ from revibe.core.llm.backend.antigravity.types import (
 )
 
 HTTP_OK = 200
+BASE64_PADDING_LENGTH = 4
 
 
 # Global variable for OAuth callback
@@ -60,8 +61,8 @@ def _encode_state(verifier: str, project_id: str = "") -> str:
 def _decode_state(state: str) -> tuple[str, str]:
     """Decode OAuth state parameter."""
     normalized = state.replace("-", "+").replace("_", "/")
-    padding = 4 - (len(normalized) % 4)
-    if padding != 4:
+    padding = BASE64_PADDING_LENGTH - (len(normalized) % BASE64_PADDING_LENGTH)
+    if padding != BASE64_PADDING_LENGTH:
         normalized += "=" * padding
     data = json.loads(base64.b64decode(normalized).decode())
     return data.get("verifier", ""), data.get("projectId", "")
@@ -70,11 +71,11 @@ def _decode_state(state: str) -> tuple[str, str]:
 class _OAuthCallbackHandler(BaseHTTPRequestHandler):
     """Handle OAuth callback from Google."""
 
-    def log_message(self, format, *args):
+    def log_message(self, format: str, *args: object) -> None:
         """Suppress logging."""
-        pass
+        return None
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         global _oauth_result
 
         parsed = urlparse(self.path)
@@ -97,7 +98,7 @@ class _OAuthCallbackHandler(BaseHTTPRequestHandler):
             self.send_response(404)
             self.end_headers()
 
-    def _send_success(self):
+    def _send_success(self) -> None:
         html = """
         <!DOCTYPE html>
         <html>
@@ -125,7 +126,7 @@ class _OAuthCallbackHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(html.encode())
 
-    def _send_error(self, message: str):
+    def _send_error(self, message: str) -> None:
         html = f"""
         <!DOCTYPE html>
         <html>

@@ -1,0 +1,12 @@
+WelcomeBanner {
+    width: 100%;
+    height: auto;
+    max-height: 40vh;
+    min-height: 8;
+
+    text-align: center;
+    content-align: center middle;
+
+    padding: 1 2;
+    margin: 0 0 1 0;
+}

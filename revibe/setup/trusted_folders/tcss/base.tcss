@@ -1,0 +1,14 @@
+Screen {
+    align: center middle;
+    background: $background 80%;
+}
+
+#trust-dialog {
+    width: 70;
+    max-width: 90%;
+    min-width: 50;
+    height: auto;
+    border: round $foreground-muted;
+    background: $background;
+    padding: 1;
+}

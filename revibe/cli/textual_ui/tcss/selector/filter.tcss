@@ -1,0 +1,12 @@
+#model-selector-filter, #provider-selector-filter {
+    margin-bottom: 1;
+    border: round $primary;
+    background: $background;
+    color: $text;
+    padding: 0 1;
+    height: 3;
+}
+
+#model-selector-filter:focus, #provider-selector-filter:focus {
+    border: round $accent;
+}

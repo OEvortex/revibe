@@ -1,0 +1,14 @@
+#model-selector, #provider-selector {
+    width: 100%;
+    height: auto;
+    max-height: 32;
+    background: $surface;
+    border: round $primary;
+    padding: 1 2;
+    margin: 0 0 1 0;
+}
+
+#model-content, #provider-content {
+    width: 100%;
+    height: auto;
+}

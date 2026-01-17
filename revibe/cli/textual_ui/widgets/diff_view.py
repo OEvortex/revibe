@@ -10,17 +10,16 @@ featuring:
 
 from __future__ import annotations
 
-import difflib
-import re
 from dataclasses import dataclass
+import difflib
 from pathlib import Path
+import re
 from typing import Literal
 
-from rich.console import Group
 from rich.style import Style
 from rich.text import Text
 from textual.app import ComposeResult
-from textual.containers import Horizontal, Vertical
+from textual.containers import Vertical
 from textual.widgets import Static
 
 
@@ -161,7 +160,7 @@ def parse_search_replace_to_file_diff(
 
     matches = SEARCH_REPLACE_BLOCK_RE.findall(content)
 
-    for block_idx, (search_text, replace_text) in enumerate(matches):
+    for _block_idx, (search_text, replace_text) in enumerate(matches):
         search_lines = search_text.strip().split("\n")
         replace_lines = replace_text.strip().split("\n")
 
@@ -250,6 +249,12 @@ def get_syntax_style(token: str, token_type: str) -> Style:
     return styles.get(token_type, styles["default"])
 
 
+MAX_PATH_DISPLAY_LENGTH = 50
+QUOTE_CHARS = {'"', "'"}
+OPERATOR_CHARS = set("+-*/%=<>!&|^~")
+HIGHLIGHTED_LINE_TYPES = {"added", "removed", "context"}
+
+
 # Python keywords for syntax highlighting
 PYTHON_KEYWORDS = {
     "def", "class", "if", "elif", "else", "for", "while", "try", "except",
@@ -266,80 +271,107 @@ JS_KEYWORDS = {
 }
 
 
+def _syntax_base_color(line_type: str) -> str:
+    match line_type:
+        case "removed":
+            return "#e06c75"
+        case "added":
+            return "#98c379"
+        case _:
+            return "#abb2bf"
+
+
+def _consume_string(content: str, start: int) -> tuple[str, int] | None:
+    quote = content[start]
+    if quote not in QUOTE_CHARS:
+        return None
+
+    i = start + 1
+    content_len = len(content)
+    while i < content_len and content[i] != quote:
+        if content[i] == "\\" and i + 1 < content_len:
+            i += 2
+        else:
+            i += 1
+    if i < content_len:
+        i += 1
+    return content[start:i], i
+
+
+def _consume_comment(content: str, start: int) -> tuple[str, int] | None:
+    char = content[start]
+    if char == "#":
+        return content[start:], len(content)
+    if char == "/" and start + 1 < len(content) and content[start + 1] == "/":
+        return content[start:], len(content)
+    return None
+
+
+def _consume_number(content: str, start: int) -> tuple[str, int] | None:
+    if not content[start].isdigit():
+        return None
+    i = start
+    content_len = len(content)
+    while i < content_len and (content[i].isdigit() or content[i] in ".xXoObB"):
+        i += 1
+    return content[start:i], i
+
+
+def _consume_word(content: str, start: int) -> tuple[str, int] | None:
+    if not (content[start].isalpha() or content[start] == "_"):
+        return None
+    i = start
+    content_len = len(content)
+    while i < content_len and (content[i].isalnum() or content[i] == "_"):
+        i += 1
+    return content[start:i], i
+
+
+def _consume_operator(content: str, start: int) -> tuple[str, int] | None:
+    if content[start] in OPERATOR_CHARS:
+        return content[start], start + 1
+    return None
+
+
 def apply_simple_syntax_highlight(content: str, line_type: str) -> Text:
     """Apply simple syntax highlighting to code content."""
     text = Text()
+    base_color = _syntax_base_color(line_type)
 
-    # Base color based on line type
-    if line_type == "removed":
-        base_color = "#e06c75"
-    elif line_type == "added":
-        base_color = "#98c379"
-    else:
-        base_color = "#abb2bf"
-
-    # Simple tokenization for highlighting
     i = 0
     content_len = len(content)
-
     while i < content_len:
-        char = content[i]
-
-        # String detection (single and double quotes)
-        if char in ('"', "'"):
-            quote = char
-            start = i
-            i += 1
-            while i < content_len and content[i] != quote:
-                if content[i] == '\\' and i + 1 < content_len:
-                    i += 2
-                else:
-                    i += 1
-            if i < content_len:
-                i += 1
-            string_text = content[start:i]
-            text.append(string_text, style=Style(color="#98c379"))
+        if string_token := _consume_string(content, i):
+            value, i = string_token
+            text.append(value, style=Style(color="#98c379"))
             continue
 
-        # Comment detection (# for Python, // for JS/C++)
-        if char == '#' or (char == '/' and i + 1 < content_len and content[i + 1] == '/'):
-            comment_text = content[i:]
-            text.append(comment_text, style=Style(color="#5c6370", italic=True))
+        if comment_token := _consume_comment(content, i):
+            value, _ = comment_token
+            text.append(value, style=Style(color="#5c6370", italic=True))
             break
 
-        # Number detection
-        if char.isdigit():
-            start = i
-            while i < content_len and (content[i].isdigit() or content[i] in '.xXoObB'):
-                i += 1
-            number_text = content[start:i]
-            text.append(number_text, style=Style(color="#d19a66"))
+        if number_token := _consume_number(content, i):
+            value, i = number_token
+            text.append(value, style=Style(color="#d19a66"))
             continue
 
-        # Word detection (keywords, identifiers)
-        if char.isalpha() or char == '_':
-            start = i
-            while i < content_len and (content[i].isalnum() or content[i] == '_'):
-                i += 1
-            word = content[start:i]
-
-            # Check if it's a keyword
+        if word_token := _consume_word(content, i):
+            word, i = word_token
             if word in PYTHON_KEYWORDS or word in JS_KEYWORDS:
                 text.append(word, style=Style(color="#c678dd", bold=True))
-            elif word[0].isupper():  # Likely a class name
+            elif word[0].isupper():
                 text.append(word, style=Style(color="#e5c07b", bold=True))
             else:
                 text.append(word, style=Style(color=base_color))
             continue
 
-        # Operators
-        if char in '+-*/%=<>!&|^~':
-            text.append(char, style=Style(color="#56b6c2"))
-            i += 1
+        if operator_token := _consume_operator(content, i):
+            value, i = operator_token
+            text.append(value, style=Style(color="#56b6c2"))
             continue
 
-        # Default: regular character
-        text.append(char, style=Style(color=base_color))
+        text.append(content[i], style=Style(color=base_color))
         i += 1
 
     return text
@@ -417,17 +449,15 @@ class DiffLineWidget(Static):
             text.append("  ", style=Style(color="#5c6370"))
 
         # Content with optional syntax highlighting
-        if self.enable_syntax_highlight and line.line_type in ("added", "removed", "context"):
+        if self.enable_syntax_highlight and line.line_type in HIGHLIGHTED_LINE_TYPES:
             highlighted = apply_simple_syntax_highlight(line.content, line.line_type)
             text.append_text(highlighted)
+        elif line.line_type == "removed":
+            text.append(line.content, style=Style(color="#e06c75"))
+        elif line.line_type == "added":
+            text.append(line.content, style=Style(color="#98c379"))
         else:
-            # Base color based on line type
-            if line.line_type == "removed":
-                text.append(line.content, style=Style(color="#e06c75"))
-            elif line.line_type == "added":
-                text.append(line.content, style=Style(color="#98c379"))
-            else:
-                text.append(line.content, style=Style(color="#abb2bf"))
+            text.append(line.content, style=Style(color="#abb2bf"))
 
         return text
 
@@ -464,7 +494,7 @@ class DiffHeaderWidget(Static):
         # File path (truncated if too long)
         path = Path(self.file_path)
         display_path = path.name
-        if len(str(path)) <= 50:
+        if len(str(path)) <= MAX_PATH_DISPLAY_LENGTH:
             display_path = str(path)
         else:
             # Show ...parent/filename
@@ -496,8 +526,7 @@ class DiffHunkWidget(Vertical):
 
 
 class DiffViewWidget(Vertical):
-    """
-    Complete diff view widget with header, hunks, and collapsible sections.
+    """Complete diff view widget with header, hunks, and collapsible sections.
 
     Similar to the diff views in Gemini CLI and QwenCode TUIs.
     Features:

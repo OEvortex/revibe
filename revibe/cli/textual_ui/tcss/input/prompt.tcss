@@ -1,0 +1,21 @@
+#prompt {
+    width: auto;
+    height: auto;
+    background: transparent;
+    color: $primary;
+    text-style: bold;
+    padding: 0 2 0 0;
+    min-width: 3;
+}
+
+#input-box.border-warning #prompt {
+    color: $warning;
+}
+
+#input-box.border-safe #prompt {
+    color: $success;
+}
+
+#input-box.border-error #prompt {
+    color: $error;
+}

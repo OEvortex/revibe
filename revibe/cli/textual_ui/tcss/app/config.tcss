@@ -1,0 +1,23 @@
+#config-app {
+    width: 100%;
+    height: auto;
+    background: $background;
+    border: round $primary;
+    padding: 1 2;
+    margin: 0 0 1 0;
+}
+
+#config-content {
+    width: 100%;
+    height: auto;
+}
+
+#config-option-list {
+    height: auto;
+    max-height: 10;
+    background: transparent;
+    border: none;
+    padding: 0;
+    scrollbar-size: 0 0;
+    scrollbar-visibility: hidden;
+}

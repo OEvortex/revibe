@@ -1,0 +1,26 @@
+.reasoning-message {
+    margin-top: 1;
+    width: 100%;
+    height: auto;
+}
+
+.reasoning-message-wrapper {
+    width: 100%;
+    height: auto;
+    background: $surface;
+    border-left: thick $accent;
+    padding: 0 1;
+    margin: 0;
+}
+
+.reasoning-message-wrapper.thinking {
+    border-left: thick $warning;
+}
+
+.reasoning-message-wrapper.completed {
+    border-left: thick $success;
+}
+
+.reasoning-message-wrapper.error {
+    border-left: thick $error;
+}

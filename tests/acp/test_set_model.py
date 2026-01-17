@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from acp import AgentSideConnection, NewSessionRequest, SetSessionModelRequest
-import pytest  # type: ignore
+import pytest
 
 from revibe.acp.acp_agent import VibeAcpAgent
 from revibe.core.agent import Agent
@@ -72,11 +72,7 @@ def acp_agent(backend: FakeBackend) -> VibeAcpAgent:
         return vibe_acp_agent
 
     FakeAgentSideConnection(_create_agent)
-    # Ensure vibe_acp_agent is not None before returning
-    if vibe_acp_agent is None:
-        # Create a default instance if not set
-        fake_connection = FakeAgentSideConnection(lambda conn: None)
-        vibe_acp_agent = VibeAcpAgent(fake_connection)
+    assert vibe_acp_agent is not None
     return vibe_acp_agent
 
 

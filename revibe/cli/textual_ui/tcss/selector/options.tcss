@@ -1,0 +1,43 @@
+.settings-option {
+    height: auto;
+    color: $foreground;
+}
+
+.settings-help {
+    height: auto;
+    color: $text-muted;
+    text-align: center;
+    margin-top: 1;
+}
+
+.settings-cursor-selected {
+    color: $primary;
+    text-style: bold;
+}
+
+.settings-label-selected {
+    color: $text;
+    text-style: bold;
+}
+
+.settings-value-toggle-on-selected {
+    color: $text-success;
+    text-style: bold;
+}
+
+.settings-value-toggle-on-unselected {
+    color: $success;
+}
+
+.settings-value-toggle-off {
+    color: $text-muted;
+}
+
+.settings-value-cycle-selected {
+    color: $primary;
+    text-style: bold;
+}
+
+.settings-value-cycle-unselected {
+    color: $primary;
+}

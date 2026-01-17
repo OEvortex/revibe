@@ -1,0 +1,23 @@
+#trust-options-container {
+    width: 100%;
+    height: auto;
+    align: center middle;
+    margin-bottom: 1;
+}
+
+.trust-option {
+    height: auto;
+    width: auto;
+    color: $foreground;
+    margin: 0 3;
+    content-align: center middle;
+}
+
+.trust-cursor-selected {
+    color: $foreground;
+    text-style: bold;
+}
+
+.trust-option-selected {
+    color: $foreground;
+}

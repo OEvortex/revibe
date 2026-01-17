@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator
 import json
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from acp import (
     InitializeRequest,
@@ -18,6 +18,7 @@ from acp import (
     WriteTextFileRequest,
 )
 from acp.schema import (
+    AgentMessageChunk,
     AllowedOutcome,
     DeniedOutcome,
     InitializeResponse,
@@ -25,6 +26,8 @@ from acp.schema import (
     PromptResponse,
     SessionNotification,
     TextContentBlock,
+    ToolCallProgress,
+    ToolCallStart,
 )
 from pydantic import BaseModel
 import pytest
@@ -456,11 +459,16 @@ class TestSessionUpdates:
             )
 
             assert response.params is not None
-            assert response.params.update.sessionUpdate == "agent_message_chunk"
-            assert response.params.update.content is not None  # type: ignore[union-attr]
-            assert response.params.update.content.type == "text"  # type: ignore[union-attr]
-            assert response.params.update.content.text is not None  # type: ignore[union-attr]
-            assert response.params.update.content.text == "Hi"  # type: ignore[union-attr]
+            update = response.params.update
+            match update.sessionUpdate:
+                case "agent_message_chunk":
+                    message_update = cast(AgentMessageChunk, update)
+                    assert isinstance(message_update.content, TextContentBlock)
+                    assert message_update.content.text == "Hi"
+                case other:
+                    raise AssertionError(
+                        f"Unexpected sessionUpdate for agent message chunk: {other}"
+                    )
 
     @pytest.mark.asyncio
     async def test_tool_call_update_structure(self, vibe_home_dir: Path) -> None:
@@ -520,10 +528,11 @@ class TestSessionUpdates:
             assert tool_call.params.update is not None
 
             assert tool_call.params.update.sessionUpdate == "tool_call"
-            assert tool_call.params.update.kind == "search"
-            assert tool_call.params.update.title == "grep: 'auth'"
+            call_update = cast(ToolCallStart, tool_call.params.update)
+            assert call_update.kind == "search"
+            assert call_update.title == "grep: 'auth'"
             assert (
-                tool_call.params.update.rawInput
+                call_update.rawInput
                 == '{"pattern":"auth","path":".","max_matches":null,"use_default_ignore":true}'
             )
 
@@ -666,13 +675,19 @@ class TestToolCallStructure:
                     and r.params is not None
                     and r.params.update is not None
                     and r.params.update.sessionUpdate == "tool_call_update"
-                    and r.params.update.toolCallId  # type: ignore[union-attr]
+                    and r.params.update.toolCallId
                     == (permission_request.params.toolCall.toolCallId)
-                    and r.params.update.status == "completed"  # type: ignore[union-attr]
+                    and r.params.update.status == "completed"
                 ),
                 None,
             )
             assert approved_tool_call is not None
+            assert approved_tool_call.params is not None
+            assert approved_tool_call.params.update.sessionUpdate == "tool_call_update"
+            approved_update = cast(
+                ToolCallProgress, approved_tool_call.params.update
+            )
+            assert approved_update.status == "completed"
 
     @pytest.mark.asyncio
     async def test_tool_call_update_rejected_structure(
@@ -728,13 +743,19 @@ class TestToolCallStructure:
                     and r.method == "session/update"
                     and r.params is not None
                     and r.params.update.sessionUpdate == "tool_call_update"
-                    and r.params.update.toolCallId  # type: ignore[union-attr]
+                    and r.params.update.toolCallId
                     == (permission_request.params.toolCall.toolCallId)
-                    and r.params.update.status == "failed"  # type: ignore[union-attr]
+                    and r.params.update.status == "failed"
                 ),
                 None,
             )
             assert rejected_tool_call is not None
+            assert rejected_tool_call.params is not None
+            assert rejected_tool_call.params.update.sessionUpdate == "tool_call_update"
+            rejected_update = cast(
+                ToolCallProgress, rejected_tool_call.params.update
+            )
+            assert rejected_update.status == "failed"
 
     @pytest.mark.skip(reason="Long running tool call updates are not implemented yet")
     @pytest.mark.asyncio
@@ -787,7 +808,7 @@ class TestToolCallStructure:
                 if isinstance(r, UpdateJsonRpcNotification)
                 and r.params is not None
                 and r.params.update.sessionUpdate == "tool_call_update"
-                and r.params.update.status == "in_progress"  # type: ignore[union-attr]
+                and r.params.update.status == "in_progress"
             ]
 
             assert len(in_progress_calls) > 0, (
@@ -848,14 +869,19 @@ class TestToolCallStructure:
                     if isinstance(r, UpdateJsonRpcNotification)
                     and r.params is not None
                     and r.params.update.sessionUpdate == "tool_call_update"
-                    and r.params.update.status == "failed"  # type: ignore[union-attr]
-                    and r.params.update.rawOutput is not None  # type: ignore[union-attr]
-                    and r.params.update.toolCallId is not None  # type: ignore[union-attr]
+                    and r.params.update.status == "failed"
+                    and r.params.update.rawOutput is not None
+                    and r.params.update.toolCallId is not None
                 ),
                 None,
             )
 
             assert failure_result is not None
+            assert failure_result.params is not None
+            assert failure_result.params.update.sessionUpdate == "tool_call_update"
+            failure_update = cast(ToolCallProgress, failure_result.params.update)
+            assert failure_update.rawOutput is not None
+            assert failure_update.toolCallId is not None
 
 
 class TestCancellationStructure:
@@ -921,9 +947,9 @@ class TestCancellationStructure:
                     and r.method == "session/update"
                     and r.params is not None
                     and r.params.update.sessionUpdate == "tool_call_update"
-                    and r.params.update.toolCallId  # type: ignore[union-attr]
+                    and r.params.update.toolCallId
                     == (permission_request.params.toolCall.toolCallId)
-                    and r.params.update.status == "failed"  # type: ignore[union-attr]
+                    and r.params.update.status == "failed"
                 ),
                 None,
             )

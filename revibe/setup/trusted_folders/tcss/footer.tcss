@@ -1,0 +1,17 @@
+.trust-dialog-help {
+    width: 100%;
+    height: auto;
+    color: $text-muted;
+    text-align: center;
+    margin-bottom: 1;
+}
+
+.trust-dialog-save-info {
+    width: 100%;
+    height: auto;
+    color: $text-muted;
+    text-align: center;
+    text-style: italic;
+    text-wrap: wrap;
+    margin-bottom: 1;
+}

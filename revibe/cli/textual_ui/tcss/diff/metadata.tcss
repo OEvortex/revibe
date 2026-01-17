@@ -1,0 +1,176 @@
+.diff-truncated {
+    color: $text-muted;
+    text-style: italic;
+    padding: 1 0 0 4;
+    height: auto;
+}
+
+.diff-header {
+    height: auto;
+    color: $text-muted;
+    text-style: bold;
+}
+
+.diff-removed {
+    height: auto;
+    color: $text-error;
+}
+
+.diff-added {
+    height: auto;
+    color: $text-success;
+}
+
+.diff-range {
+    height: auto;
+    color: $primary;
+}
+
+.diff-context {
+    height: auto;
+    color: $text-muted;
+}
+
+.diff-collapsed {
+    height: auto;
+    padding: 0 1;
+}
+
+.diff-collapsed-indicator {
+    color: $text-muted;
+    text-style: italic;
+}
+
+.diff-toggle {
+    width: auto;
+    height: auto;
+    color: $accent;
+    margin-right: 1;
+}
+
+.diff-stats {
+    width: auto;
+    height: auto;
+    padding: 0 1;
+}
+
+.diff-stats-additions {
+    color: $text-success;
+    text-style: bold;
+}
+
+.diff-stats-deletions {
+    color: $text-error;
+    text-style: bold;
+}
+
+.diff-line-number {
+    width: 5;
+    height: 1;
+    color: $text-muted;
+    text-align: right;
+    padding-right: 1;
+}
+
+.diff-line-number-old {
+    color: #e06c75;
+}
+
+.diff-line-number-new {
+    color: #98c379;
+}
+
+.diff-sign {
+    width: 2;
+    height: 1;
+    text-style: bold;
+}
+
+.diff-sign-add {
+    color: #98c379;
+}
+
+.diff-sign-remove {
+    color: #e06c75;
+}
+
+.diff-sign-context {
+    color: $text-muted;
+}
+
+.diff-content {
+    width: 1fr;
+    height: 1;
+}
+
+.diff-word-added {
+    background: #2d5235;
+    color: #a8e6a3;
+    text-style: bold;
+}
+
+.diff-word-removed {
+    background: #5c2626;
+    color: #f0a0a0;
+    text-style: bold;
+}
+
+.diff-binary {
+    color: $warning;
+    text-style: italic;
+    padding: 1;
+}
+
+.diff-mode-change {
+    color: $accent;
+    text-style: italic;
+    padding: 0 1;
+}
+
+.diff-new-file {
+    color: $success;
+    text-style: bold;
+}
+
+.diff-deleted-file {
+    color: $error;
+    text-style: bold;
+}
+
+.diff-renamed-file {
+    color: $warning;
+    text-style: bold;
+}
+
+.diff-syntax-keyword {
+    color: #c678dd;
+}
+
+.diff-syntax-string {
+    color: #98c379;
+}
+
+.diff-syntax-number {
+    color: #d19a66;
+}
+
+.diff-syntax-comment {
+    color: #5c6370;
+    text-style: italic;
+}
+
+.diff-syntax-function {
+    color: #61afef;
+}
+
+.diff-syntax-class {
+    color: #e5c07b;
+}
+
+.diff-syntax-operator {
+    color: #56b6c2;
+}
+
+.diff-syntax-variable {
+    color: #e06c75;
+}

@@ -262,7 +262,7 @@ class MistralBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-                has_tools=bool(tools),
+
                 tool_choice=tool_choice,
             ) from e
         except httpx.RequestError as e:
@@ -273,7 +273,7 @@ class MistralBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-                has_tools=bool(tools),
+
                 tool_choice=tool_choice,
             ) from e
 
@@ -337,7 +337,7 @@ class MistralBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-                has_tools=bool(tools),
+
                 tool_choice=tool_choice,
             ) from e
         except httpx.RequestError as e:
@@ -348,7 +348,7 @@ class MistralBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-                has_tools=bool(tools),
+
                 tool_choice=tool_choice,
             ) from e
 

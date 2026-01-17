@@ -1,0 +1,16 @@
+.input-hints {
+    width: 100%;
+    height: auto;
+    padding: 0 1;
+    color: $text-muted;
+    text-align: right;
+}
+
+.input-hint-key {
+    color: $foreground;
+    text-style: bold;
+}
+
+.input-hint-description {
+    color: $text-muted;
+}

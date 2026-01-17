@@ -87,7 +87,42 @@ class BottomApp(StrEnum):
 # ruff: noqa: PLR0904
 class VibeApp(App):
     ENABLE_COMMAND_PALETTE = False
-    CSS_PATH = ["app.tcss", "welcome_banner.tcss", "diff.tcss", "thought.tcss", "input.tcss"]
+    CSS_PATH: ClassVar[list[str]] = [
+        "tcss/app/base.tcss",
+        "tcss/app/messages.tcss",
+        "tcss/app/bash.tcss",
+        "tcss/app/status.tcss",
+        "tcss/app/tool_results.tcss",
+        "tcss/app/todo_loading.tcss",
+        "tcss/app/config.tcss",
+        "tcss/app/bottom_bar.tcss",
+        "tcss/app/approval.tcss",
+        "tcss/app/mode_indicator.tcss",
+        "tcss/welcome_banner/layout.tcss",
+        "tcss/welcome_banner/theme.tcss",
+        "tcss/diff/base.tcss",
+        "tcss/diff/header.tcss",
+        "tcss/diff/hunk.tcss",
+        "tcss/diff/lines.tcss",
+        "tcss/diff/metadata.tcss",
+        "tcss/diff/summary.tcss",
+        "tcss/thought/container.tcss",
+        "tcss/thought/header.tcss",
+        "tcss/thought/content.tcss",
+        "tcss/thought/collapsed.tcss",
+        "tcss/thought/legacy.tcss",
+        "tcss/input/container.tcss",
+        "tcss/input/completion.tcss",
+        "tcss/input/prompt.tcss",
+        "tcss/input/input_area.tcss",
+        "tcss/input/hints.tcss",
+        "tcss/input/focus.tcss",
+        "tcss/selector/container.tcss",
+        "tcss/selector/title.tcss",
+        "tcss/selector/filter.tcss",
+        "tcss/selector/list.tcss",
+        "tcss/selector/options.tcss",
+    ]
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("ctrl+c", "clear_quit", "Quit", show=False),
@@ -395,8 +430,9 @@ class VibeApp(App):
         provider_name = message.provider
 
         # Find the provider config to check for API key requirement
-        from revibe.core.config import DEFAULT_PROVIDERS
         import os
+
+        from revibe.core.config import DEFAULT_PROVIDERS
 
         providers_map: dict[str, ProviderConfigUnion] = {}
         for p in DEFAULT_PROVIDERS:

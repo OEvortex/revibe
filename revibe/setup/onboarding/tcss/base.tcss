@@ -1,0 +1,10 @@
+Screen {
+    background: $background;
+    color: $text;
+}
+
+OnboardingScreen {
+    align: center middle;
+    padding: 2 0;
+    background: $background;
+}

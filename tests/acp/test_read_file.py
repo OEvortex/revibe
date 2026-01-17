@@ -58,7 +58,7 @@ def mock_connection() -> MockConnection:
 def acp_read_file_tool(mock_connection: MockConnection, tmp_path: Path) -> ReadFile:
     config = ReadFileToolConfig(workdir=tmp_path)
     state = AcpReadFileState.model_construct(
-        connection=mock_connection,  # type: ignore[arg-type]
+        connection=mock_connection,
         session_id="test_session_123",
         tool_call_id="test_tool_call_456",
     )
@@ -107,7 +107,7 @@ class TestAcpReadFileExecution:
         tool = ReadFile(
             config=ReadFileToolConfig(workdir=tmp_path),
             state=AcpReadFileState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -132,7 +132,7 @@ class TestAcpReadFileExecution:
         tool = ReadFile(
             config=ReadFileToolConfig(workdir=tmp_path),
             state=AcpReadFileState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -157,7 +157,7 @@ class TestAcpReadFileExecution:
         tool = ReadFile(
             config=ReadFileToolConfig(workdir=tmp_path),
             state=AcpReadFileState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -184,7 +184,7 @@ class TestAcpReadFileExecution:
         tool = ReadFile(
             config=ReadFileToolConfig(workdir=tmp_path),
             state=AcpReadFileState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id="test_session",
                 tool_call_id="test_call",
             ),
@@ -224,7 +224,7 @@ class TestAcpReadFileExecution:
         tool = ReadFile(
             config=ReadFileToolConfig(workdir=tmp_path),
             state=AcpReadFileState.model_construct(
-                connection=mock_connection,  # type: ignore[arg-type]
+                connection=mock_connection,
                 session_id=None,
                 tool_call_id="test_call",
             ),

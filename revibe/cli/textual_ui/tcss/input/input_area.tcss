@@ -1,0 +1,17 @@
+#input {
+    width: 1fr;
+    height: auto;
+    min-height: 1;
+    max-height: 16;
+    background: transparent;
+    color: $text;
+    border: none;
+    padding: 0;
+    margin: 0;
+    scrollbar-size: 0 0;
+    scrollbar-visibility: hidden;
+}
+
+#input.-placeholder {
+    color: $text-muted;
+}

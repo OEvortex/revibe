@@ -155,13 +155,13 @@ def main() -> None:
         from revibe.cli.utils.installation_utils import get_installation_info
 
         info = get_installation_info()
-        rprint(f"[bold]ReVibe Installation Information[/]")
+        rprint("[bold]ReVibe Installation Information[/]")
         rprint(f"Package: {info['package_name']}")
         rprint(f"Version: {info['version']}")
         rprint(f"Installation Type: {info['installation_type']}")
         rprint(f"Location: {info['location']}")
         rprint()
-        rprint(f"[bold]Update Instructions:[/]")
+        rprint("[bold]Update Instructions:[/]")
         rprint(f"Command: {info['update_command']}")
 
         if info['installation_type'] == 'editable':

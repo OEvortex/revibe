@@ -10,6 +10,8 @@ from pydantic import BaseModel, ConfigDict, ValidationError
 
 from revibe.core.types import AvailableTool, LLMMessage, StrToolChoice
 
+PREVIEW_LEN = 150
+
 
 class ErrorDetail(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -159,7 +161,6 @@ class BackendErrorBuilder:
         model: str,
         messages: list[LLMMessage],
         temperature: float,
-        has_tools: bool,
         tool_choice: StrToolChoice | AvailableTool | None,
         tools: list[AvailableTool] | None = None,
     ) -> BackendError:
@@ -178,7 +179,7 @@ class BackendErrorBuilder:
             parsed_error=cls._parse_provider_error(body_text),
             model=model,
             payload_summary=cls._payload_summary(
-                model, messages, temperature, has_tools, tool_choice, tools
+                model, messages, temperature, bool(tools), tool_choice, tools
             ),
         )
 
@@ -192,7 +193,6 @@ class BackendErrorBuilder:
         model: str,
         messages: list[LLMMessage],
         temperature: float,
-        has_tools: bool,
         tool_choice: StrToolChoice | AvailableTool | None,
         tools: list[AvailableTool] | None = None,
     ) -> BackendError:
@@ -206,7 +206,7 @@ class BackendErrorBuilder:
             parsed_error="Network error",
             model=model,
             payload_summary=cls._payload_summary(
-                model, messages, temperature, has_tools, tool_choice, tools
+                model, messages, temperature, bool(tools), tool_choice, tools
             ),
         )
 
@@ -244,21 +244,27 @@ class BackendErrorBuilder:
         system_preview: str | None = None
         for m in messages:
             if m.role.value == "system" and m.content:
-                system_preview = m.content[:150] + ("..." if len(m.content) > 150 else "")
+                system_preview = m.content[:PREVIEW_LEN] + (
+                    "..." if len(m.content) > PREVIEW_LEN else ""
+                )
                 break
 
         # Extract last user message preview
         last_user_preview: str | None = None
         for m in reversed(messages):
             if m.role.value == "user" and m.content:
-                last_user_preview = m.content[:150] + ("..." if len(m.content) > 150 else "")
+                last_user_preview = m.content[:PREVIEW_LEN] + (
+                    "..." if len(m.content) > PREVIEW_LEN else ""
+                )
                 break
 
         # Extract last assistant message preview
         last_assistant_preview: str | None = None
         for m in reversed(messages):
             if m.role.value == "assistant" and m.content:
-                last_assistant_preview = m.content[:150] + ("..." if len(m.content) > 150 else "")
+                last_assistant_preview = m.content[:PREVIEW_LEN] + (
+                    "..." if len(m.content) > PREVIEW_LEN else ""
+                )
                 break
 
         return PayloadSummary(

@@ -55,7 +55,8 @@ def acp_agent(backend: FakeBackend) -> VibeAcpAgent:
         return vibe_acp_agent
 
     FakeAgentSideConnection(_create_agent)
-    return vibe_acp_agent  # type: ignore[return-value]
+    assert vibe_acp_agent is not None
+    return vibe_acp_agent
 
 
 class TestACPNewSession:

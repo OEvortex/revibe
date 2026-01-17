@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from types import MethodType
+from typing import Any, cast
 from unittest.mock import Mock
 
 import pytest
@@ -8,6 +8,20 @@ import pytest
 from revibe.core.config import GenericProviderConfig as ProviderConfig, VibeConfig
 from revibe.core.model_config import ModelConfig
 from revibe.setup.onboarding.screens.api_key import ApiKeyScreen
+
+
+class TestableApiKeyScreen(ApiKeyScreen):
+    def __init__(self, config: VibeConfig) -> None:
+        super().__init__()
+        self._config = config
+
+    def _load_config(self) -> VibeConfig:
+        return self._config
+
+
+class ExitCaptureApp:
+    def __init__(self) -> None:
+        self.exit = Mock()
 
 
 class TestApiKeyScreen:
@@ -22,11 +36,9 @@ class TestApiKeyScreen:
         model = ModelConfig(name="llama3.2", provider="ollama", alias="llama3.2")
         config = VibeConfig(models=[model], providers=[provider])
 
-        screen = ApiKeyScreen()
-        screen._load_config = MethodType(lambda self: config, screen)  # Mock the config loading  # type: ignore[invalid-assignment]
+        screen = TestableApiKeyScreen(config)
 
-        screen.app = Mock()
-        screen.app.exit = Mock()
+        screen.app = cast(Any, ExitCaptureApp())
 
         # Call on_show
         screen.on_show()
@@ -44,8 +56,7 @@ class TestApiKeyScreen:
         model = ModelConfig(name="gpt-4", provider="openai", alias="gpt-4")
         config = VibeConfig(models=[model], providers=[provider])
 
-        screen = ApiKeyScreen()
-        screen._load_config = MethodType(lambda self: config, screen)  # Mock the config loading  # type: ignore[invalid-assignment]
+        screen = TestableApiKeyScreen(config)
 
         # Mock the app.exit method
         exit_called = False
@@ -54,7 +65,7 @@ class TestApiKeyScreen:
             nonlocal exit_called
             exit_called = True
 
-        screen.app = type("MockApp", (), {"exit": mock_exit})()
+        screen.app = cast(Any, type("MockApp", (), {"exit": mock_exit})())
 
         # Call on_show
         screen.on_show()
@@ -76,8 +87,7 @@ class TestApiKeyScreen:
         )
         config = VibeConfig(models=[model], providers=DEFAULT_PROVIDERS)
 
-        screen = ApiKeyScreen()
-        screen._load_config = MethodType(lambda self: config, screen)  # type: ignore[invalid-assignment]
+        screen = TestableApiKeyScreen(config)
 
         exit_called = False
         exit_value = None
@@ -87,7 +97,7 @@ class TestApiKeyScreen:
             exit_called = True
             exit_value = value
 
-        screen.app = type("MockApp", (), {"exit": mock_exit})()
+        screen.app = cast(Any, type("MockApp", (), {"exit": mock_exit})())
 
         screen.on_show()
 

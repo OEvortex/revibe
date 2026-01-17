@@ -1,0 +1,98 @@
+#theme-outer {
+    width: 100%;
+    height: 100%;
+    align: center middle;
+    overflow-y: auto;
+}
+
+#theme-content {
+    width: 64;
+    max-width: 90;
+    height: auto;
+    padding: 2 3;
+    background: $panel;
+    border: round $foreground-muted;
+}
+
+#theme-title {
+    text-align: center;
+    width: 100%;
+    margin-bottom: 2;
+    color: $primary;
+    text-style: bold;
+}
+
+#theme-row {
+    width: auto;
+    height: auto;
+}
+
+#nav-hint {
+    color: $text-muted;
+    width: 16;
+    height: 100%;
+    content-align: right middle;
+    padding-right: 2;
+}
+
+#theme-list {
+    width: 24;
+    height: auto;
+}
+
+.theme-item {
+    text-align: center;
+    width: 100%;
+}
+
+.theme-item.selected {
+    color: $text;
+    text-style: bold;
+    border: round $foreground-muted;
+    padding: 0 2;
+    background: $surface;
+}
+
+.theme-item.fade-1 {
+    text-opacity: 60%;
+}
+
+.theme-item.fade-2 {
+    text-opacity: 30%;
+}
+
+.theme-item.fade-3 {
+    text-opacity: 15%;
+}
+
+ThemeSelectionScreen #enter-hint {
+    color: $text-muted;
+    width: 16;
+    height: 100%;
+    content-align: left middle;
+    padding-left: 2;
+}
+
+#preview-center {
+    width: 100%;
+    height: auto;
+    margin-top: 2;
+    align: center middle;
+}
+
+#preview {
+    min-width: 50;
+    max-width: 70;
+    height: auto;
+    max-height: 100%;
+    overflow: auto;
+    border: round $foreground-muted;
+    border-title-align: center;
+    background: $surface;
+}
+
+#preview-inner {
+    width: 100%;
+    height: auto;
+    padding: 0 1 0 1;
+}

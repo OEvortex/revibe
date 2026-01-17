@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import time
 
-import pytest  # type: ignore
+import pytest
 
 from revibe.core.autocompletion.file_indexer import FileIndexer
 

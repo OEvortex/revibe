@@ -1,0 +1,35 @@
+.unknown-event {
+    height: auto;
+    color: $text-muted;
+}
+
+StatusMessage {
+    width: 100%;
+    height: auto;
+
+    Horizontal {
+        width: 100%;
+        height: auto;
+    }
+}
+
+.status-indicator-icon {
+    width: auto;
+    height: auto;
+    color: $foreground;
+    margin-right: 1;
+
+    &.success {
+        color: $text-success;
+    }
+
+    &.error {
+        color: $text-error;
+    }
+}
+
+.status-indicator-text {
+    width: 1fr;
+    height: auto;
+    color: $foreground;
+}

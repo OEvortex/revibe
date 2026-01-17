@@ -44,6 +44,8 @@ HTTP_UNAUTHORIZED = 401
 HTTP_FORBIDDEN = 403
 # Retryable status codes (401 and 403 for auth/scope issues)
 RETRYABLE_STATUS_CODES = frozenset({HTTP_UNAUTHORIZED, HTTP_FORBIDDEN})
+ONBOARD_MAX_RETRIES = 30
+ONBOARD_SLEEP_SECONDS = 2
 
 
 class GeminicliBackend:
@@ -322,6 +324,137 @@ class GeminicliBackend:
             )
         return result if result else None
 
+    def _build_auth_headers(self, access_token: str) -> dict[str, str]:
+        return {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json",
+        }
+
+    @staticmethod
+    def _build_client_metadata(env_project_id: str | None) -> dict[str, str | None]:
+        return {
+            "ideType": "IDE_UNSPECIFIED",
+            "platform": "PLATFORM_UNSPECIFIED",
+            "pluginType": "GEMINI",
+            "duetProject": env_project_id,
+        }
+
+    @staticmethod
+    def _build_load_request(
+        env_project_id: str | None, client_metadata: dict[str, str | None]
+    ) -> dict[str, Any]:
+        return {
+            "cloudaicompanionProject": env_project_id,
+            "metadata": client_metadata,
+        }
+
+    async def _post_load_code_assist(
+        self,
+        client: httpx.AsyncClient,
+        headers: dict[str, str],
+        load_request: dict[str, Any],
+    ) -> dict[str, Any]:
+        response = await client.post(
+            f"{self._oauth_manager.get_api_endpoint()}:loadCodeAssist",
+            headers=headers,
+            json=load_request,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def _project_from_loaded_tier(
+        self, data: dict[str, Any], env_project_id: str | None
+    ) -> str | None:
+        if not data.get("currentTier"):
+            return None
+
+        project_from_api = data.get("cloudaicompanionProject")
+        if project_from_api:
+            self._project_id = project_from_api
+            return project_from_api
+
+        if env_project_id:
+            self._project_id = env_project_id
+            return env_project_id
+
+        return ""
+
+    @staticmethod
+    def _select_default_tier(data: dict[str, Any]) -> str:
+        for tier in data.get("allowedTiers", []):
+            if tier.get("isDefault"):
+                return tier.get("id", "free-tier")
+        return "free-tier"
+
+    @staticmethod
+    def _build_onboard_request(
+        tier_id: str,
+        env_project_id: str | None,
+        client_metadata: dict[str, str | None],
+    ) -> dict[str, Any]:
+        if tier_id == "free-tier":
+            return {
+                "tierId": tier_id,
+                "cloudaicompanionProject": None,
+                "metadata": client_metadata,
+            }
+        return {
+            "tierId": tier_id,
+            "cloudaicompanionProject": env_project_id,
+            "metadata": {**client_metadata, "duetProject": env_project_id},
+        }
+
+    async def _post_onboard_request(
+        self,
+        client: httpx.AsyncClient,
+        headers: dict[str, str],
+        onboard_request: dict[str, Any],
+    ) -> dict[str, Any]:
+        response = await client.post(
+            f"{self._oauth_manager.get_api_endpoint()}:onboardUser",
+            headers=headers,
+            json=onboard_request,
+        )
+        response.raise_for_status()
+        return response.json()
+
+    @staticmethod
+    def _extract_project_from_lro(lro_data: dict[str, Any]) -> str | None:
+        if not lro_data.get("done"):
+            return None
+        response_data = lro_data.get("response", {})
+        cloud_ai_companion = response_data.get("cloudaicompanionProject", {})
+        if isinstance(cloud_ai_companion, dict):
+            return cloud_ai_companion.get("id")
+        return None
+
+    async def _onboard_for_project(
+        self,
+        client: httpx.AsyncClient,
+        headers: dict[str, str],
+        env_project_id: str | None,
+        client_metadata: dict[str, str | None],
+        tier_id: str,
+    ) -> str:
+        onboard_request = self._build_onboard_request(
+            tier_id, env_project_id, client_metadata
+        )
+        for _ in range(ONBOARD_MAX_RETRIES):
+            lro_data = await self._post_onboard_request(
+                client, headers, onboard_request
+            )
+            project_id = self._extract_project_from_lro(lro_data)
+            if project_id:
+                self._project_id = project_id
+                return project_id
+            if lro_data.get("done"):
+                break
+            await asyncio.sleep(ONBOARD_SLEEP_SECONDS)
+
+        if tier_id == "free-tier":
+            return ""
+        raise ValueError("Failed to complete Gemini Code Assist onboarding.")
+
     async def _ensure_project_id(self, access_token: str) -> str:
         """Ensure we have a valid project ID.
 
@@ -336,117 +469,22 @@ class GeminicliBackend:
         if self._project_id:
             return self._project_id
 
-        # Get project ID from environment (matching gemini-cli)
         env_project_id = self._oauth_manager.get_project_id()
-
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json",
-        }
-
+        headers = self._build_auth_headers(access_token)
         client = self._get_client()
-
-        # Prepare metadata - exactly as gemini-cli does
-        client_metadata = {
-            "ideType": "IDE_UNSPECIFIED",
-            "platform": "PLATFORM_UNSPECIFIED",
-            "pluginType": "GEMINI",
-            "duetProject": env_project_id,
-        }
-
-        # Send None (not empty string) when no project - matches gemini-cli
-        load_request = {
-            "cloudaicompanionProject": env_project_id,
-            "metadata": client_metadata,
-        }
+        client_metadata = self._build_client_metadata(env_project_id)
+        load_request = self._build_load_request(env_project_id, client_metadata)
 
         try:
-            load_response = await client.post(
-                f"{self._oauth_manager.get_api_endpoint()}:loadCodeAssist",
-                headers=headers,
-                json=load_request,
-            )
-            load_response.raise_for_status()
-            data = load_response.json()
-
-            # Check if user is already onboarded (has currentTier)
-            if data.get("currentTier"):
-                # User has a tier - check if they need a project
-                if not data.get("cloudaicompanionProject"):
-                    # No project from API, use env var if available
-                    if env_project_id:
-                        self._project_id = env_project_id
-                        return env_project_id
-                    # No project available - this is OK for FREE tier
-                    # Return empty string to indicate no project required
-                    return ""
-                # Use project from API response
-                project_id = data["cloudaicompanionProject"]
-                self._project_id = project_id
+            data = await self._post_load_code_assist(client, headers, load_request)
+            project_id = self._project_from_loaded_tier(data, env_project_id)
+            if project_id is not None:
                 return project_id
 
-            # Need to onboard - find default tier
-            default_tier = None
-            if data.get("allowedTiers"):
-                for tier in data["allowedTiers"]:
-                    if tier.get("isDefault"):
-                        default_tier = tier
-                        break
-
-            tier_id = default_tier.get("id") if default_tier else "free-tier"
-
-            # For FREE tier, don't pass project ID (gemini-cli behavior)
-            if tier_id == "free-tier":
-                onboard_request = {
-                    "tierId": tier_id,
-                    "cloudaicompanionProject": None,
-                    "metadata": client_metadata,
-                }
-            else:
-                onboard_request = {
-                    "tierId": tier_id,
-                    "cloudaicompanionProject": env_project_id,
-                    "metadata": {**client_metadata, "duetProject": env_project_id},
-                }
-
-            # Poll for onboarding completion
-            max_retries = 30
-            retry_count = 0
-
-            while retry_count < max_retries:
-                onboard_response = await client.post(
-                    f"{self._oauth_manager.get_api_endpoint()}:onboardUser",
-                    headers=headers,
-                    json=onboard_request,
-                )
-                onboard_response.raise_for_status()
-                lro_data = onboard_response.json()
-
-                if lro_data.get("done"):
-                    response_data = lro_data.get("response", {})
-                    cloud_ai_companion = response_data.get(
-                        "cloudaicompanionProject", {}
-                    )
-                    project_id = (
-                        cloud_ai_companion.get("id")
-                        if isinstance(cloud_ai_companion, dict)
-                        else None
-                    )
-                    if project_id:
-                        self._project_id = project_id
-                        return project_id
-                    # Free tier might not return a project ID
-                    if tier_id == "free-tier":
-                        return ""
-                    break
-
-                await asyncio.sleep(2)
-                retry_count += 1
-
-            # Onboarding incomplete - for free tier, this is OK
-            if tier_id == "free-tier":
-                return ""
-            raise ValueError("Failed to complete Gemini Code Assist onboarding.")
+            tier_id = self._select_default_tier(data)
+            return await self._onboard_for_project(
+                client, headers, env_project_id, client_metadata, tier_id
+            )
 
         except httpx.HTTPStatusError as e:
             error_detail = ""
@@ -530,6 +568,139 @@ class GeminicliBackend:
 
         return payload
 
+    async def _build_headers(
+        self, extra_headers: dict[str, str] | None, retry_count: int
+    ) -> dict[str, str]:
+        headers = await self._get_auth_headers(force_refresh=retry_count > 0)
+        if extra_headers:
+            headers.update(extra_headers)
+        return headers
+
+    async def _build_payload_with_project(
+        self,
+        *,
+        model: ModelConfig,
+        messages: list[LLMMessage],
+        temperature: float,
+        tools: list[AvailableTool] | None,
+        max_tokens: int | None,
+        tool_choice: StrToolChoice | AvailableTool | None,
+        headers: dict[str, str],
+    ) -> dict[str, Any]:
+        access_token = headers["Authorization"].replace("Bearer ", "")
+        project_id = await self._ensure_project_id(access_token)
+        return self._build_request_payload(
+            model, messages, temperature, tools, max_tokens, tool_choice, project_id
+        )
+
+    async def _post_json(
+        self, url: str, headers: dict[str, str], payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        client = self._get_client()
+        response = await client.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        try:
+            return response.json()
+        except json.JSONDecodeError as e:
+            body_text = response.text[:200] if response.text else "(empty response)"
+            raise ValueError(f"Invalid JSON response from API: {body_text}") from e
+
+    def _extract_completion_parts(
+        self, parts: list[dict[str, Any]]
+    ) -> tuple[str, str | None, list[ToolCall] | None]:
+        text_content = ""
+        reasoning_content: str | None = None
+        tool_calls: list[ToolCall] | None = None
+
+        for part in parts:
+            if text := part.get("text"):
+                text_content += text
+            if part.get("thought"):
+                reasoning_content = part.get("text")
+            if tool_calls is None and part.get("functionCall"):
+                tool_calls = self._parse_tool_calls([part["functionCall"]])
+
+        return text_content, reasoning_content, tool_calls
+
+    def _parse_completion_response(self, data: dict[str, Any]) -> LLMChunk:
+        response_data = data.get("response", data)
+        candidates = response_data.get("candidates", [])
+        if not candidates:
+            raise ValueError(f"API response missing candidates: {data}")
+
+        parts = candidates[0].get("content", {}).get("parts", [])
+        text_content, reasoning_content, tool_calls = self._extract_completion_parts(
+            parts
+        )
+
+        usage_data = data.get("usageMetadata", {})
+        prompt_tokens = usage_data.get("promptTokenCount", 0)
+        completion_tokens = usage_data.get("candidatesTokenCount", 0)
+
+        return LLMChunk(
+            message=LLMMessage(
+                role=Role.assistant,
+                content=text_content if text_content else None,
+                reasoning_content=reasoning_content,
+                tool_calls=tool_calls,
+            ),
+            usage=LLMUsage(
+                prompt_tokens=prompt_tokens, completion_tokens=completion_tokens
+            ),
+        )
+
+    @staticmethod
+    def _assign_tool_call_indices(
+        tool_calls: list[ToolCall],
+        tracker: dict[str, int],
+        next_index: int,
+    ) -> int:
+        for tc in tool_calls:
+            tool_name = tc.function.name
+            if not tool_name:
+                continue
+            if tool_name not in tracker:
+                tracker[tool_name] = next_index
+                next_index += 1
+            tc.index = tracker[tool_name]
+        return next_index
+
+    async def _stream_sse_response(
+        self, response: httpx.Response
+    ) -> AsyncGenerator[LLMChunk, None]:
+        content_type = response.headers.get("content-type", "")
+        if "text/event-stream" not in content_type:
+            await self._handle_non_streaming_response(response)
+            return
+
+        tool_call_index_tracker: dict[str, int] = {}
+        next_tool_call_index = 0
+
+        async for line in response.aiter_lines():
+            parsed = self._parse_sse_line(line)
+            if not parsed:
+                continue
+            key, value = parsed
+            if key != "data" or not value or value == "[DONE]":
+                continue
+            chunk_data = self._parse_chunk_data(value)
+            if chunk_data is None:
+                continue
+            if "error" in chunk_data:
+                self._handle_chunk_error(chunk_data)
+
+            content, reasoning_content, tool_calls, usage = self._handle_chunk_data(
+                chunk_data
+            )
+            if tool_calls:
+                next_tool_call_index = self._assign_tool_call_indices(
+                    tool_calls, tool_call_index_tracker, next_tool_call_index
+                )
+
+            yield self._create_llm_chunk(
+                content, reasoning_content, tool_calls, usage
+            )
+
     async def complete(
         self,
         *,
@@ -578,76 +749,21 @@ class GeminicliBackend:
         _retry_count: int = 0,
     ) -> LLMChunk:
         """Internal complete method with retry logic for auth failures."""
-        force_refresh = _retry_count > 0
-        headers = await self._get_auth_headers(force_refresh=force_refresh)
-        if extra_headers:
-            headers.update(extra_headers)
-
-        # Get project ID
-        access_token = headers["Authorization"].replace("Bearer ", "")
-        project_id = await self._ensure_project_id(access_token)
-
+        headers = await self._build_headers(extra_headers, _retry_count)
         url = f"{self._oauth_manager.get_api_endpoint()}:generateContent"
-
-        # Build request payload
-        payload = self._build_request_payload(
-            model, messages, temperature, tools, max_tokens, tool_choice, project_id
+        payload = await self._build_payload_with_project(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            tools=tools,
+            max_tokens=max_tokens,
+            tool_choice=tool_choice,
+            headers=headers,
         )
 
         try:
-            client = self._get_client()
-            response = await client.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-
-            try:
-                data = response.json()
-            except json.JSONDecodeError as e:
-                body_text = response.text[:200] if response.text else "(empty response)"
-                raise ValueError(f"Invalid JSON response from API: {body_text}") from e
-
-            # Parse response - extract from response wrapper
-            response_data = data.get("response", data)
-            candidates = response_data.get("candidates", [])
-            if not candidates:
-                raise ValueError(f"API response missing candidates: {data}")
-
-            candidate = candidates[0]
-            content = candidate.get("content", {})
-            parts = content.get("parts", [])
-
-            # Extract text and reasoning content
-            text_content = ""
-            reasoning_content = None
-
-            for part in parts:
-                if part.get("text"):
-                    text_content += part["text"]
-                if part.get("thought"):
-                    reasoning_content = part.get("text")
-
-            # Parse tool calls
-            tool_calls = None
-            for part in parts:
-                if part.get("functionCall"):
-                    tool_calls = self._parse_tool_calls([part["functionCall"]])
-                    break
-
-            # Extract usage metadata
-            usage_data = data.get("usageMetadata", {})
-            prompt_tokens = usage_data.get("promptTokenCount", 0)
-            completion_tokens = usage_data.get("candidatesTokenCount", 0)
-
-            return LLMChunk(
-                message=LLMMessage(
-                    role=Role.assistant,
-                    content=text_content if text_content else None,
-                    reasoning_content=reasoning_content,
-                    tool_calls=tool_calls,
-                ),
-                usage=LLMUsage(
-                    prompt_tokens=prompt_tokens, completion_tokens=completion_tokens
-                ),
-            )
+            data = await self._post_json(url, headers, payload)
+            return self._parse_completion_response(data)
 
         except httpx.HTTPStatusError as e:
             # Retry once with fresh token on 401 Unauthorized or 403 Forbidden
@@ -671,7 +787,7 @@ class GeminicliBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-                has_tools=bool(tools),
+
                 tool_choice=tool_choice,
             ) from e
         except httpx.RequestError as e:
@@ -682,7 +798,7 @@ class GeminicliBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-                has_tools=bool(tools),
+
                 tool_choice=tool_choice,
             ) from e
 
@@ -806,27 +922,17 @@ class GeminicliBackend:
         _retry_count: int = 0,
     ) -> AsyncGenerator[LLMChunk, None]:
         """Internal streaming method with retry logic for auth failures."""
-        force_refresh = _retry_count > 0
-        headers = await self._get_auth_headers(force_refresh=force_refresh)
-        if extra_headers:
-            headers.update(extra_headers)
-
-        # Get project ID
-        access_token = headers["Authorization"].replace("Bearer ", "")
-        project_id = await self._ensure_project_id(access_token)
-
-        # Build URL with SSE parameter
+        headers = await self._build_headers(extra_headers, _retry_count)
         url = f"{self._oauth_manager.get_api_endpoint()}:streamGenerateContent"
-
-        # Build request payload
-        payload = self._build_request_payload(
-            model, messages, temperature, tools, max_tokens, tool_choice, project_id
+        payload = await self._build_payload_with_project(
+            model=model,
+            messages=messages,
+            temperature=temperature,
+            tools=tools,
+            max_tokens=max_tokens,
+            tool_choice=tool_choice,
+            headers=headers,
         )
-
-        # Track tool call indices across chunks to ensure unique indices per tool call
-        # Key: tool name, Value: assigned index
-        tool_call_index_tracker: dict[str, int] = {}
-        next_tool_call_index = 0
 
         try:
             client = self._get_client()
@@ -838,47 +944,8 @@ class GeminicliBackend:
                 params={"alt": "sse"},
             ) as response:
                 response.raise_for_status()
-
-                content_type = response.headers.get("content-type", "")
-                if "text/event-stream" not in content_type:
-                    await self._handle_non_streaming_response(response)
-                    return
-
-                async for line in response.aiter_lines():
-                    parsed = self._parse_sse_line(line)
-                    if not parsed:
-                        continue
-
-                    key, value = parsed
-                    if key != "data":
-                        continue
-                    if not value or value == "[DONE]":
-                        continue
-
-                    chunk_data = self._parse_chunk_data(value)
-                    if chunk_data is None:
-                        continue
-
-                    if "error" in chunk_data:
-                        self._handle_chunk_error(chunk_data)
-
-                    content, reasoning_content, tool_calls, usage = (
-                        self._handle_chunk_data(chunk_data)
-                    )
-
-                    # Assign unique indices to tool calls based on their name
-                    if tool_calls:
-                        for tc in tool_calls:
-                            tool_name = tc.function.name
-                            if tool_name:
-                                if tool_name not in tool_call_index_tracker:
-                                    tool_call_index_tracker[tool_name] = next_tool_call_index
-                                    next_tool_call_index += 1
-                                tc.index = tool_call_index_tracker[tool_name]
-
-                    yield self._create_llm_chunk(
-                        content, reasoning_content, tool_calls, usage
-                    )
+                async for chunk in self._stream_sse_response(response):
+                    yield chunk
 
         except httpx.HTTPStatusError as e:
             # Retry once with fresh token on 401 Unauthorized or 403 Forbidden
@@ -904,7 +971,7 @@ class GeminicliBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-                has_tools=bool(tools),
+
                 tool_choice=tool_choice,
             ) from e
         except httpx.RequestError as e:
@@ -915,7 +982,7 @@ class GeminicliBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-                has_tools=bool(tools),
+
                 tool_choice=tool_choice,
             ) from e
 

@@ -1,0 +1,88 @@
+Screen {
+    background: $background;
+}
+
+#chat {
+    height: 1fr;
+    width: 100%;
+    background: $background;
+    padding: 0;
+    scrollbar-size: 0 0;
+    scrollbar-visibility: hidden;
+}
+
+#loading-area {
+    height: auto;
+    width: 100%;
+    background: $background;
+    padding: 0 2 0 0;
+    layout: horizontal;
+    align: right middle;
+}
+
+#loading-area-content {
+    width: 1fr;
+    height: auto;
+    align: left middle;
+}
+
+#todo-area {
+    height: auto;
+    max-height: 10;
+    width: 100%;
+    background: $background;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    text-align: left;
+    margin-top: 0;
+
+    .tool-result-border {
+        display: none;
+    }
+
+    &.loading-active .tool-result-border {
+        display: block;
+    }
+
+    .tool-result-content {
+        max-height: 9;
+        overflow-y: auto;
+        scrollbar-size: 0 0;
+        scrollbar-visibility: hidden;
+    }
+}
+
+#bottom-app-container {
+    height: auto;
+    width: 100%;
+    background: $background;
+}
+
+#spacer {
+    width: 1fr;
+    height: auto;
+    background: transparent;
+}
+
+#messages {
+    layout: stream;
+    width: 100%;
+    height: auto;
+    text-align: left;
+    margin-top: 1;
+    margin-bottom: 0;
+}
+
+ToastRack {
+    align: left bottom;
+    padding: 0;
+    margin: 0 0 6 0;
+}
+
+Markdown MarkdownFence {
+    overflow-x: auto;
+    scrollbar-size: 0 0;
+    scrollbar-visibility: hidden;
+    max-width: 95%;
+}

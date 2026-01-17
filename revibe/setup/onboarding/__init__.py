@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from typing import ClassVar
 
 from rich import print as rprint
 from textual.app import App
@@ -20,7 +21,14 @@ from revibe.setup.onboarding.screens import (
 
 
 class OnboardingApp(App[str | None]):
-    CSS_PATH = "onboarding.tcss"
+    CSS_PATH: ClassVar[list[str]] = [
+        "tcss/base.tcss",
+        "tcss/utilities.tcss",
+        "tcss/welcome.tcss",
+        "tcss/provider.tcss",
+        "tcss/theme.tcss",
+        "tcss/api_key.tcss",
+    ]
 
     def __init__(self) -> None:
         super().__init__()
