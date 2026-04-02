@@ -197,7 +197,7 @@ class Bash(
         MAX_COMMAND_DISPLAY_LENGTH = 30
         command = event.args.command.strip()
         if len(command) > MAX_COMMAND_DISPLAY_LENGTH:
-            command = command[:MAX_COMMAND_DISPLAY_LENGTH - 3] + "..."
+            command = command[: MAX_COMMAND_DISPLAY_LENGTH - 3] + "..."
 
         summary = f"Bash ({command})"
         return ToolCallDisplay(summary=summary)

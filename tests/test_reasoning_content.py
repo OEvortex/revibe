@@ -3,18 +3,16 @@ from __future__ import annotations
 from unittest.mock import MagicMock
 
 import httpx
-import mistralai
 import pytest
 import respx
 
 from revibe.core.agent import Agent
 from revibe.core.config import (
-    GenericProviderConfig,
     ModelConfig,
+    ProviderConfig,
     SessionLoggingConfig,
     VibeConfig,
 )
-from revibe.core.llm.backend.mistral import MistralMapper, ParsedContent
 from revibe.core.llm.backend.openai import OpenAIBackend as GenericBackend
 from revibe.core.llm.format import APIToolFormatHandler
 from revibe.core.types import AssistantEvent, LLMMessage, ReasoningEvent, Role
@@ -34,145 +32,6 @@ def make_config() -> VibeConfig:
         enabled_tools=[],
         tools={},
     )
-
-
-class TestMistralMapperParseContent:
-    def test_parse_content_string_returns_content_only(self):
-        mapper = MistralMapper()
-        result = mapper.parse_content("Hello, world!")
-
-        assert result == ParsedContent(content="Hello, world!", reasoning_content=None)
-
-    def test_parse_content_text_chunk_returns_content_only(self):
-        mapper = MistralMapper()
-        content: list[mistralai.ContentChunk] = [
-            mistralai.TextChunk(type="text", text="Hello from text chunk")
-        ]
-
-        result = mapper.parse_content(content)
-
-        assert result == ParsedContent(
-            content="Hello from text chunk", reasoning_content=None
-        )
-
-    def test_parse_content_thinking_chunk_extracts_reasoning(self):
-        mapper = MistralMapper()
-        content: list[mistralai.ContentChunk] = [
-            mistralai.ThinkChunk(
-                type="thinking",
-                thinking=[mistralai.TextChunk(type="text", text="Let me think...")],
-            ),
-            mistralai.TextChunk(type="text", text="The answer is 42."),
-        ]
-
-        result = mapper.parse_content(content)
-
-        assert result == ParsedContent(
-            content="The answer is 42.", reasoning_content="Let me think..."
-        )
-
-    def test_parse_content_multiple_thinking_chunks_concatenates(self):
-        mapper = MistralMapper()
-        content: list[mistralai.ContentChunk] = [
-            mistralai.ThinkChunk(
-                type="thinking",
-                thinking=[mistralai.TextChunk(type="text", text="First thought. ")],
-            ),
-            mistralai.ThinkChunk(
-                type="thinking",
-                thinking=[mistralai.TextChunk(type="text", text="Second thought.")],
-            ),
-            mistralai.TextChunk(type="text", text="Final answer."),
-        ]
-
-        result = mapper.parse_content(content)
-
-        assert result == ParsedContent(
-            content="Final answer.", reasoning_content="First thought. Second thought."
-        )
-
-    def test_parse_content_thinking_only_returns_empty_content(self):
-        mapper = MistralMapper()
-        content: list[mistralai.ContentChunk] = [
-            mistralai.ThinkChunk(
-                type="thinking",
-                thinking=[mistralai.TextChunk(type="text", text="Just thinking...")],
-            )
-        ]
-
-        result = mapper.parse_content(content)
-
-        assert result == ParsedContent(content="", reasoning_content="Just thinking...")
-
-    def test_parse_content_empty_list_returns_empty(self):
-        mapper = MistralMapper()
-        content: list[mistralai.ContentChunk] = []
-
-        result = mapper.parse_content(content)
-
-        assert result == ParsedContent(content="", reasoning_content=None)
-
-
-class TestMistralMapperPrepareMessage:
-    def test_prepare_assistant_message_without_reasoning(self):
-        mapper = MistralMapper()
-        msg = LLMMessage(role=Role.assistant, content="Hello!")
-
-        result = mapper.prepare_message(msg)
-
-        assert isinstance(result, mistralai.AssistantMessage)
-        assert result.content == "Hello!"
-
-    def test_prepare_assistant_message_with_reasoning_creates_chunks(self):
-        mapper = MistralMapper()
-        msg = LLMMessage(
-            role=Role.assistant,
-            content="The answer is 42.",
-            reasoning_content="Let me calculate...",
-        )
-
-        result = mapper.prepare_message(msg)
-
-        assert isinstance(result, mistralai.AssistantMessage)
-        assert isinstance(result.content, list)
-        assert len(result.content) == 2
-
-        think_chunk = result.content[0]
-        assert isinstance(think_chunk, mistralai.ThinkChunk)
-        assert think_chunk.type == "thinking"
-        assert len(think_chunk.thinking) == 1
-        inner_chunk = think_chunk.thinking[0]
-        assert isinstance(inner_chunk, mistralai.TextChunk)
-        assert inner_chunk.text == "Let me calculate..."
-
-        text_chunk = result.content[1]
-        assert isinstance(text_chunk, mistralai.TextChunk)
-        assert text_chunk.type == "text"
-        assert text_chunk.text == "The answer is 42."
-
-    def test_prepare_assistant_message_with_reasoning_and_none_content(self):
-        mapper = MistralMapper()
-        msg = LLMMessage(
-            role=Role.assistant, content=None, reasoning_content="Just thinking..."
-        )
-
-        result = mapper.prepare_message(msg)
-
-        assert isinstance(result, mistralai.AssistantMessage)
-        assert isinstance(result.content, list)
-        assert len(result.content) == 2
-
-        think_chunk = result.content[0]
-        assert isinstance(think_chunk, mistralai.ThinkChunk)
-        assert think_chunk.type == "thinking"
-        assert len(think_chunk.thinking) == 1
-        inner_chunk = think_chunk.thinking[0]
-        assert isinstance(inner_chunk, mistralai.TextChunk)
-        assert inner_chunk.text == "Just thinking..."
-
-        text_chunk = result.content[1]
-        assert isinstance(text_chunk, mistralai.TextChunk)
-        assert text_chunk.text == ""
 
 
 class TestGenericBackendReasoningContent:
@@ -202,7 +61,7 @@ class TestGenericBackendReasoningContent:
             mock_api.post("/v1/chat/completions").mock(
                 return_value=httpx.Response(status_code=200, json=json_response)
             )
-            provider = GenericProviderConfig(
+            provider = ProviderConfig(
                 name="test", api_base=f"{base_url}/v1", api_key_env_var="API_KEY"
             )
             backend = GenericBackend(provider=provider)
@@ -240,7 +99,7 @@ class TestGenericBackendReasoningContent:
                     headers={"Content-Type": "text/event-stream"},
                 )
             )
-            provider = GenericProviderConfig(
+            provider = ProviderConfig(
                 name="test", api_base=f"{base_url}/v1", api_key_env_var="API_KEY"
             )
             backend = GenericBackend(provider=provider)

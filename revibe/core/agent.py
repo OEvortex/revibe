@@ -42,7 +42,6 @@ from revibe.core.types import (
     ApprovalCallback,
     ApprovalResponse,
     AssistantEvent,
-    AsyncApprovalCallback,
     BaseEvent,
     CompactEndEvent,
     CompactStartEvent,
@@ -51,7 +50,6 @@ from revibe.core.types import (
     LLMUsage,
     ReasoningEvent,
     Role,
-    SyncApprovalCallback,
     ToolCallEvent,
     ToolResultEvent,
 )
@@ -195,12 +193,7 @@ class Agent:
         )
 
     def _build_completion_headers(self) -> dict[str, str]:
-        active_model = self.config.get_active_model()
-        provider = self.config.get_provider_for_model(active_model)
-        return {
-            "user-agent": get_user_agent(provider.backend),
-            "x-affinity": self.session_id,
-        }
+        return {"user-agent": get_user_agent(), "x-affinity": self.session_id}
 
     def _update_usage_stats(self, usage: LLMUsage | None) -> None:
         if usage is None:
@@ -944,8 +937,6 @@ class Agent:
             self.messages = [system_message, summary_message]
 
             active_model = self.config.get_active_model()
-            provider = self.config.get_provider_for_model(active_model)
-
             async with self.backend as backend:
                 actual_context_tokens = await backend.count_tokens(
                     model=active_model,
@@ -953,7 +944,7 @@ class Agent:
                     tools=self.format_handler.get_available_tools(
                         self.tool_manager, self.config
                     ),
-                    extra_headers={"user-agent": get_user_agent(provider.backend)},
+                    extra_headers={"user-agent": get_user_agent()},
                 )
 
             self.stats.context_tokens = actual_context_tokens

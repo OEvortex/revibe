@@ -16,6 +16,7 @@ try:
     else:
         # Fallback for non-editable installs - read from installed metadata
         import importlib.metadata
+
         __version__ = importlib.metadata.version("revibe")
 except Exception:
     # Fallback to hardcoded version if reading fails

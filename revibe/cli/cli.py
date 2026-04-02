@@ -144,6 +144,7 @@ def run_cli(args: argparse.Namespace) -> None:
 
         if args.tool_format:
             from revibe.core.config import ToolFormat
+
             config.tool_format = ToolFormat(args.tool_format.lower())
 
         loaded_messages = load_session(args, config)

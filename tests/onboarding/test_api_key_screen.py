@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from revibe.core.config import GenericProviderConfig as ProviderConfig, VibeConfig
+from revibe.core.config import ProviderConfig, VibeConfig
 from revibe.core.model_config import ModelConfig
 from revibe.setup.onboarding.screens.api_key import ApiKeyScreen
 
@@ -76,7 +76,7 @@ class TestApiKeyScreen:
         assert screen.provider is not None
         assert screen.provider.name == "openai"
 
-    @pytest.mark.parametrize("provider_name", ["ollama", "llamacpp", "qwencode"])
+    @pytest.mark.parametrize("provider_name", ["ollama", "qwencode"])
     def test_skips_for_local_providers(self, provider_name: str) -> None:
         """Test that ApiKeyScreen skips for local providers without API key env vars."""
         # These providers have empty api_key_env_var in DEFAULT_PROVIDERS

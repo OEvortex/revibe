@@ -396,7 +396,7 @@ class ErrorMessage(Static):
             if stripped and not stripped.startswith("─"):
                 # Truncate if too long
                 if len(stripped) > self._MAX_SUMMARY_LENGTH:
-                    return stripped[:self._MAX_SUMMARY_LENGTH] + "..."
+                    return stripped[: self._MAX_SUMMARY_LENGTH] + "..."
                 return stripped
         return "Error occurred"
 

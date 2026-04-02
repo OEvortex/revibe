@@ -1,16 +1,10 @@
 from __future__ import annotations
 
-import asyncio
-import json
 from logging import getLogger
 from typing import TYPE_CHECKING, Any
 
-from mcp import ClientSession
-from mcp.client.stdio import StdioServerParameters, stdio_client
-from mcp.client.streamable_http import streamablehttp_client
-
 if TYPE_CHECKING:
-    from revibe.core.config import MCPServer, ProviderConfig, VibeConfig
+    from revibe.core.config import MCPServer, VibeConfig
     from revibe.core.types import LLMMessage
 
 logger = getLogger("vibe")

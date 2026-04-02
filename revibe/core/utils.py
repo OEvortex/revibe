@@ -14,7 +14,6 @@ from typing import Any
 import httpx
 
 from revibe import __version__
-from revibe.core.config import Backend
 from revibe.core.paths.global_paths import LOG_DIR, LOG_FILE
 from revibe.core.types import BaseEvent, ToolResultEvent
 
@@ -146,12 +145,8 @@ logging.basicConfig(
 logger = logging.getLogger("vibe")
 
 
-def get_user_agent(backend: Backend) -> str:
-    user_agent = f"Mistral-Vibe/{__version__}"
-    if backend == Backend.MISTRAL:
-        mistral_sdk_prefix = "mistral-client-python/"
-        user_agent = f"{mistral_sdk_prefix}{user_agent}"
-    return user_agent
+def get_user_agent(backend: Any | None = None) -> str:
+    return f"Revibe/{__version__}"
 
 
 def _is_retryable_http_error(e: Exception) -> bool:

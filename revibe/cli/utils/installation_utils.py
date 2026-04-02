@@ -1,4 +1,5 @@
 """Utility functions for detecting installation type and providing update guidance."""
+
 from __future__ import annotations
 
 import importlib.metadata
@@ -67,7 +68,7 @@ def get_update_command(package_name: str = "revibe") -> str:
         The command to use for updating the package
     """
     if is_editable_installation(package_name):
-        return f'cd your-{package_name}-source && git pull && pip install -e .'
+        return f"cd your-{package_name}-source && git pull && pip install -e ."
     else:
         return f"uv tool upgrade {package_name}"
 
@@ -86,13 +87,13 @@ def get_installation_info(package_name: str = "revibe") -> dict[str, str]:
         "installation_type": "regular",
         "update_command": get_update_command(package_name),
         "version": "unknown",
-        "location": "unknown"
+        "location": "unknown",
     }
 
     try:
         dist = importlib.metadata.distribution(package_name)
         info["version"] = dist.version
-        dist_path = getattr(dist, '_path', None)
+        dist_path = getattr(dist, "_path", None)
         if isinstance(dist_path, (str, Path)):
             info["location"] = str(dist_path)
 

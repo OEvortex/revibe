@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from revibe.core import run_programmatic
-from revibe.core.config import Backend, SessionLoggingConfig, VibeConfig
+from revibe.core.config import SessionLoggingConfig, VibeConfig
 from revibe.core.types import LLMMessage, OutputFormat, Role
 from tests.mock.mock_backend_factory import mock_backend_factory
 from tests.mock.utils import mock_llm_chunk
@@ -33,12 +33,11 @@ def test_run_programmatic_preload_streaming_is_batched(
     )
 
     with mock_backend_factory(
-        Backend.MISTRAL,
         lambda provider, **kwargs: FakeBackend(
             mock_llm_chunk(
                 content="Decorators are wrappers that modify function behavior."
             )
-        ),
+        )
     ):
         cfg = VibeConfig(
             session_logging=SessionLoggingConfig(enabled=False),
@@ -98,8 +97,7 @@ def test_run_programmatic_ignores_system_messages_in_previous(
     )
 
     with mock_backend_factory(
-        Backend.MISTRAL,
-        lambda provider, **kwargs: FakeBackend([mock_llm_chunk(content="Understood.")]),
+        lambda provider, **kwargs: FakeBackend([mock_llm_chunk(content="Understood.")])
     ):
         cfg = VibeConfig(
             session_logging=SessionLoggingConfig(enabled=False),

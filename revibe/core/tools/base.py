@@ -95,14 +95,12 @@ class BaseToolState(BaseModel):
 # recognizes the classmethods invoked below.
 class _ToolConfigProvider(Protocol):
     @classmethod
-    def _get_tool_config_class(cls) -> type[BaseToolConfig]:
-        ...
+    def _get_tool_config_class(cls) -> type[BaseToolConfig]: ...
 
 
 class _ToolStateProvider(Protocol):
     @classmethod
-    def _get_tool_state_class(cls) -> type[BaseToolState]:
-        ...
+    def _get_tool_state_class(cls) -> type[BaseToolState]: ...
 
 
 class BaseTool[
@@ -213,7 +211,10 @@ class BaseTool[
             if base_class is object or base_class is ABC:
                 continue
             try:
-                return cast(type[ToolConfig], cast(_ToolConfigProvider, base_class)._get_tool_config_class())
+                return cast(
+                    type[ToolConfig],
+                    cast(_ToolConfigProvider, base_class)._get_tool_config_class(),
+                )
             except (TypeError, AttributeError):
                 continue
 
@@ -236,7 +237,10 @@ class BaseTool[
             if base_class is object or base_class is ABC:
                 continue
             try:
-                return cast(type[ToolState], cast(_ToolStateProvider, base_class)._get_tool_state_class())
+                return cast(
+                    type[ToolState],
+                    cast(_ToolStateProvider, base_class)._get_tool_state_class(),
+                )
             except (TypeError, AttributeError):
                 continue
 

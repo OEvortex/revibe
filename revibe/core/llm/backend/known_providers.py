@@ -70,7 +70,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "family": "Cerebras",
         "sdk_mode": "openai",
         "openai": {"base_url": "https://api.cerebras.ai/v1"},
-        "api_key_template": "csk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "api_key_template": "CEREBRAS_API_KEY",
         "supports_api_key": True,
         "open_model_endpoint": False,
         "fetch_models": True,
@@ -89,7 +89,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "sdk_mode": "openai",
         "openai": {"base_url": "https://llm.chutes.ai/v1"},
         "supports_api_key": True,
-        "api_key_template": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+        "api_key_template": "CHUTES_API_KEY",
         "open_model_endpoint": True,
         "fetch_models": True,
         "models_endpoint": "/models",
@@ -107,7 +107,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "sdk_mode": "openai",
         "openai": {"base_url": "https://api.deepseek.com/v1"},
         "anthropic": {"base_url": "https://api.deepseek.com/anthropic"},
-        "api_key_template": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "api_key_template": "DEEPSEEK_API_KEY",
         "supports_api_key": True,
         "open_model_endpoint": False,
         "fetch_models": True,
@@ -125,7 +125,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "family": "Groq",
         "sdk_mode": "openai",
         "openai": {"base_url": "https://api.groq.com/openai/v1"},
-        "api_key_template": "gsk_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "api_key_template": "GROQ_API_KEY",
         "supports_api_key": True,
         "open_model_endpoint": False,
         "fetch_models": True,
@@ -145,7 +145,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "sdk_mode": "openai",
         "openai": {"base_url": "https://router.huggingface.co/v1"},
         "supports_api_key": True,
-        "api_key_template": "hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "api_key_template": "HUGGINGFACE_API_KEY",
         "open_model_endpoint": True,
         "fetch_models": True,
         "models_endpoint": "/models",
@@ -163,7 +163,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "family": "Kilo Code",
         "sdk_mode": "openai",
         "openai": {"base_url": "https://api.kilo.ai/api/openrouter"},
-        "api_key_template": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "api_key_template": "KILOCODE_API_KEY",
         "supports_api_key": True,
         "open_model_endpoint": False,
         "fetch_models": True,
@@ -182,7 +182,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "family": "Knox",
         "sdk_mode": "openai",
         "openai": {"base_url": "https://api.knox.chat/v1"},
-        "api_key_template": "sk-xxxxxxxx",
+        "api_key_template": "KNOX_API_KEY",
         "supports_api_key": True,
         "open_model_endpoint": True,
         "fetch_models": True,
@@ -201,7 +201,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "sdk_mode": "openai",
         "openai": {"base_url": "https://api.minimaxi.com/v1"},
         "anthropic": {"base_url": "https://api.minimaxi.com/anthropic"},
-        "api_key_template": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "api_key_template": "MINIMAX_API_KEY",
         "supports_api_key": True,
         "open_model_endpoint": False,
         "fetch_models": True,
@@ -219,7 +219,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "family": "Mistral",
         "sdk_mode": "openai",
         "openai": {"base_url": "https://api.mistral.ai/v1"},
-        "api_key_template": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "api_key_template": "MISTRAL_API_KEY",
         "supports_api_key": True,
         "open_model_endpoint": False,
         "fetch_models": True,
@@ -239,7 +239,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "sdk_mode": "openai",
         "openai": {"base_url": "https://api.moonshot.cn/v1"},
         "anthropic": {"base_url": "https://api.kimi.com/coding"},
-        "api_key_template": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "api_key_template": "MOONSHOT_API_KEY",
         "supports_api_key": True,
         "open_model_endpoint": False,
         "fetch_models": True,
@@ -257,7 +257,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "family": "NVIDIA",
         "sdk_mode": "openai",
         "openai": {"base_url": "https://integrate.api.nvidia.com/v1"},
-        "api_key_template": "nvapi-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "api_key_template": "NVIDIA_API_KEY",
         "supports_api_key": True,
         "open_model_endpoint": True,
         "fetch_models": True,
@@ -276,6 +276,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "sdk_mode": "openai",
         "openai": {"base_url": "https://ollama.com/v1"},
         "anthropic": {"base_url": "https://ollama.com"},
+        "api_key_template": "",
         "supports_api_key": False,
         "open_model_endpoint": True,
         "fetch_models": True,
@@ -293,7 +294,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "family": "OpenAI",
         "sdk_mode": "openai",
         "openai": {"base_url": "https://api.openai.com/v1"},
-        "api_key_template": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "api_key_template": "OPENAI_API_KEY",
         "supports_api_key": True,
         "open_model_endpoint": False,
         "fetch_models": True,
@@ -313,7 +314,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "openai": {"base_url": "https://opencode.ai/zen/v1"},
         "anthropic": {"base_url": "https://opencode.ai/zen"},
         "supports_api_key": True,
-        "api_key_template": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "api_key_template": "OPENCODE_API_KEY",
         "open_model_endpoint": True,
         "fetch_models": True,
         "models_endpoint": "/models",
@@ -330,7 +331,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "family": "OpenRouter",
         "sdk_mode": "openai",
         "openai": {"base_url": "https://openrouter.ai/api/v1"},
-        "api_key_template": "sk-or-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "api_key_template": "OPENROUTER_API_KEY",
         "supports_api_key": True,
         "open_model_endpoint": False,
         "fetch_models": True,
@@ -349,7 +350,7 @@ KNOWN_PROVIDERS: dict[str, KnownProviderConfig] = {
         "family": "Zhipu AI",
         "sdk_mode": "openai",
         "openai": {"base_url": "https://open.bigmodel.cn/api/paas/v4"},
-        "api_key_template": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx.xxxxxxxxxxxxxx",
+        "api_key_template": "ZHIPU_API_KEY",
         "supports_api_key": True,
         "open_model_endpoint": False,
         "fetch_models": True,
@@ -513,6 +514,28 @@ def is_open_model_endpoint(provider_name: str) -> bool:
     if provider is None:
         return False
     return bool(provider.get("open_model_endpoint", False))
+
+
+def get_example_model(provider_name: str) -> str | None:
+    """Get an example model name for a provider.
+
+    Since models are dynamically fetched, this returns the provider's
+    display_name as a representative identifier, or None.
+    """
+    provider = get_known_provider(provider_name)
+    if provider is None:
+        return None
+    try:
+        from revibe.core.llm.backend.providers.config import get_models_from_config
+
+        models = get_models_from_config(provider_name)
+        if models:
+            alias = models[0].get("alias")
+            if isinstance(alias, str) and alias:
+                return alias
+    except Exception:
+        pass
+    return None
 
 
 def iter_known_models() -> Iterator[dict[str, Any]]:

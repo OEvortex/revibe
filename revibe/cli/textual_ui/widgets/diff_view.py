@@ -89,43 +89,47 @@ def parse_unified_diff(diff_text: str, file_path: str = "") -> FileDiff:
                 old_count=old_count,
                 new_start=new_start,
                 new_count=new_count,
-                lines=[]
+                lines=[],
             )
             old_line = old_start
             new_line = new_start
 
             # Add the range header
-            current_hunk.lines.append(DiffLine(
-                line_number=None,
-                content=line,
-                line_type="range"
-            ))
+            current_hunk.lines.append(
+                DiffLine(line_number=None, content=line, line_type="range")
+            )
         elif current_hunk is not None:
             if line.startswith("-"):
-                current_hunk.lines.append(DiffLine(
-                    line_number=old_line,
-                    old_line_number=old_line,
-                    content=line[1:],  # Remove the - prefix
-                    line_type="removed"
-                ))
+                current_hunk.lines.append(
+                    DiffLine(
+                        line_number=old_line,
+                        old_line_number=old_line,
+                        content=line[1:],  # Remove the - prefix
+                        line_type="removed",
+                    )
+                )
                 old_line += 1
                 removed_count += 1
             elif line.startswith("+"):
-                current_hunk.lines.append(DiffLine(
-                    line_number=new_line,
-                    old_line_number=None,
-                    content=line[1:],  # Remove the + prefix
-                    line_type="added"
-                ))
+                current_hunk.lines.append(
+                    DiffLine(
+                        line_number=new_line,
+                        old_line_number=None,
+                        content=line[1:],  # Remove the + prefix
+                        line_type="added",
+                    )
+                )
                 new_line += 1
                 added_count += 1
             elif line.startswith(" ") or not line:
-                current_hunk.lines.append(DiffLine(
-                    line_number=new_line,
-                    old_line_number=old_line,
-                    content=line[1:] if line.startswith(" ") else line,
-                    line_type="context"
-                ))
+                current_hunk.lines.append(
+                    DiffLine(
+                        line_number=new_line,
+                        old_line_number=old_line,
+                        content=line[1:] if line.startswith(" ") else line,
+                        line_type="context",
+                    )
+                )
                 old_line += 1
                 new_line += 1
 
@@ -140,17 +144,10 @@ def parse_unified_diff(diff_text: str, file_path: str = "") -> FileDiff:
         summary_parts.append(f"-{removed_count}")
     summary = " ".join(summary_parts) if summary_parts else "No changes"
 
-    return FileDiff(
-        file_path=file_path,
-        summary=summary,
-        hunks=hunks
-    )
+    return FileDiff(file_path=file_path, summary=summary, hunks=hunks)
 
 
-def parse_search_replace_to_file_diff(
-    content: str,
-    file_path: str
-) -> FileDiff:
+def parse_search_replace_to_file_diff(content: str, file_path: str) -> FileDiff:
     """Parse SEARCH/REPLACE blocks into a FileDiff structure."""
     from revibe.core.tools.builtins.search_replace import SEARCH_REPLACE_BLOCK_RE
 
@@ -165,57 +162,67 @@ def parse_search_replace_to_file_diff(
         replace_lines = replace_text.strip().split("\n")
 
         # Create a diff using difflib
-        diff_lines = list(difflib.unified_diff(
-            search_lines,
-            replace_lines,
-            lineterm="",
-            n=2  # Context lines
-        ))
+        diff_lines = list(
+            difflib.unified_diff(
+                search_lines,
+                replace_lines,
+                lineterm="",
+                n=2,  # Context lines
+            )
+        )
 
         hunk_lines: list[DiffLine] = []
         line_num = 1
 
         for diff_line in diff_lines[2:]:  # Skip file headers
             if diff_line.startswith("@@"):
-                hunk_lines.append(DiffLine(
-                    line_number=None,
-                    content=diff_line,
-                    line_type="range"
-                ))
+                hunk_lines.append(
+                    DiffLine(line_number=None, content=diff_line, line_type="range")
+                )
             elif diff_line.startswith("-"):
-                hunk_lines.append(DiffLine(
-                    line_number=line_num,
-                    old_line_number=line_num,
-                    content=diff_line[1:],
-                    line_type="removed"
-                ))
+                hunk_lines.append(
+                    DiffLine(
+                        line_number=line_num,
+                        old_line_number=line_num,
+                        content=diff_line[1:],
+                        line_type="removed",
+                    )
+                )
                 removed_count += 1
             elif diff_line.startswith("+"):
-                hunk_lines.append(DiffLine(
-                    line_number=line_num,
-                    old_line_number=None,
-                    content=diff_line[1:],
-                    line_type="added"
-                ))
+                hunk_lines.append(
+                    DiffLine(
+                        line_number=line_num,
+                        old_line_number=None,
+                        content=diff_line[1:],
+                        line_type="added",
+                    )
+                )
                 added_count += 1
                 line_num += 1
             else:
-                hunk_lines.append(DiffLine(
-                    line_number=line_num,
-                    old_line_number=line_num,
-                    content=diff_line[1:] if diff_line.startswith(" ") else diff_line,
-                    line_type="context"
-                ))
+                hunk_lines.append(
+                    DiffLine(
+                        line_number=line_num,
+                        old_line_number=line_num,
+                        content=diff_line[1:]
+                        if diff_line.startswith(" ")
+                        else diff_line,
+                        line_type="context",
+                    )
+                )
                 line_num += 1
 
         if hunk_lines:
-            all_hunks.append(DiffHunk(
-                old_start=1,
-                old_count=len(search_lines),
-                new_start=1,
-                new_count=len(replace_lines),
-                lines=hunk_lines
-            ))
+            all_hunks.append(
+                DiffHunk(
+                    old_start=1,
+                    old_count=len(search_lines),
+                    new_start=1,
+                    new_count=len(replace_lines),
+                    lines=hunk_lines,
+                )
+            )
 
     summary_parts = []
     if added_count > 0:
@@ -224,11 +231,7 @@ def parse_search_replace_to_file_diff(
         summary_parts.append(f"-{removed_count}")
     summary = " ".join(summary_parts) if summary_parts else "No changes"
 
-    return FileDiff(
-        file_path=file_path,
-        summary=summary,
-        hunks=all_hunks
-    )
+    return FileDiff(file_path=file_path, summary=summary, hunks=all_hunks)
 
 
 def get_syntax_style(token: str, token_type: str) -> Style:
@@ -257,17 +260,76 @@ HIGHLIGHTED_LINE_TYPES = {"added", "removed", "context"}
 
 # Python keywords for syntax highlighting
 PYTHON_KEYWORDS = {
-    "def", "class", "if", "elif", "else", "for", "while", "try", "except",
-    "finally", "with", "as", "import", "from", "return", "yield", "raise",
-    "pass", "break", "continue", "in", "is", "not", "and", "or", "None",
-    "True", "False", "lambda", "async", "await", "global", "nonlocal",
+    "def",
+    "class",
+    "if",
+    "elif",
+    "else",
+    "for",
+    "while",
+    "try",
+    "except",
+    "finally",
+    "with",
+    "as",
+    "import",
+    "from",
+    "return",
+    "yield",
+    "raise",
+    "pass",
+    "break",
+    "continue",
+    "in",
+    "is",
+    "not",
+    "and",
+    "or",
+    "None",
+    "True",
+    "False",
+    "lambda",
+    "async",
+    "await",
+    "global",
+    "nonlocal",
 }
 
 JS_KEYWORDS = {
-    "function", "const", "let", "var", "if", "else", "for", "while", "do",
-    "switch", "case", "break", "continue", "return", "try", "catch", "finally",
-    "throw", "new", "class", "extends", "import", "export", "from", "default",
-    "async", "await", "yield", "this", "super", "null", "undefined", "true", "false",
+    "function",
+    "const",
+    "let",
+    "var",
+    "if",
+    "else",
+    "for",
+    "while",
+    "do",
+    "switch",
+    "case",
+    "break",
+    "continue",
+    "return",
+    "try",
+    "catch",
+    "finally",
+    "throw",
+    "new",
+    "class",
+    "extends",
+    "import",
+    "export",
+    "from",
+    "default",
+    "async",
+    "await",
+    "yield",
+    "this",
+    "super",
+    "null",
+    "undefined",
+    "true",
+    "false",
 }
 
 
@@ -392,7 +454,7 @@ class DiffLineWidget(Static):
         diff_line: DiffLine,
         show_line_numbers: bool = True,
         enable_syntax_highlight: bool = True,
-        file_extension: str = ""
+        file_extension: str = "",
     ) -> None:
         super().__init__()
         self.diff_line = diff_line
@@ -411,7 +473,9 @@ class DiffLineWidget(Static):
 
         if line.line_type == "range":
             # Range header like @@ -1,3 +1,4 @@
-            text.append("   ", style=Style(color="#5c6370", dim=True))  # Line number placeholder
+            text.append(
+                "   ", style=Style(color="#5c6370", dim=True)
+            )  # Line number placeholder
             text.append(line.content, style=Style(color="#61afef", bold=True))
             return text
 
@@ -419,7 +483,11 @@ class DiffLineWidget(Static):
         if self.show_line_numbers:
             if line.line_type == "removed":
                 # Show old line number, empty new line number
-                old_ln = str(line.old_line_number or line.line_number) if (line.old_line_number or line.line_number) else ""
+                old_ln = (
+                    str(line.old_line_number or line.line_number)
+                    if (line.old_line_number or line.line_number)
+                    else ""
+                )
                 text.append(f"{old_ln:>4}", style=Style(color="#e06c75", dim=True))
                 text.append(" │", style=Style(color="#3d3d3d"))
                 text.append("    ", style=Style(dim=True))  # Empty new line number
@@ -466,11 +534,7 @@ class DiffHeaderWidget(Static):
     """Header widget showing the action type, file path, and summary."""
 
     def __init__(
-        self,
-        action: str,
-        file_path: str,
-        summary: str,
-        success: bool = True
+        self, action: str, file_path: str, summary: str, success: bool = True
     ) -> None:
         super().__init__()
         self.action = action
@@ -541,7 +605,7 @@ class DiffViewWidget(Vertical):
         file_diff: FileDiff,
         action: str = "Edit",
         collapsed: bool = False,
-        max_lines: int = 50
+        max_lines: int = 50,
     ) -> None:
         super().__init__()
         self.file_diff = file_diff
@@ -556,7 +620,7 @@ class DiffViewWidget(Vertical):
             action=self.action,
             file_path=self.file_diff.file_path,
             summary=self.file_diff.summary,
-            success=True
+            success=True,
         )
 
         if not self.collapsed:
@@ -566,7 +630,7 @@ class DiffViewWidget(Vertical):
                 if total_lines >= self.max_lines:
                     yield Static(
                         f"... ({len(self.file_diff.hunks)} more hunks)",
-                        classes="diff-truncated"
+                        classes="diff-truncated",
                     )
                     break
 
@@ -575,10 +639,7 @@ class DiffViewWidget(Vertical):
 
 
 def create_diff_view_from_search_replace(
-    content: str,
-    file_path: str,
-    action: str = "Edit",
-    collapsed: bool = False
+    content: str, file_path: str, action: str = "Edit", collapsed: bool = False
 ) -> DiffViewWidget:
     """Create a diff view widget from SEARCH/REPLACE content."""
     file_diff = parse_search_replace_to_file_diff(content, file_path)
@@ -586,10 +647,7 @@ def create_diff_view_from_search_replace(
 
 
 def create_diff_view_from_unified(
-    diff_text: str,
-    file_path: str,
-    action: str = "Edit",
-    collapsed: bool = False
+    diff_text: str, file_path: str, action: str = "Edit", collapsed: bool = False
 ) -> DiffViewWidget:
     """Create a diff view widget from unified diff text."""
     file_diff = parse_unified_diff(diff_text, file_path)

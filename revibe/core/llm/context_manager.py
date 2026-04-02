@@ -202,7 +202,7 @@ def is_mimo_v2_omni_model(model_id: str) -> bool:
     return bool(re.search(r"mimo[-_]?v2[-_]?omni", model_id, flags=re.IGNORECASE))
 
 
-def resolve_global_token_limits(  # noqa: PLR0911, PLR0912
+def resolve_global_token_limits(
     model_id: str,
     context_length: int,
     *,

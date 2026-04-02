@@ -143,9 +143,7 @@ class VibeAcpAgent(AcpAgent):
             ),
             protocolVersion=PROTOCOL_VERSION,
             agentInfo=Implementation(
-                name="@OEvortex/revibe",
-                title="ReVibe",
-                version=__version__,
+                name="@OEvortex/revibe", title="ReVibe", version=__version__
             ),
             authMethods=auth_methods,
         )

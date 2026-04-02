@@ -10,7 +10,7 @@ from textual.message import Message
 from textual.widgets import Input, OptionList, Static
 from textual.widgets.option_list import Option
 
-from revibe.core.config import Backend, ModelConfig, ProviderConfigUnion
+from revibe.core.config import ModelConfig, ProviderConfig
 
 CONTEXT_MILLION = 1_000_000
 CONTEXT_THOUSAND = 1000
@@ -42,7 +42,7 @@ class ModelSelector(Container):
     can_focus_children = True
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("escape", "close", "Cancel", show=False),
+        Binding("escape", "close", "Cancel", show=False)
     ]
 
     class ModelSelected(Message):
@@ -184,7 +184,7 @@ class ModelSelector(Container):
         if option_list.highlighted is not None:
             model = self._option_to_model.get(option_list.highlighted)
             if model:
-                thinking = " • thinking" if model.supports_thinking else ""
+                thinking = ""
                 detail_widget.update(
                     f"{model.name}  •  {model.provider}{thinking}  •  max output: {model.max_output:,}"
                 )
@@ -196,11 +196,11 @@ class ModelSelector(Container):
     def on_option_highlighted(self, event: OptionList.OptionHighlighted) -> None:
         self._update_detail_panel()
 
-    def _build_provider_map(self) -> dict[str, ProviderConfigUnion]:
+    def _build_provider_map(self) -> dict[str, ProviderConfig]:
         """Build a merged provider map from defaults and user config."""
         from revibe.core.config import DEFAULT_PROVIDERS
 
-        providers_map: dict[str, ProviderConfigUnion] = {}
+        providers_map: dict[str, ProviderConfig] = {}
         for p in DEFAULT_PROVIDERS:
             providers_map[p.name] = p
         for p in self.config.providers:
@@ -208,32 +208,33 @@ class ModelSelector(Container):
         return providers_map
 
     def _get_providers_to_query(
-        self, providers_map: dict[str, ProviderConfigUnion]
-    ) -> list[ProviderConfigUnion]:
+        self, providers_map: dict[str, ProviderConfig]
+    ) -> list[ProviderConfig]:
         """Determine which providers to query for dynamic models."""
         import os
 
-        providers_to_query: list[ProviderConfigUnion] = []
+        from revibe.core.llm.backend.known_providers import should_fetch_models
+
+        providers_to_query: list[ProviderConfig] = []
 
         if self.provider_filter:
             provider = providers_map.get(self.provider_filter)
             if provider:
-                # Only fetch dynamic models for ollama and llamacpp
-                if provider.backend not in {Backend.OLLAMA, Backend.LLAMACPP}:
+                if not should_fetch_models(provider.name):
                     return []
 
-                # Check API key requirement
                 if provider.api_key_env_var and not os.getenv(provider.api_key_env_var):
-                    self._missing_api_key_message = f"Set {provider.api_key_env_var} to list models"
+                    self._missing_api_key_message = (
+                        f"Set {provider.api_key_env_var} to list models"
+                    )
                     self.models = [
                         m for m in self.models if m.provider != provider.name
                     ]
                     return []
                 providers_to_query.append(provider)
         else:
-            # Query only ollama and llamacpp providers for dynamic models
             for p in providers_map.values():
-                if p.backend not in {Backend.OLLAMA, Backend.LLAMACPP}:
+                if not should_fetch_models(p.name):
                     continue
                 if p.api_key_env_var and not os.getenv(p.api_key_env_var):
                     continue
@@ -242,15 +243,13 @@ class ModelSelector(Container):
         return providers_to_query
 
     async def _fetch_models_from_provider(
-        self, provider: ProviderConfigUnion, existing_names: set[tuple[str, str]]
+        self, provider: ProviderConfig, existing_names: set[tuple[str, str]]
     ) -> bool:
         """Fetch models from a single provider. Returns True if any models were added."""
-        from revibe.core.llm.backend.factory import BACKEND_FACTORY
+        from revibe.core.llm.backend.factory import get_backend_for_provider
 
         try:
-            backend_cls = BACKEND_FACTORY.get(provider.backend)
-            if not backend_cls:
-                return False
+            backend_cls = get_backend_for_provider(provider)
 
             model_names = await backend_cls(provider=provider).list_models()
             if not model_names:
@@ -261,11 +260,7 @@ class ModelSelector(Container):
                 key = (provider.name, name)
                 if key not in existing_names:
                     self.models.append(
-                        ModelConfig(
-                            name=name,
-                            provider=provider.name,
-                            alias=name,
-                        )
+                        ModelConfig(name=name, provider=provider.name, alias=name)
                     )
                     existing_names.add(key)
                     added_any = True
@@ -275,7 +270,7 @@ class ModelSelector(Container):
             return False
 
     async def _fetch_models_from_providers(
-        self, providers_to_query: list[ProviderConfigUnion]
+        self, providers_to_query: list[ProviderConfig]
     ) -> bool:
         """Fetch models from the specified providers."""
         existing_names = {(m.provider, m.name) for m in self.models}

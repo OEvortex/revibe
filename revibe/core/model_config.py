@@ -22,7 +22,6 @@ class ModelConfig(BaseModel):
             - "native": Uses API's native function/tool calling
             - "xml": Uses XML-based tool calling in prompts
             Models default to supporting both formats.
-        supports_thinking: Whether the model supports thinking/reasoning content.
     """
 
     name: str
@@ -34,7 +33,6 @@ class ModelConfig(BaseModel):
     context: int = 128000
     max_output: int = 32000
     supported_formats: list[str] = Field(default_factory=lambda: ["native", "xml"])
-    supports_thinking: bool = False
     auto_compact_threshold: int | None = Field(
         default=None,
         description=(

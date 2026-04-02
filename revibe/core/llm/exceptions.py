@@ -105,7 +105,9 @@ class BackendError(RuntimeError):
 
         # Add message roles
         if self.payload_summary.message_roles:
-            parts.append(f"  message_roles: {' → '.join(self.payload_summary.message_roles)}")
+            parts.append(
+                f"  message_roles: {' → '.join(self.payload_summary.message_roles)}"
+            )
 
         # Add message previews
         parts.append("")
@@ -113,9 +115,13 @@ class BackendError(RuntimeError):
         if self.payload_summary.system_prompt_preview:
             parts.append(f"  system: {self.payload_summary.system_prompt_preview}")
         if self.payload_summary.last_user_message_preview:
-            parts.append(f"  last_user: {self.payload_summary.last_user_message_preview}")
+            parts.append(
+                f"  last_user: {self.payload_summary.last_user_message_preview}"
+            )
         if self.payload_summary.last_assistant_message_preview:
-            parts.append(f"  last_assistant: {self.payload_summary.last_assistant_message_preview}")
+            parts.append(
+                f"  last_assistant: {self.payload_summary.last_assistant_message_preview}"
+            )
 
         return "\n".join(parts)
 

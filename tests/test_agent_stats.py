@@ -6,9 +6,8 @@ import pytest
 
 from revibe.core.agent import Agent
 from revibe.core.config import (
-    Backend,
-    MistralProviderConfig,
     ModelConfig,
+    ProviderConfig,
     SessionLoggingConfig,
     VibeConfig,
 )
@@ -65,17 +64,17 @@ def make_config(
         ),
     ]
     providers = [
-        MistralProviderConfig(
+        ProviderConfig(
             name="mistral",
             api_base="https://api.mistral.ai/v1",
             api_key_env_var="MISTRAL_API_KEY",
-            backend=Backend.MISTRAL,
+            sdk_mode="openai",
         ),
-        MistralProviderConfig(
+        ProviderConfig(
             name="lechat",
             api_base="https://api.mistral.ai/v1",
             api_key_env_var="LECHAT_API_KEY",
-            backend=Backend.MISTRAL,
+            sdk_mode="openai",
         ),
     ]
     return VibeConfig(

@@ -164,7 +164,7 @@ def main() -> None:
         rprint("[bold]Update Instructions:[/]")
         rprint(f"Command: {info['update_command']}")
 
-        if info['installation_type'] == 'editable':
+        if info["installation_type"] == "editable":
             rprint()
             rprint("[yellow]Note: You're using an editable installation.[/]")
             rprint("This means you're running directly from source code.")

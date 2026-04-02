@@ -12,7 +12,7 @@ from textual.timer import Timer
 from textual.validation import Length
 from textual.widgets import Button, Input, Link, Static
 
-from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfigUnion, VibeConfig
+from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfig, VibeConfig
 from revibe.core.model_config import ModelConfig
 from revibe.core.model_sources import get_available_models
 from revibe.core.paths.global_paths import GLOBAL_ENV_FILE
@@ -23,7 +23,7 @@ CONFIG_DOCS_URL = "https://github.com/OEvortex/revibe?tab=readme-ov-file#configu
 
 
 MODEL_CONFIG_ADAPTER = TypeAdapter(list[ModelConfig])
-PROVIDER_ADAPTER = TypeAdapter(list[ProviderConfigUnion])
+PROVIDER_ADAPTER = TypeAdapter(list[ProviderConfig])
 
 
 def _save_api_key_to_env_file(env_key: str, api_key: str) -> None:
@@ -53,7 +53,7 @@ def _apply_gradient(text: str, offset: int) -> str:
     return "".join(result)
 
 
-def _resolve_provider(config: VibeConfig) -> ProviderConfigUnion | None:
+def _resolve_provider(config: VibeConfig) -> ProviderConfig | None:
     active_provider = getattr(config, "active_provider", None)
     if active_provider:
         for provider in config.providers:
@@ -335,7 +335,9 @@ class ApiKeyScreen(OnboardingScreen):
                 pass
 
     def _exit_app(self, value: str) -> None:
-        exit_callable = self.app.exit
+        exit_callable = getattr(self.app, "exit", None)
+        if exit_callable is None:
+            return
         try:
             exit_callable(value)
         except TypeError:

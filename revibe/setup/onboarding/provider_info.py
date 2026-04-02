@@ -11,28 +11,17 @@ from revibe.core.llm.backend.known_providers import (
 from revibe.core.model_sources import get_available_models
 
 if TYPE_CHECKING:
-    from revibe.core.config import ProviderConfigUnion
+    from revibe.core.config import ProviderConfig
 
 
 # Help links for providers requiring API keys
 PROVIDER_HELP: dict[str, tuple[str, str]] = {
     "mistral": ("https://console.mistral.ai/api-keys", "Mistral AI Console"),
     "openai": ("https://platform.openai.com/api-keys", "OpenAI Platform"),
-    "groq": ("https://console.groq.com/keys", "Groq Console"),
-    "huggingface": ("https://huggingface.co/settings/tokens", "Hugging Face Settings"),
-    "cerebras": (
-        "https://cloud.cerebras.ai/platform/api-keys",
-        "Cerebras Cloud Platform",
-    ),
-    "openrouter": ("https://openrouter.ai/keys", "OpenRouter Dashboard"),
-    "opencode": ("https://opencode.ai", "OpenCode Platform"),
-    "kilocode": ("https://app.kilo.ai/profile", "Kilo Code Profile"),
-    "chutes": ("https://chutes.ai/app/api", "Chutes AI Platform"),
 }
 
 PROVIDER_DESCRIPTIONS: dict[str, str] = {
-    name: get_provider_description(name) or ""
-    for name in KNOWN_PROVIDERS
+    name: get_provider_description(name) or "" for name in KNOWN_PROVIDERS
 }
 
 
@@ -43,7 +32,7 @@ def mask_key(key: str) -> str:
     return f"{key[:4]}...{key[-4:]}"
 
 
-def check_key_status(provider: ProviderConfigUnion) -> str:
+def check_key_status(provider: ProviderConfig) -> str:
     """Check if the provider's API key is configured."""
     env_var = getattr(provider, "api_key_env_var", "")
     if not env_var:
@@ -65,7 +54,7 @@ def get_example_model(provider_name: str) -> str | None:
 
 
 def build_provider_description(
-    provider: ProviderConfigUnion, show_details: bool = False
+    provider: ProviderConfig, show_details: bool = False
 ) -> str:
     """Build a multi-line description for the provider."""
     lines = []
@@ -99,16 +88,5 @@ def build_provider_description(
             lines.append("Docs: Use /auth in `qwen` CLI for OAuth setup")
         elif provider.name == "geminicli":
             lines.append("Docs: Use /auth in `gemini` CLI for OAuth setup")
-        elif provider.name == "antigravity":
-            lines.append("Auth: Google OAuth (browser-based login)")
-        elif provider.name == "chutes":
-            lines.append("Features: TEE security, reasoning models, JSON mode")
-
-        # Data retention warning for KiloCode
-        if provider.name == "kilocode":
-            lines.append("")
-            lines.append("[yellow]⚠ Data Retention Notice:[/]")
-            lines.append("Kilo Code may retain and analyze prompts/completions")
-            lines.append("from free models to improve their services.")
 
     return "\n".join(lines)

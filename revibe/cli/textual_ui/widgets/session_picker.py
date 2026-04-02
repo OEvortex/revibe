@@ -24,8 +24,6 @@ class SessionPicker:
             List of session dicts with keys: session_id, start_time,
             message_count, filepath, stats_summary
         """
-        from revibe.core.config import SessionLoggingConfig
-
         save_dir = Path(self.config.session_logging.save_dir)
         if not save_dir.exists():
             return []

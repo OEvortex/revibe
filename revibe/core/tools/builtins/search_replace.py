@@ -135,9 +135,7 @@ class SearchReplace(
                 msg += f" ({'+' if lines > 0 else ''}{lines} lines)"
 
             return ToolResultDisplay(
-                success=True,
-                message=msg,
-                warnings=event.result.warnings,
+                success=True, message=msg, warnings=event.result.warnings
             )
 
         return ToolResultDisplay(success=True, message="✓ File edited")
@@ -308,7 +306,7 @@ class SearchReplace(
                     if len(search) > SEARCH_PREVIEW_LEN
                     else search
                 )
-                search_lines = search.count('\n') + 1
+                search_lines = search.count("\n") + 1
 
                 error_msg = (
                     f"\n╭─ Block {i} Failed ─────────────────────────────────\n"
@@ -321,9 +319,9 @@ class SearchReplace(
                     f"🔍 Looking for ({search_lines} lines):\n"
                     f"┌──────────────────────────────────────\n"
                 )
-                for line in search_preview.split('\n'):
+                for line in search_preview.split("\n"):
                     # Show whitespace visually
-                    visible_line = line.replace(' ', '·').replace('\t', '→   ')
+                    visible_line = line.replace(" ", "·").replace("\t", "→   ")
                     error_msg += f"│ {visible_line}\n"
                 error_msg += "└──────────────────────────────────────\n\n"
 
@@ -533,7 +531,7 @@ class SearchReplace(
                     result = "❌ Exact first line not found.\n\n"
                     result += (
                         f'Looking for: "{first_search_line[:FIRST_LINE_PREVIEW_LEN]}'
-                        f"{'...' if len(first_search_line) > FIRST_LINE_PREVIEW_LEN else ''}\"\n\n"
+                        f'{"..." if len(first_search_line) > FIRST_LINE_PREVIEW_LEN else ""}"\n\n'
                     )
                     result += "Similar lines found at:\n"
                     for idx in partial_matches[:3]:
@@ -546,7 +544,7 @@ class SearchReplace(
             return (
                 "❌ First line of search not found anywhere in file:\n   "
                 f'"{first_search_line[:LINE_PREVIEW_LEN]}'
-                f"{'...' if len(first_search_line) > LINE_PREVIEW_LEN else ''}\""
+                f'{"..." if len(first_search_line) > LINE_PREVIEW_LEN else ""}"'
             )
 
         # Show where the first line WAS found
@@ -554,7 +552,9 @@ class SearchReplace(
         found_count = len(matches)
 
         if found_count == 1:
-            context_lines.append(f"✓ First line found at line {matches[0] + 1}, but full block doesn't match.")
+            context_lines.append(
+                f"✓ First line found at line {matches[0] + 1}, but full block doesn't match."
+            )
         else:
             context_lines.append(
                 "✓ First line found "
@@ -568,7 +568,9 @@ class SearchReplace(
             start = max(0, match_idx - max_context)
             end = min(len(lines), match_idx + max_context + 1)
 
-            context_lines.append(f"┌─ Around line {match_idx + 1} ─────────────────────────")
+            context_lines.append(
+                f"┌─ Around line {match_idx + 1} ─────────────────────────"
+            )
             for i in range(start, end):
                 marker = "▶" if i == match_idx else "│"
                 line_content = lines[i][:LINE_PREVIEW_LEN] + (

@@ -18,12 +18,8 @@ import httpx
 import pytest
 import respx
 
-from revibe.core.config import (
-    Backend,
-    GenericProviderConfig,
-    ModelConfig,
-)
-from revibe.core.llm.backend.factory import BACKEND_FACTORY
+from revibe.core.config import ModelConfig, ProviderConfig
+from revibe.core.llm.backend.factory import get_backend_for_provider
 from revibe.core.llm.backend.openai import OpenAIBackend as GenericBackend
 from revibe.core.llm.exceptions import BackendError
 from revibe.core.llm.types import BackendLike
@@ -62,10 +58,11 @@ class TestBackend:
             mock_api.post("/v1/chat/completions").mock(
                 return_value=httpx.Response(status_code=200, json=json_response)
             )
-            provider = GenericProviderConfig(
+            provider = ProviderConfig(
                 name="provider_name",
                 api_base=f"{base_url}/v1",
                 api_key_env_var="API_KEY",
+                sdk_mode="openai",
             )
 
             backend: BackendLike = GenericBackend(provider=provider)
@@ -125,7 +122,7 @@ class TestBackend:
                     headers={"Content-Type": "text/event-stream"},
                 )
             )
-            provider = GenericProviderConfig(
+            provider = ProviderConfig(
                 name="provider_name",
                 api_base=f"{base_url}/v1",
                 api_key_env_var="API_KEY",
@@ -153,7 +150,8 @@ class TestBackend:
                 assert result.message.content == expected_result["message"]
                 assert result.usage is not None
                 assert (
-                    result.usage.prompt_tokens == expected_result["usage"]["prompt_tokens"]
+                    result.usage.prompt_tokens
+                    == expected_result["usage"]["prompt_tokens"]
                 )
                 assert (
                     result.usage.completion_tokens
@@ -165,7 +163,8 @@ class TestBackend:
 
                 for i, tool_call in enumerate(result.message.tool_calls):
                     assert (
-                        tool_call.function.name == expected_result["tool_calls"][i]["name"]
+                        tool_call.function.name
+                        == expected_result["tool_calls"][i]["name"]
                     )
                     assert (
                         tool_call.function.arguments
@@ -207,7 +206,7 @@ class TestBackend:
     ):
         with respx.mock(base_url=base_url) as mock_api:
             mock_api.post("/v1/chat/completions").mock(return_value=response)
-            provider = GenericProviderConfig(
+            provider = ProviderConfig(
                 name="provider_name",
                 api_base=f"{base_url}/v1",
                 api_key_env_var="API_KEY",
@@ -257,7 +256,7 @@ class TestBackend:
                     headers={"Content-Type": "text/event-stream"},
                 )
             )
-            provider = GenericProviderConfig(
+            provider = ProviderConfig(
                 name=provider_name,
                 api_base=f"{base_url}/v1",
                 api_key_env_var="API_KEY",
@@ -292,9 +291,8 @@ class TestBackend:
             assert payload["stream_options"] == expected_stream_options
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("backend_type", [Backend.MISTRAL, Backend.GENERIC])
-    async def test_backend_user_agent(self, backend_type: Backend):
-        user_agent = get_user_agent(backend_type)
+    async def test_backend_user_agent(self) -> None:
+        user_agent = get_user_agent()
         base_url = "https://api.example.com"
         json_response = {
             "id": "fake_id_1234",
@@ -323,12 +321,14 @@ class TestBackend:
                 return_value=httpx.Response(status_code=200, json=json_response)
             )
 
-            provider = GenericProviderConfig(
+            provider = ProviderConfig(
                 name="provider_name",
                 api_base=f"{base_url}/v1",
                 api_key_env_var="API_KEY",
+                sdk_mode="openai",
             )
-            backend = BACKEND_FACTORY[backend_type](provider=provider)
+            backend_cls = get_backend_for_provider(provider)
+            backend = backend_cls(provider=provider)
             model = ModelConfig(
                 name="model_name", provider="provider_name", alias="model_alias"
             )
@@ -347,9 +347,8 @@ class TestBackend:
             assert mock_api.calls.last.request.headers["user-agent"] == user_agent
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("backend_type", [Backend.MISTRAL, Backend.GENERIC])
-    async def test_backend_user_agent_when_streaming(self, backend_type: Backend):
-        user_agent = get_user_agent(backend_type)
+    async def test_backend_user_agent_when_streaming(self) -> None:
+        user_agent = get_user_agent()
 
         base_url = "https://api.example.com"
         with respx.mock(base_url=base_url) as mock_api:
@@ -363,12 +362,14 @@ class TestBackend:
             )
             mock_api.post("/v1/chat/completions").mock(return_value=mock_response)
 
-            provider = GenericProviderConfig(
+            provider = ProviderConfig(
                 name="provider_name",
                 api_base=f"{base_url}/v1",
                 api_key_env_var="API_KEY",
+                sdk_mode="openai",
             )
-            backend = BACKEND_FACTORY[backend_type](provider=provider)
+            backend_cls = get_backend_for_provider(provider)
+            backend = backend_cls(provider=provider)
             model = ModelConfig(
                 name="model_name", provider="provider_name", alias="model_alias"
             )

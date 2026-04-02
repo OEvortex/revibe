@@ -155,7 +155,6 @@ def _parse_model_entry(
         "context": limits.total_context_tokens,
         "max_output": limits.max_output_tokens,
         "supported_formats": ["native", "xml"],
-        "supports_thinking": False,
         "capabilities": capabilities,
     }
 
@@ -274,7 +273,7 @@ def _load_models_from_json(provider_name: str) -> list[ModelConfig]:
     return models
 
 
-async def fetch_models_from_provider(  # noqa: PLR0911
+async def fetch_models_from_provider(
     provider_name: str,
     api_key: str | None = None,
     *,

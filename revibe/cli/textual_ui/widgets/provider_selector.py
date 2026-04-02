@@ -14,7 +14,7 @@ from textual.widgets.option_list import Option
 from revibe.setup.onboarding.provider_info import PROVIDER_DESCRIPTIONS
 
 if TYPE_CHECKING:
-    from revibe.core.config import ProviderConfigUnion, VibeConfig
+    from revibe.core.config import ProviderConfig, VibeConfig
 
 
 class ProviderSelector(Container):
@@ -24,7 +24,7 @@ class ProviderSelector(Container):
     can_focus_children = True
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("escape", "close", "Cancel", show=False),
+        Binding("escape", "close", "Cancel", show=False)
     ]
 
     class ProviderSelected(Message):
@@ -41,19 +41,21 @@ class ProviderSelector(Container):
         # Merge DEFAULT_PROVIDERS with the loaded configuration
         from revibe.core.config import DEFAULT_PROVIDERS
 
-        providers_map: dict[str, ProviderConfigUnion] = {}
+        providers_map: dict[str, ProviderConfig] = {}
         for p in DEFAULT_PROVIDERS:
             providers_map[p.name] = p
         for p in config.providers:
             providers_map[p.name] = p
 
         self.providers = list(providers_map.values())
-        self._filtered_providers: list[ProviderConfigUnion] = list(self.providers)
+        self._filtered_providers: list[ProviderConfig] = list(self.providers)
 
     def compose(self) -> ComposeResult:
         with Vertical(id="provider-content"):
             yield Static("⚡ Select Provider", classes="settings-title")
-            yield Input(placeholder="Search providers...", id="provider-selector-filter")
+            yield Input(
+                placeholder="Search providers...", id="provider-selector-filter"
+            )
             yield OptionList(id="provider-selector-list")
             with Horizontal(classes="provider-detail-row"):
                 yield Static("", id="provider-detail", classes="provider-detail")
@@ -70,7 +72,7 @@ class ProviderSelector(Container):
     def on_filter_changed(self, event: Input.Changed) -> None:
         self._update_list(event.value)
 
-    def _get_auth_status(self, provider: ProviderConfigUnion) -> tuple[str, str]:
+    def _get_auth_status(self, provider: ProviderConfig) -> tuple[str, str]:
         """Return (status_emoji, status_text) for provider auth."""
         env_var = getattr(provider, "api_key_env_var", "")
         if not env_var:
@@ -79,7 +81,7 @@ class ProviderSelector(Container):
             return ("✓", "ready")
         return ("○", "needs key")
 
-    def _format_provider_option(self, provider: ProviderConfigUnion, is_active: bool) -> str:
+    def _format_provider_option(self, provider: ProviderConfig, is_active: bool) -> str:
         """Format a provider option with status badge."""
         emoji, status = self._get_auth_status(provider)
         active_marker = "▸ " if is_active else "  "
@@ -132,9 +134,8 @@ class ProviderSelector(Container):
         option_list = self.query_one("#provider-selector-list", OptionList)
         detail_widget = self.query_one("#provider-detail", Static)
 
-        if (
-            option_list.highlighted is not None
-            and 0 <= option_list.highlighted < len(self._filtered_providers)
+        if option_list.highlighted is not None and 0 <= option_list.highlighted < len(
+            self._filtered_providers
         ):
             provider = self._filtered_providers[option_list.highlighted]
             desc = PROVIDER_DESCRIPTIONS.get(provider.name, provider.api_base)
@@ -201,9 +202,8 @@ class ProviderSelector(Container):
     def _select_highlighted(self) -> None:
         """Select the currently highlighted provider."""
         option_list = self.query_one("#provider-selector-list", OptionList)
-        if (
-            option_list.highlighted is not None
-            and 0 <= option_list.highlighted < len(self._filtered_providers)
+        if option_list.highlighted is not None and 0 <= option_list.highlighted < len(
+            self._filtered_providers
         ):
             provider = self._filtered_providers[option_list.highlighted]
             self.post_message(self.ProviderSelected(provider_name=provider.name))

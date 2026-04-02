@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from revibe.core.llm.backend.anthropic.backend import AnthropicBackend
-from revibe.core.llm.backend.openai import OpenAIBackend
+from revibe.core.llm.backend.anthropic import AnthropicBackend
 from revibe.core.llm.backend.oai import OAIBackend
+from revibe.core.llm.backend.openai import OpenAIBackend
 
 SDK_MODE_BACKEND: dict[str, type] = {
     "openai": OpenAIBackend,

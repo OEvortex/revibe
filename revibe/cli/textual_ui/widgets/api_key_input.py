@@ -10,7 +10,7 @@ from textual.message import Message
 from textual.widgets import Input, Static
 
 if TYPE_CHECKING:
-    from revibe.core.config import ProviderConfigUnion
+    from revibe.core.config import ProviderConfig
 
 
 class ApiKeyInput(Container):
@@ -33,7 +33,7 @@ class ApiKeyInput(Container):
     class ApiKeyCancelled(Message):
         pass
 
-    def __init__(self, provider: ProviderConfigUnion) -> None:
+    def __init__(self, provider: ProviderConfig) -> None:
         super().__init__(id="api-key-input")
         self.provider = provider
         self.title_widget: Static | None = None

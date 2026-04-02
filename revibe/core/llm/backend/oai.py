@@ -22,7 +22,7 @@ from revibe.core.types import (
 from revibe.core.utils import async_generator_retry, async_retry
 
 if TYPE_CHECKING:
-    from revibe.core.config import ModelConfig, ProviderConfigUnion
+    from revibe.core.config import ModelConfig, ProviderConfig
 
 
 class OAIBackend:
@@ -32,7 +32,7 @@ class OAIBackend:
 
     def __init__(
         self,
-        provider: ProviderConfigUnion,
+        provider: ProviderConfig,
         *,
         client: httpx.AsyncClient | None = None,
         timeout: float = 720.0,
@@ -317,7 +317,9 @@ class OAIBackend:
 
         try:
             client = self._get_client()
-            async with client.stream("POST", url, json=payload, headers=headers) as response:
+            async with client.stream(
+                "POST", url, json=payload, headers=headers
+            ) as response:
                 response.raise_for_status()
                 async for line in response.aiter_lines():
                     if not line.strip() or not line.startswith("data:"):
@@ -420,9 +422,7 @@ class OAIBackend:
                 return [m["id"] for m in data if isinstance(m, dict) and "id" in m]
             if isinstance(data, dict) and "data" in data:
                 return [
-                    m["id"]
-                    for m in data["data"]
-                    if isinstance(m, dict) and "id" in m
+                    m["id"] for m in data["data"] if isinstance(m, dict) and "id" in m
                 ]
             return []
         except Exception:

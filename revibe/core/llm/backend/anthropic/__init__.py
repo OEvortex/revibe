@@ -1,10 +1,20 @@
+"""Anthropic backend using the official anthropic SDK.
+
+Handles streaming chat completion with tool calling and thinking content.
+"""
+
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import AsyncGenerator
 import json
 import os
-from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, Protocol, TypeVar
+import types
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
+import anthropic
+import httpx
+
+from revibe.core.llm.exceptions import BackendErrorBuilder
 from revibe.core.types import (
     AvailableTool,
     FunctionCall,
@@ -17,420 +27,411 @@ from revibe.core.types import (
 )
 
 if TYPE_CHECKING:
-    from revibe.core.config import ProviderConfigUnion
+    from revibe.core.config import ModelConfig, ProviderConfig
 
 
-class PreparedRequest(NamedTuple):
-    endpoint: str
-    headers: dict[str, str]
-    body: bytes
+class AnthropicBackend:
+    """Backend using the official Anthropic Python SDK.
 
+    Supports:
+    - Streaming and non-streaming completions
+    - Tool/function calling
+    - Thinking/reasoning content
+    - Multi-turn conversations
+    """
 
-class AnthropicAdapterProtocol(Protocol):
-    """Protocol for Anthropic API adapters."""
+    supported_formats: ClassVar[list[str]] = ["native", "xml"]
 
-    endpoint: ClassVar[str]
+    def __init__(self, provider: ProviderConfig, *, timeout: float = 720.0) -> None:
+        self._provider = provider
+        self._timeout = timeout
+        self._client: anthropic.AsyncAnthropic | None = None
 
-    def prepare_request(
-        self,
-        *,
-        model_name: str,
-        messages: list[LLMMessage],
-        temperature: float,
-        tools: list[AvailableTool] | None,
-        max_tokens: int | None,
-        tool_choice: StrToolChoice | AvailableTool | None,
-        enable_streaming: bool,
-        provider: ProviderConfigUnion,
-        api_key: str | None = None,
-    ) -> PreparedRequest: ...
+    def _get_api_key(self) -> str | None:
+        if self._provider.api_key_env_var:
+            return os.getenv(self._provider.api_key_env_var)
+        return None
 
-    def parse_response(self, data: dict[str, Any]) -> LLMChunk: ...
+    def _get_base_url(self) -> str | None:
+        return self._provider.api_base if self._provider.api_base else None
 
-    def parse_stream_chunk(self, data: dict[str, Any]) -> LLMChunk | None: ...
+    def _get_client(self) -> anthropic.AsyncAnthropic:
+        if self._client is None:
+            api_key = self._get_api_key()
+            base_url = self._get_base_url()
+            custom_headers = getattr(self._provider, "custom_header", {}) or {}
 
-    def build_headers(self, api_key: str | None = None) -> dict[str, str]: ...
-
-
-T = TypeVar("T", bound="AnthropicAdapterProtocol")
-
-
-def register_anthropic_adapter(
-    adapters: dict[str, AnthropicAdapterProtocol], name: str
-) -> Callable[[type[T]], type[T]]:
-    """Decorator to register an Anthropic API adapter."""
-
-    def decorator(cls: type[T]) -> type[T]:
-        adapters[name] = cls()
-        return cls
-
-    return decorator
-
-
-def _sanitize_tool_call_id(tool_id: str) -> str:
-    """Sanitize tool call ID to match Anthropic's required pattern: ^[a-zA-Z0-9_-]+$"""
-    sanitized = tool_id.replace(r"[^a-zA-Z0-9_-]", "_")
-    return sanitized or f"tool_{os.urandom(4).hex()}"
-
-
-# Types that don't support cache control
-_UNSUPPORTED_CACHE_CONTROL_TYPES = frozenset({"thinking", "redacted_thinking"})
-
-# Roles that map to "user" in Anthropic format
-_TOOL_ROLES = frozenset({Role.user, Role.tool})
-
-
-def _extract_text_from_part(part: Any) -> str | None:
-    """Extract text from a content part."""
-    if isinstance(part, dict):
-        return part.get("text")
-    if isinstance(part, str):
-        return part
-    return None
-
-
-def _convert_message_to_anthropic_content(message: LLMMessage) -> list[dict[str, Any]]:
-    """Convert a single LLMMessage to Anthropic content blocks."""
-    if isinstance(message.content, str):
-        return [{"type": "text", "text": message.content}] if message.content else []
-
-    if not isinstance(message.content, list):
-        return []
-
-    return [block for part in message.content if (block := _part_to_content_block(part)) is not None]
-
-
-def _part_to_content_block(part: Any) -> dict[str, Any] | None:
-    """Convert a single content part to an Anthropic content block."""
-    if not isinstance(part, dict):
-        return {"type": "text", "text": part} if isinstance(part, str) and part else None
-
-    part_type = part.get("type")
-
-    match part_type:
-        case "text" if part.get("text"):
-            return {"type": "text", "text": part["text"]}
-        case "tool_use":
-            return {
-                "type": "tool_use",
-                "id": _sanitize_tool_call_id(part.get("id", "")),
-                "input": part.get("input", {}),
-                "name": part.get("name", ""),
+            kwargs: dict[str, Any] = {
+                "api_key": api_key or "",
+                "default_headers": custom_headers,
+                "timeout": self._timeout,
             }
-        case "tool_result":
-            tool_content = [
-                {"type": "text", "text": _extract_text_from_part(rp) or ""}
-                for rp in part.get("content", [])
-            ]
-            return {
-                "type": "tool_result",
-                "tool_use_id": _sanitize_tool_call_id(part.get("tool_use_id", "")),
-                "content": tool_content,
-            }
-        case "image":
-            source = part.get("source", {})
-            return {
-                "type": "image",
-                "source": {
-                    "type": source.get("type", "base64"),
-                    "data": source.get("data", ""),
-                    "media_type": source.get("media_type", "image/jpeg"),
-                },
-            }
-        case "thinking":
-            return {"type": "thinking", "thinking": part.get("thinking", "")}
-        case "redacted_thinking":
-            return {"type": "redacted_thinking", "data": part.get("data", "")}
+            if base_url:
+                kwargs["base_url"] = base_url
 
-    return None
-
-
-def _convert_tools_to_anthropic(tools: list[AvailableTool]) -> list[dict[str, Any]]:
-    """Convert available tools to Anthropic format."""
-    return [
-        {
-            "name": tool.function.name,
-            "description": tool.function.description or "",
-            "input_schema": {
-                "type": "object",
-                "properties": tool.function.parameters.get("properties", {}),
-                "required": tool.function.parameters.get("required", []),
-            },
-        }
-        for tool in tools
-    ]
-
-
-def _get_text_content(msg: LLMMessage) -> str | None:
-    """Extract text content from a system message."""
-    content = msg.content
-    if isinstance(content, str):
-        return content
-    if isinstance(content, list):
-        for part in content:
-            if isinstance(part, dict) and part.get("type") == "text":
-                return part.get("text", "")
-    return None
-
-
-def _create_tool_call(tool_id: str, name: str, arguments: str) -> ToolCall:
-    """Create a ToolCall instance."""
-    return ToolCall(
-        id=tool_id,
-        type="function",
-        function=FunctionCall(name=name, arguments=arguments),
-    )
-
-
-@register_anthropic_adapter(ANTHROPIC_ADAPTERS := {}, "anthropic")
-class AnthropicMessagesAdapter:
-    """Adapter for Anthropic's messages API."""
-
-    endpoint: ClassVar[str] = "/messages"
-
-    def build_payload(
-        self,
-        model_name: str,
-        anthropic_messages: list[dict[str, Any]],
-        temperature: float,
-        tools: list[AvailableTool] | None,
-        max_tokens: int | None,
-        system: str | None = None,
-    ) -> dict[str, Any]:
-        """Build Anthropic API payload."""
-        payload: dict[str, Any] = {
-            "model": model_name,
-            "messages": anthropic_messages,
-            "temperature": temperature,
-        }
-
-        if system:
-            payload["system"] = [{"type": "text", "text": system}]
-
-        if max_tokens is not None:
-            payload["max_tokens"] = max_tokens
-
-        if tools:
-            payload["tools"] = _convert_tools_to_anthropic(tools)
-
-        return payload
-
-    def build_headers(self, api_key: str | None = None) -> dict[str, str]:
-        """Build Anthropic API headers."""
-        headers: dict[str, str] = {
-            "Content-Type": "application/json",
-            "anthropic-version": "2023-06-01",
-        }
-        if api_key:
-            headers["x-api-key"] = api_key
-            headers["Authorization"] = f"Bearer {api_key}"
-        return headers
+            self._client = anthropic.AsyncAnthropic(**kwargs)
+        return self._client
 
     def _convert_messages(
         self, messages: list[LLMMessage]
-    ) -> tuple[list[dict[str, Any]], str | None]:
-        """Convert messages to Anthropic format, separating system prompt."""
+    ) -> tuple[list[dict[str, Any]], str]:
+        """Convert LLMMessages to Anthropic format, extracting system prompt."""
         anthropic_messages: list[dict[str, Any]] = []
         system_parts: list[str] = []
 
         for msg in messages:
             if msg.role == Role.system:
-                if text := _get_text_content(msg):
+                if text := self._extract_text(msg):
                     system_parts.append(text)
+                continue
+
+            role = "user" if msg.role in {Role.user, Role.tool} else "assistant"
+            content = self._convert_content(msg)
+
+            if msg.tool_calls and msg.role == Role.assistant:
+                blocks: list[dict[str, Any]] = []
+                if content:
+                    blocks.append({"type": "text", "text": content})
+                for tc in msg.tool_calls:
+                    blocks.append({
+                        "type": "tool_use",
+                        "id": tc.id,
+                        "name": tc.function.name,
+                        "input": json.loads(tc.function.arguments)
+                        if tc.function.arguments
+                        else {},
+                    })
+                anthropic_messages.append({"role": role, "content": blocks})
+            elif msg.role == Role.tool and msg.tool_call_id:
+                tool_content = content or ""
+                anthropic_messages.append({
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": msg.tool_call_id,
+                            "content": tool_content,
+                        }
+                    ],
+                })
             else:
-                anthropic_messages.append(self._convert_single_message(msg))
+                anthropic_messages.append({"role": role, "content": content or ""})
 
-        system_prompt = "".join(system_parts) if system_parts else None
-        return self._merge_consecutive_messages(anthropic_messages), system_prompt
+        return anthropic_messages, "".join(system_parts)
 
-    def _convert_single_message(self, msg: LLMMessage) -> dict[str, Any]:
-        """Convert a single LLMMessage to Anthropic format."""
-        is_tool_role = msg.role in _TOOL_ROLES
-        role = "user" if is_tool_role else "assistant"
-        content_blocks = _convert_message_to_anthropic_content(msg)
+    @staticmethod
+    def _extract_text(msg: LLMMessage) -> str | None:
+        if isinstance(msg.content, str):
+            return msg.content or None
+        if isinstance(msg.content, list):
+            parts = [
+                p.get("text", "")
+                for p in msg.content
+                if isinstance(p, dict) and p.get("type") == "text"
+            ]
+            return "".join(parts) or None
+        return None
 
-        if is_tool_role and msg.tool_call_id:
-            return {"role": "user", "content": content_blocks}
-        return {"role": role, "content": content_blocks}
+    @staticmethod
+    def _convert_content(msg: LLMMessage) -> str | None:
+        if isinstance(msg.content, str):
+            return msg.content or None
+        if isinstance(msg.content, list):
+            texts = [
+                p.get("text", "")
+                for p in msg.content
+                if isinstance(p, dict) and p.get("type") == "text"
+            ]
+            return "".join(texts) or None
+        return None
 
-    def _merge_consecutive_messages(
-        self, messages: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
-        """Merge consecutive messages with the same role."""
-        if not messages:
-            return []
+    @staticmethod
+    def _convert_tools(tools: list[AvailableTool]) -> list[dict[str, Any]]:
+        return [
+            {
+                "name": t.function.name,
+                "description": t.function.description or "",
+                "input_schema": {
+                    "type": "object",
+                    "properties": t.function.parameters.get("properties", {}),
+                    "required": t.function.parameters.get("required", []),
+                },
+            }
+            for t in tools
+        ]
 
-        merged: list[dict[str, Any]] = [messages[0]]
-
-        for msg in messages[1:]:
-            if merged[-1]["role"] == msg["role"]:
-                prev_content = merged[-1]["content"]
-                curr_content = msg["content"]
-                if isinstance(prev_content, list) and isinstance(curr_content, list):
-                    merged[-1]["content"] = prev_content + curr_content
-            else:
-                merged.append(msg)
-
-        return merged
-
-    def prepare_request(
+    async def complete(
         self,
         *,
-        model_name: str,
+        model: ModelConfig,
         messages: list[LLMMessage],
-        temperature: float,
-        tools: list[AvailableTool] | None,
-        max_tokens: int | None,
-        tool_choice: StrToolChoice | AvailableTool | None,
-        enable_streaming: bool,
-        provider: ProviderConfigUnion,
-        api_key: str | None = None,
-    ) -> PreparedRequest:
-        """Prepare Anthropic API request."""
+        temperature: float = 0.2,
+        tools: list[AvailableTool] | None = None,
+        max_tokens: int | None = None,
+        tool_choice: StrToolChoice | AvailableTool | None = None,
+        extra_headers: dict[str, str] | None = None,
+    ) -> LLMChunk:
+        client = self._get_client()
         anthropic_messages, system_prompt = self._convert_messages(messages)
 
-        # If no max_tokens specified, use a reasonable default for streaming
-        effective_max_tokens = max_tokens if max_tokens is not None else 4096
+        effective_max = max_tokens or 4096
+        model_id = model.name
 
-        payload = self.build_payload(
-            model_name=model_name,
-            anthropic_messages=anthropic_messages,
-            temperature=temperature,
-            tools=tools,
-            max_tokens=effective_max_tokens,
-            system=system_prompt,
-        )
+        kwargs: dict[str, Any] = {
+            "model": model_id,
+            "max_tokens": effective_max,
+            "messages": anthropic_messages,
+            "temperature": temperature,
+        }
+        if system_prompt:
+            kwargs["system"] = system_prompt
+        if tools:
+            kwargs["tools"] = self._convert_tools(tools)
+        if tool_choice and isinstance(tool_choice, str):
+            kwargs["tool_choice"] = {"type": tool_choice}
+        if extra_headers:
+            kwargs["extra_headers"] = extra_headers
 
-        if enable_streaming:
-            payload["stream"] = True
+        try:
+            response = await client.messages.create(**kwargs)
+        except anthropic.APIStatusError as e:
+            raise BackendErrorBuilder.build_http_error(
+                provider=self._provider.name,
+                endpoint=f"{self._provider.api_base}/messages",
+                response=e.response,
+                headers=e.response.headers,
+                model=model_id,
+                messages=messages,
+                temperature=temperature,
+                tool_choice=tool_choice,
+            ) from e
+        except Exception as e:
+            request_error = (
+                e if isinstance(e, httpx.RequestError) else httpx.RequestError(str(e))
+            )
+            raise BackendErrorBuilder.build_request_error(
+                provider=self._provider.name,
+                endpoint=f"{self._provider.api_base}/messages",
+                error=request_error,
+                model=model_id,
+                messages=messages,
+                temperature=temperature,
+                tool_choice=tool_choice,
+            ) from e
 
-        headers = self.build_headers(api_key)
-        body = json.dumps(payload).encode("utf-8")
-
-        return PreparedRequest(self.endpoint, headers, body)
-
-    def _extract_usage(self, data: dict[str, Any]) -> LLMUsage:
-        """Extract usage information from response."""
-        usage_data = data.get("usage", {})
-        return LLMUsage(
-            prompt_tokens=usage_data.get("input_tokens", 0),
-            completion_tokens=usage_data.get("output_tokens", 0),
-        )
-
-    def parse_response(self, data: dict[str, Any]) -> LLMChunk:
-        """Parse non-streaming Anthropic API response."""
-        message_data = data.get("content", [])
-
-        # Build message from content blocks
+        # Parse response
         text_parts: list[str] = []
         tool_calls_list: list[ToolCall] = []
+        reasoning_parts: list[str] = []
 
-        for block in message_data:
-            block_type = block.get("type")
+        for block in response.content:
+            match block.type:
+                case "text":
+                    text_parts.append(block.text)
+                case "tool_use":
+                    tool_calls_list.append(
+                        ToolCall(
+                            id=block.id,
+                            type="function",
+                            function=FunctionCall(
+                                name=block.name, arguments=json.dumps(block.input)
+                            ),
+                        )
+                    )
+                case "thinking":
+                    reasoning_parts.append(block.thinking)
 
-            if block_type == "text":
-                text_parts.append(block.get("text", ""))
-            elif block_type == "tool_use":
-                tool_calls_list.append(_create_tool_call(
-                    tool_id=block.get("id", ""),
-                    name=block.get("name", ""),
-                    arguments=json.dumps(block.get("input", {})),
-                ))
-
-        # Create LLMMessage
         message = LLMMessage(
             role=Role.assistant,
-            content="".join(text_parts),
-            tool_calls=tool_calls_list if tool_calls_list else None,
+            content="".join(text_parts) if text_parts else None,
+            reasoning_content="".join(reasoning_parts) if reasoning_parts else None,
+            tool_calls=tool_calls_list or None,
         )
 
-        return LLMChunk(message=message, usage=self._extract_usage(data))
+        usage = LLMUsage(
+            prompt_tokens=response.usage.input_tokens,
+            completion_tokens=response.usage.output_tokens,
+        )
 
-    def parse_stream_chunk(self, data: dict[str, Any]) -> LLMChunk | None:
-        """Parse streaming Anthropic API response chunk."""
-        event_type = data.get("type")
+        return LLMChunk(message=message, usage=usage)
 
-        match event_type:
-            case "content_block_start":
-                return self._handle_content_block_start(data)
-            case "content_block_delta":
-                return self._handle_content_block_delta(data)
-            case "message_delta":
-                return self._handle_message_delta(data)
+    async def complete_streaming(
+        self,
+        *,
+        model: ModelConfig,
+        messages: list[LLMMessage],
+        temperature: float = 0.2,
+        tools: list[AvailableTool] | None = None,
+        max_tokens: int | None = None,
+        tool_choice: StrToolChoice | AvailableTool | None = None,
+        extra_headers: dict[str, str] | None = None,
+    ) -> AsyncGenerator[LLMChunk, None]:
+        client = self._get_client()
+        anthropic_messages, system_prompt = self._convert_messages(messages)
 
-        return None
+        effective_max = max_tokens or 4096
+        model_id = model.name
 
-    def _handle_content_block_start(self, data: dict[str, Any]) -> LLMChunk | None:
-        """Handle content_block_start event."""
-        content_block = data.get("content_block", {})
-        block_type = content_block.get("type")
+        kwargs: dict[str, Any] = {
+            "model": model_id,
+            "max_tokens": effective_max,
+            "messages": anthropic_messages,
+            "temperature": temperature,
+            "stream": True,
+        }
+        if system_prompt:
+            kwargs["system"] = system_prompt
+        if tools:
+            kwargs["tools"] = self._convert_tools(tools)
+        if tool_choice and isinstance(tool_choice, str):
+            kwargs["tool_choice"] = {"type": tool_choice}
+        if extra_headers:
+            kwargs["extra_headers"] = extra_headers
 
-        if block_type == "tool_use":
-            return LLMChunk(
-                message=LLMMessage(
-                    role=Role.assistant,
-                    tool_calls=[_create_tool_call(
-                        tool_id=content_block.get("id", ""),
-                        name=content_block.get("name", ""),
-                        arguments="",
-                    )],
-                ),
-                usage=None,
+        try:
+            async with client.messages.stream(**kwargs) as raw_stream:
+                async for event in cast(AsyncGenerator[Any, None], raw_stream):
+                    if chunk := self._process_stream_event(event):
+                        yield chunk
+
+        except anthropic.APIStatusError as e:
+            raise BackendErrorBuilder.build_http_error(
+                provider=self._provider.name,
+                endpoint=f"{self._provider.api_base}/messages",
+                response=e.response,
+                headers=e.response.headers,
+                model=model_id,
+                messages=messages,
+                temperature=temperature,
+                tool_choice=tool_choice,
+            ) from e
+        except Exception as e:
+            request_error = (
+                e if isinstance(e, httpx.RequestError) else httpx.RequestError(str(e))
             )
+            raise BackendErrorBuilder.build_request_error(
+                provider=self._provider.name,
+                endpoint=f"{self._provider.api_base}/messages",
+                error=request_error,
+                model=model_id,
+                messages=messages,
+                temperature=temperature,
+                tool_choice=tool_choice,
+            ) from e
 
-        return None
-
-    def _handle_content_block_delta(self, data: dict[str, Any]) -> LLMChunk | None:
-        """Handle content_block_delta event."""
-        delta = data.get("delta", {})
-        delta_type = delta.get("type")
-
-        if delta_type == "text_delta":
-            return LLMChunk(
-                message=LLMMessage(role=Role.assistant, content=delta.get("text", "")),
-                usage=None,
-            )
-
-        if delta_type == "input_json_delta":
-            return LLMChunk(
-                message=LLMMessage(
-                    role=Role.assistant,
-                    tool_calls=[_create_tool_call(
-                        tool_id="",
-                        name="",
-                        arguments=delta.get("partial_json", ""),
-                    )],
-                ),
-                usage=None,
-            )
-
-        if delta_type == "thinking_delta":
-            thinking = delta.get("thinking", "")
-            if thinking:
+    @staticmethod
+    def _process_stream_event(event: Any) -> LLMChunk | None:
+        event_type = getattr(event, "type", "")
+        if (delta := getattr(event, "delta", None)) is not None:
+            delta_type = getattr(delta, "type", "")
+            if delta_type == "text_delta":
                 return LLMChunk(
                     message=LLMMessage(
-                        role=Role.assistant,
-                        reasoning_content=thinking,
+                        role=Role.assistant, content=str(getattr(delta, "text", ""))
                     ),
                     usage=None,
                 )
-
+            if delta_type == "thinking_delta":
+                return LLMChunk(
+                    message=LLMMessage(
+                        role=Role.assistant,
+                        reasoning_content=str(getattr(delta, "thinking", "")),
+                    ),
+                    usage=None,
+                )
+            if delta_type == "input_json_delta":
+                return LLMChunk(
+                    message=LLMMessage(
+                        role=Role.assistant,
+                        tool_calls=[
+                            ToolCall(
+                                id="",
+                                type="function",
+                                function=FunctionCall(
+                                    name="",
+                                    arguments=str(getattr(delta, "partial_json", "")),
+                                ),
+                            )
+                        ],
+                    ),
+                    usage=None,
+                )
+        elif event_type == "content_block_start":
+            if (block := getattr(event, "content_block", None)) is not None:
+                return LLMChunk(
+                    message=LLMMessage(
+                        role=Role.assistant,
+                        tool_calls=[
+                            ToolCall(
+                                id=str(getattr(block, "id", "")),
+                                type="function",
+                                function=FunctionCall(
+                                    name=str(getattr(block, "name", "")), arguments=""
+                                ),
+                            )
+                        ],
+                    ),
+                    usage=None,
+                )
+        elif event_type == "message_delta":
+            if (usage_obj := getattr(event, "usage", None)) is not None:
+                return LLMChunk(
+                    message=LLMMessage(role=Role.assistant, content=""),
+                    usage=LLMUsage(
+                        prompt_tokens=0,
+                        completion_tokens=int(getattr(usage_obj, "output_tokens", 0)),
+                    ),
+                )
         return None
 
-    def _handle_message_delta(self, data: dict[str, Any]) -> LLMChunk | None:
-        """Handle message_delta event."""
-        usage_data = data.get("usage", {})
-        if usage_data:
-            return LLMChunk(
-                message=LLMMessage(role=Role.assistant, content=""),
-                usage=LLMUsage(
-                    prompt_tokens=0,
-                    completion_tokens=usage_data.get("output_tokens", 0),
-                ),
-            )
-        return None
+    async def count_tokens(
+        self,
+        *,
+        model: ModelConfig,
+        messages: list[LLMMessage],
+        temperature: float = 0.0,
+        tools: list[AvailableTool] | None = None,
+        tool_choice: StrToolChoice | AvailableTool | None = None,
+        extra_headers: dict[str, str] | None = None,
+    ) -> int:
+        probe_messages = list(messages)
+        if not probe_messages or probe_messages[-1].role != Role.user:
+            probe_messages.append(LLMMessage(role=Role.user, content=""))
 
+        result = await self.complete(
+            model=model,
+            messages=probe_messages,
+            temperature=temperature,
+            tools=tools,
+            max_tokens=16,
+            tool_choice=tool_choice,
+            extra_headers=extra_headers,
+        )
+        if result.usage is None:
+            msg = "Missing usage in non-streaming completion"
+            raise ValueError(msg)
+        return result.usage.prompt_tokens
 
-# Backward compatibility alias
-AnthropicAdapter = AnthropicMessagesAdapter
-BACKEND_ADAPTERS: dict[str, AnthropicAdapterProtocol] = ANTHROPIC_ADAPTERS
+    async def list_models(self) -> list[str]:
+        client = self._get_client()
+        try:
+            response = await client.models.list()
+            return [m.id for m in response.data]
+        except Exception:
+            return []
+
+    async def close(self) -> None:
+        if self._client:
+            await self._client.close()
+            self._client = None
+
+    async def __aenter__(self) -> AnthropicBackend:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> None:
+        await self.close()

@@ -91,8 +91,8 @@ class ThemeSelectionScreen(OnboardingScreen):
 
     @property
     def _has_terminal_theme(self) -> bool:
-        app: OnboardingApp = self.app  # type: ignore[assignment]
-        return app._terminal_theme is not None
+        app = getattr(self.app, "_terminal_theme", None)
+        return app is not None
 
     @property
     def _available_themes(self) -> list[str]:

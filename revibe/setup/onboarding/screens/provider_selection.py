@@ -119,5 +119,6 @@ class ProviderSelectionScreen(OnboardingScreen):
         except OSError as e:
             # Log the error but don't fail silently - this is critical for setup
             from rich import print as rprint
+
             rprint(f"[yellow]Warning: Could not save provider selection: {e}[/]")
         self.action_next()

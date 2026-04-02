@@ -163,7 +163,7 @@ class ChatTextArea(TextArea):
         self.post_message(self.HistoryNext(self._history_prefix))
         return True
 
-    async def _on_key(self, event: events.Key) -> None:  # noqa: PLR0911
+    async def _on_key(self, event: events.Key) -> None:
         self._mark_cursor_moved_if_needed()
 
         manager = self._completion_manager

@@ -47,6 +47,8 @@ dependencies = [
     "watchfiles>=1.1.1",
     "pyperclip>=1.11.0",
     "textual-speedups>=0.2.1",
+    "openai>=1.0.0",
+    "anthropic>=0.50.0",
 ]
 
 [project.urls]

@@ -204,7 +204,7 @@ class SearchReplaceApprovalWidget(ToolApprovalWidget[SearchReplaceArgs]):
             content=self.args.content,
             file_path=self.args.file_path,
             action="Edit",
-            collapsed=False
+            collapsed=False,
         )
 
 
@@ -223,7 +223,7 @@ class SearchReplaceResultWidget(ToolResultWidget[SearchReplaceResult]):
                 content=self.result.content,
                 file_path=self.result.file,
                 action="Edit",
-                collapsed=False
+                collapsed=False,
             )
 
 

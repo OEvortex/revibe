@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from enum import StrEnum, auto
 import html
-import tomllib
 from pathlib import Path
+import tomllib
 from typing import TYPE_CHECKING, Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -112,8 +112,8 @@ def get_available_subagents_section() -> str:
 def build_subagent_config(config: VibeConfig, agent_name: str) -> VibeConfig:
     match agent_name.strip().lower():
         case "explore":
-            from revibe.core.modes import AgentMode
             from revibe.core.config import VibeConfig as _VibeConfig
+            from revibe.core.modes import AgentMode
 
             subagent_config = _VibeConfig.model_validate({
                 **config.model_dump(mode="python"),
@@ -140,9 +140,8 @@ async def execute_subagent(
     base_config: VibeConfig | None = None,
 ) -> str:
     from revibe.core.agent import Agent
-    from revibe.core.types import AssistantEvent
-
     from revibe.core.config import VibeConfig as _VibeConfig
+    from revibe.core.types import AssistantEvent
 
     config = base_config or _VibeConfig()
     subagent_config = build_subagent_config(config, agent_name)

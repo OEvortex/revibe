@@ -36,7 +36,7 @@ class ConfigApp(Container):
     can_focus_children = True
 
     BINDINGS: ClassVar[list[BindingType]] = [
-        Binding("escape", "close", "Exit", show=False),
+        Binding("escape", "close", "Exit", show=False)
     ]
 
     class SettingChanged(Message):
@@ -121,7 +121,9 @@ class ConfigApp(Container):
 
             # Update the option text in the list
             option_list = cast("Any", self.query_one("#config-option-list"))
-            option_list.replace_option_at_index(index, Option(f"{setting['label']}: {new_value}"))
+            option_list.replace_option_at_index(
+                index, Option(f"{setting['label']}: {new_value}")
+            )
             option_list.highlighted = index
 
     def action_close(self) -> None:

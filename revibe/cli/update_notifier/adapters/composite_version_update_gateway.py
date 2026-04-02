@@ -10,10 +10,7 @@ from revibe.cli.update_notifier.ports.version_update_gateway import (
 
 
 class CompositeVersionUpdateGateway(VersionUpdateGateway):
-    def __init__(
-        self,
-        *gateways: VersionUpdateGateway,
-    ) -> None:
+    def __init__(self, *gateways: VersionUpdateGateway) -> None:
         self._gateways = gateways
 
     async def fetch_update(self) -> VersionUpdate | None:
@@ -28,10 +25,7 @@ class CompositeVersionUpdateGateway(VersionUpdateGateway):
 
                 try:
                     current_version = Version(update.latest_version)
-                    if (
-                        latest_version is None
-                        or current_version > latest_version
-                    ):
+                    if latest_version is None or current_version > latest_version:
                         latest_update = update
                         latest_version = current_version
                 except Exception:

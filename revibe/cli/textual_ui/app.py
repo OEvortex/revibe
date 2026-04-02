@@ -62,7 +62,7 @@ from revibe.cli.update_notifier.adapters.composite_version_update_gateway import
 )
 from revibe.core.agent import Agent
 from revibe.core.autocompletion.path_prompt_adapter import render_path_prompt
-from revibe.core.config import ProviderConfigUnion, VibeConfig
+from revibe.core.config import ProviderConfig, VibeConfig
 from revibe.core.modes import AgentMode, next_mode
 from revibe.core.paths.config_paths import HISTORY_FILE
 from revibe.core.tools.base import BaseToolConfig, ToolPermission
@@ -378,7 +378,7 @@ class VibeApp(App):
         # Find the provider config - merge defaults with config like the selector does
         from revibe.core.config import DEFAULT_PROVIDERS
 
-        providers_map: dict[str, ProviderConfigUnion] = {}
+        providers_map: dict[str, ProviderConfig] = {}
         for p in DEFAULT_PROVIDERS:
             providers_map[p.name] = p
         for p in self.config.providers:
@@ -434,7 +434,7 @@ class VibeApp(App):
 
         from revibe.core.config import DEFAULT_PROVIDERS
 
-        providers_map: dict[str, ProviderConfigUnion] = {}
+        providers_map: dict[str, ProviderConfig] = {}
         for p in DEFAULT_PROVIDERS:
             providers_map[p.name] = p
         for p in self.config.providers:
@@ -443,7 +443,11 @@ class VibeApp(App):
         provider = providers_map.get(provider_name)
 
         # Check if API key is required and missing
-        if provider and provider.api_key_env_var and not os.getenv(provider.api_key_env_var):
+        if (
+            provider
+            and provider.api_key_env_var
+            and not os.getenv(provider.api_key_env_var)
+        ):
             # Save the model selection first
             try:
                 existing_aliases = {m.alias for m in self.config.models}
@@ -457,7 +461,9 @@ class VibeApp(App):
                     new_model = ModelConfig(
                         name=model_name, provider=provider_name, alias=model_alias
                     )
-                    models_list.append(new_model.model_dump(mode="json", exclude_none=True))
+                    models_list.append(
+                        new_model.model_dump(mode="json", exclude_none=True)
+                    )
 
                     VibeConfig.save_updates({
                         "models": models_list,
@@ -514,7 +520,9 @@ class VibeApp(App):
                 })
 
             await self._mount_and_scroll(
-                UserCommandMessage(f"Model switched to: {model_alias} ({provider_name})")
+                UserCommandMessage(
+                    f"Model switched to: {model_alias} ({provider_name})"
+                )
             )
             await self._reload_config()
         except Exception as e:
@@ -539,7 +547,7 @@ class VibeApp(App):
         # Find the provider to get the env var name - merge defaults with config like the selector does
         from revibe.core.config import DEFAULT_PROVIDERS
 
-        providers_map: dict[str, ProviderConfigUnion] = {}
+        providers_map: dict[str, ProviderConfig] = {}
         for p in DEFAULT_PROVIDERS:
             providers_map[p.name] = p
         for p in self.config.providers:
@@ -778,7 +786,9 @@ class VibeApp(App):
         except Exception as e:
             self.agent = None
             await self._mount_and_scroll(
-                ErrorMessage(str(e))  # Always show agent init errors expanded for debugging
+                ErrorMessage(
+                    str(e)
+                )  # Always show agent init errors expanded for debugging
             )
         finally:
             self._agent_initializing = False
@@ -912,7 +922,9 @@ class VibeApp(App):
             if self.event_handler:
                 self.event_handler.stop_current_tool_call()
             await self._mount_and_scroll(
-                ErrorMessage(str(e))  # Always show provider errors expanded for debugging
+                ErrorMessage(
+                    str(e)
+                )  # Always show provider errors expanded for debugging
             )
         finally:
             self._agent_running = False
@@ -1283,7 +1295,7 @@ class VibeApp(App):
 
         self.call_after_refresh(provider_selector.focus)
 
-    async def _switch_to_api_key_input(self, provider: ProviderConfigUnion) -> None:
+    async def _switch_to_api_key_input(self, provider: ProviderConfig) -> None:
         if self._current_bottom_app == BottomApp.ApiKeyInput:
             return
 
