@@ -9,6 +9,7 @@ from revibe.core.llm.context_manager import (
     DEFAULT_CONTEXT_LENGTH,
     DEFAULT_MAX_OUTPUT_TOKENS,
     resolve_advertised_token_limits,
+    resolve_global_capabilities,
     resolve_global_token_limits,
 )
 
@@ -40,6 +41,10 @@ class ModelConfig(BaseModel):
             "Per-model auto-compact threshold. If set, overrides the global "
             "auto_compact_threshold for this specific model. Value is in tokens."
         ),
+    )
+    capabilities: dict[str, bool] = Field(
+        default_factory=lambda: {"toolCalling": True, "imageInput": False},
+        description="Model capabilities: toolCalling and imageInput support.",
     )
 
     @model_validator(mode="before")
@@ -88,14 +93,14 @@ class ModelConfig(BaseModel):
             )
             data["max_output"] = limits.max_output_tokens
 
+        if "capabilities" not in data or data.get("capabilities") is None:
+            data["capabilities"] = resolve_global_capabilities(model_name)
+
         return data
 
 
 def _build_default_models() -> list[ModelConfig]:
-    return [
-        ModelConfig.model_validate(model)
-        for model in iter_known_models()
-    ]
+    return [ModelConfig.model_validate(model) for model in iter_known_models()]
 
 
 DEFAULT_MODELS = _build_default_models()

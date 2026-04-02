@@ -1,26 +1,33 @@
+"""Backend factory — maps sdk_mode to the correct backend class.
+
+All providers are OpenAI-compatible, Anthropic-compatible, or use the
+OpenAI Responses API. The sdk_mode field on the provider config determines
+which backend class handles requests.
+"""
+
 from __future__ import annotations
 
-from revibe.core.config import Backend
+from typing import Any
+
 from revibe.core.llm.backend.anthropic.backend import AnthropicBackend
 from revibe.core.llm.backend.openai import OpenAIBackend
 from revibe.core.llm.backend.oai import OAIBackend
 
-BACKEND_FACTORY = {
-    Backend.GENERIC: OpenAIBackend,
-    Backend.OPENAI: OpenAIBackend,
-    Backend.MISTRAL: OpenAIBackend,
-    Backend.HUGGINGFACE: OpenAIBackend,
-    Backend.GROQ: OpenAIBackend,
-    Backend.OLLAMA: OpenAIBackend,
-    Backend.LLAMACPP: OpenAIBackend,
-    Backend.CEREBRAS: OpenAIBackend,
-    Backend.QWEN: OpenAIBackend,
-    Backend.OPENROUTER: OpenAIBackend,
-    Backend.KILOCODE: OpenAIBackend,
-    Backend.CHUTES: OpenAIBackend,
-    Backend.VERTEXAI: OpenAIBackend,
-    Backend.VLLM: OpenAIBackend,
-    Backend.GEMINICLI: AnthropicBackend,
-    Backend.ANTIGRAVITY: AnthropicBackend,
-    Backend.OPENCODE: OAIBackend,
+SDK_MODE_BACKEND: dict[str, type] = {
+    "openai": OpenAIBackend,
+    "anthropic": AnthropicBackend,
+    "oai-response": OAIBackend,
 }
+
+
+def get_backend_for_provider(provider: Any) -> type:
+    """Get the backend class for a provider based on its sdk_mode.
+
+    Args:
+        provider: Provider config object with an sdk_mode field.
+
+    Returns:
+        The backend class to instantiate.
+    """
+    sdk_mode = getattr(provider, "sdk_mode", "openai")
+    return SDK_MODE_BACKEND.get(sdk_mode, OpenAIBackend)

@@ -12,7 +12,7 @@ from pydantic import BaseModel
 
 from revibe.core.config import ToolFormat, VibeConfig
 from revibe.core.interaction_logger import InteractionLogger
-from revibe.core.llm.backend.factory import BACKEND_FACTORY
+from revibe.core.llm.backend.factory import get_backend_for_provider
 from revibe.core.llm.format import (
     APIToolFormatHandler,
     ResolvedMessage,
@@ -164,10 +164,8 @@ class Agent:
         active_model = self.config.get_active_model()
         provider = self.config.get_provider_for_model(active_model)
         timeout = self.config.api_timeout
-        return cast(
-            BackendLike,
-            BACKEND_FACTORY[provider.backend](provider=provider, timeout=timeout),
-        )
+        backend_cls = get_backend_for_provider(provider)
+        return cast(BackendLike, backend_cls(provider=provider, timeout=timeout))
 
     def add_message(self, message: LLMMessage) -> None:
         self.messages.append(message)
@@ -215,10 +213,7 @@ class Agent:
         self.stats.last_turn_completion_tokens = usage.completion_tokens
 
     async def _should_execute_tool(
-        self,
-        tool_instance,
-        tool_args,
-        tool_call_id: str,
+        self, tool_instance, tool_args, tool_call_id: str
     ) -> ToolDecision:
         tool_name = tool_instance.get_name()
         allowlist_decision = tool_instance.check_allowlist_denylist(tool_args)
@@ -245,7 +240,9 @@ class Agent:
                         feedback=f"Tool '{tool_name}' is not permitted without approval.",
                     )
 
-                callback_result = self.approval_callback(tool_name, tool_args, tool_call_id)
+                callback_result = self.approval_callback(
+                    tool_name, tool_args, tool_call_id
+                )
                 if inspect.isawaitable(callback_result):
                     approval, feedback = await callback_result
                 else:
@@ -254,8 +251,7 @@ class Agent:
                 match approval:
                     case ApprovalResponse.YES:
                         return ToolDecision(
-                            verdict=ToolExecutionResponse.EXECUTE,
-                            feedback=feedback,
+                            verdict=ToolExecutionResponse.EXECUTE, feedback=feedback
                         )
                     case ApprovalResponse.NO:
                         return ToolDecision(
@@ -294,7 +290,9 @@ class Agent:
                                 result_content = result_msg.content or ""
                                 if (
                                     result_msg.role == Role.user
-                                    and result_content.strip().startswith("<tool_result")
+                                    and result_content.strip().startswith(
+                                        "<tool_result"
+                                    )
                                 ):
                                     actual_responses += 1
                                     j += 1
@@ -316,7 +314,9 @@ class Agent:
                                             f"</tool_result>"
                                         ),
                                     )
-                                    self.messages.insert(insertion_point, empty_response)
+                                    self.messages.insert(
+                                        insertion_point, empty_response
+                                    )
                                     insertion_point += 1
 
                 i += 1
@@ -403,12 +403,14 @@ class Agent:
                 tool_choice=tool_choice,
                 extra_headers=self._build_completion_headers(),
             ):
-                aggregated_chunk = chunk if aggregated_chunk is None else aggregated_chunk + chunk
+                aggregated_chunk = (
+                    chunk if aggregated_chunk is None else aggregated_chunk + chunk
+                )
                 yield chunk
 
         if aggregated_chunk is None:
             aggregated_chunk = LLMChunk(
-                message=LLMMessage(role=Role.assistant, content=""),
+                message=LLMMessage(role=Role.assistant, content="")
             )
 
         self._update_usage_stats(aggregated_chunk.usage)

@@ -72,7 +72,7 @@ class MCPSamplingHandler:
             return None
 
         try:
-            from revibe.core.llm.backend.factory import BACKEND_FACTORY
+            from revibe.core.llm.backend.factory import get_backend_for_provider
 
             active_model = self.config.get_active_model()
             provider = self.config.get_provider_for_model(active_model)
@@ -98,9 +98,8 @@ class MCPSamplingHandler:
                 )
 
             timeout = self.config.api_timeout
-            backend = BACKEND_FACTORY[provider.backend](
-                provider=provider, timeout=timeout
-            )
+            backend_cls = get_backend_for_provider(provider)
+            backend = backend_cls(provider=provider, timeout=timeout)
 
             async with backend as b:
                 result = await b.complete(

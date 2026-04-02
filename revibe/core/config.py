@@ -35,6 +35,8 @@ from revibe.core.tools.base import BaseToolConfig
 
 PROJECT_DOC_FILENAMES = ["AGENTS.md", "REVIBE.md", ".revibe.md"]
 
+SdkMode = Literal["anthropic", "openai", "oai-response"]
+
 
 def _read_fifo_path(path_str: str) -> str | None:
     """Read credential from a FIFO (named pipe) path for secure credential management.
@@ -93,15 +95,6 @@ class MissingPromptFileError(RuntimeError):
         self.prompt_dir = prompt_dir
 
 
-class WrongBackendError(RuntimeError):
-    def __init__(self, backend: Backend, is_mistral_api: bool) -> None:
-        super().__init__(
-            f"Wrong backend '{backend}' for mistral API. Use '{Backend.MISTRAL}' for mistral API."
-        )
-        self.backend = backend
-        self.is_mistral_api = is_mistral_api
-
-
 class TomlFileSettingsSource(PydanticBaseSettingsSource):
     def __init__(self, settings_cls: type[BaseSettings]) -> None:
         super().__init__(settings_cls)
@@ -157,26 +150,6 @@ class SessionLoggingConfig(BaseSettings):
         return str(Path(v).expanduser().resolve())
 
 
-class Backend(StrEnum):
-    MISTRAL = auto()
-    GENERIC = auto()
-    OPENAI = auto()
-    HUGGINGFACE = auto()
-    GROQ = auto()
-    CEREBRAS = auto()
-    OLLAMA = auto()
-    LLAMACPP = auto()
-    QWEN = auto()
-    OPENROUTER = auto()
-    GEMINICLI = auto()
-    OPENCODE = auto()
-    KILOCODE = auto()
-    ANTIGRAVITY = auto()
-    CHUTES = auto()
-    VERTEXAI = auto()
-    VLLM = auto()
-
-
 class ToolFormat(StrEnum):
     """Tool calling format for LLM interactions.
 
@@ -188,113 +161,25 @@ class ToolFormat(StrEnum):
     XML = auto()
 
 
-class _ProviderBase(BaseModel):
+class ProviderConfig(BaseModel):
     name: str
     api_base: str
     api_key_env_var: str = ""
     api_style: str = "openai"
-    sdk_mode: Literal["anthropic", "openai", "oai-response"] = "openai"
+    sdk_mode: SdkMode = "openai"
     custom_header: dict[str, str] = Field(default_factory=dict)
     extra_body: dict[str, Any] = Field(default_factory=dict)
+    display_name: str = ""
+    family: str = ""
+    fetch_models: bool = False
+    models_endpoint: str = ""
+    openai_compat: dict[str, Any] = Field(default_factory=dict)
+    anthropic_compat: dict[str, Any] = Field(default_factory=dict)
+    responses_compat: dict[str, Any] = Field(default_factory=dict)
 
 
-class MistralProviderConfig(_ProviderBase):
-    backend: Literal[Backend.MISTRAL] = Backend.MISTRAL
-
-
-class OpenAIProviderConfig(_ProviderBase):
-    backend: Literal[Backend.OPENAI] = Backend.OPENAI
-
-
-class GroqProviderConfig(_ProviderBase):
-    backend: Literal[Backend.GROQ] = Backend.GROQ
-
-
-class HuggingFaceProviderConfig(_ProviderBase):
-    backend: Literal[Backend.HUGGINGFACE] = Backend.HUGGINGFACE
-
-
-class OllamaProviderConfig(_ProviderBase):
-    backend: Literal[Backend.OLLAMA] = Backend.OLLAMA
-
-
-class LlamaCppProviderConfig(_ProviderBase):
-    backend: Literal[Backend.LLAMACPP] = Backend.LLAMACPP
-
-
-class CerebrasProviderConfig(_ProviderBase):
-    backend: Literal[Backend.CEREBRAS] = Backend.CEREBRAS
-
-
-class GenericProviderConfig(_ProviderBase):
-    backend: Literal[Backend.GENERIC] = Backend.GENERIC
-
-
-class QwenProviderConfig(_ProviderBase):
-    backend: Literal[Backend.QWEN] = Backend.QWEN
-
-
-class OpenRouterProviderConfig(_ProviderBase):
-    backend: Literal[Backend.OPENROUTER] = Backend.OPENROUTER
-
-
-class GeminicliProviderConfig(_ProviderBase):
-    backend: Literal[Backend.GEMINICLI] = Backend.GEMINICLI
-
-
-class OpenCodeProviderConfig(_ProviderBase):
-    backend: Literal[Backend.OPENCODE] = Backend.OPENCODE
-    api_style: str = "opencode"
-
-
-class KiloCodeProviderConfig(_ProviderBase):
-    backend: Literal[Backend.KILOCODE] = Backend.KILOCODE
-    api_style: str = "openai"
-
-
-class AntigravityProviderConfig(_ProviderBase):
-    backend: Literal[Backend.ANTIGRAVITY] = Backend.ANTIGRAVITY
-    api_style: str = "antigravity"
-
-
-class ChutesProviderConfig(_ProviderBase):
-    backend: Literal[Backend.CHUTES] = Backend.CHUTES
-
-
-class VertexAIProviderConfig(_ProviderBase):
-    backend: Literal[Backend.VERTEXAI] = Backend.VERTEXAI
-    api_style: str = "openai"
-
-
-class VLLMProviderConfig(_ProviderBase):
-    backend: Literal[Backend.VLLM] = Backend.VLLM
-    api_style: str = "openai"
-
-
-ProviderConfigUnion = Annotated[
-    MistralProviderConfig
-    | OpenAIProviderConfig
-    | GroqProviderConfig
-    | HuggingFaceProviderConfig
-    | OllamaProviderConfig
-    | LlamaCppProviderConfig
-    | CerebrasProviderConfig
-    | GenericProviderConfig
-    | QwenProviderConfig
-    | OpenRouterProviderConfig
-    | GeminicliProviderConfig
-    | OpenCodeProviderConfig
-    | KiloCodeProviderConfig
-    | AntigravityProviderConfig
-    | ChutesProviderConfig
-    | VertexAIProviderConfig
-    | VLLMProviderConfig,
-    Field(discriminator="backend"),
-]
-
-
-type ProviderConfig = ProviderConfigUnion
-PROVIDER_CONFIG_ADAPTER = TypeAdapter(ProviderConfigUnion)
+type ProviderConfigType = ProviderConfig
+PROVIDER_CONFIG_ADAPTER = TypeAdapter(ProviderConfig)
 
 
 class _MCPBase(BaseModel):
@@ -379,82 +264,41 @@ MCPServer = Annotated[
 ]
 
 
-DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
-    MistralProviderConfig(
-        name="mistral",
-        api_base="https://api.mistral.ai/v1",
-        api_key_env_var="MISTRAL_API_KEY",
-        extra_body={"stream_options": {"stream_tool_calls": True}},
-    ),
-    OpenAIProviderConfig(
+DEFAULT_PROVIDERS: list[ProviderConfig] = [
+    ProviderConfig(
         name="openai",
+        display_name="OpenAI",
         api_base="https://api.openai.com/v1",
         api_key_env_var="OPENAI_API_KEY",
+        sdk_mode="openai",
     ),
-    HuggingFaceProviderConfig(
-        name="huggingface",
-        # Use the Hugging Face router base URL for inference and model listing
-        api_base="https://router.huggingface.co/v1",
-        api_key_env_var="HUGGINGFACE_API_KEY",
+    ProviderConfig(
+        name="deepseek",
+        display_name="DeepSeek",
+        api_base="https://api.deepseek.com/v1",
+        api_key_env_var="DEEPSEEK_API_KEY",
+        sdk_mode="openai",
     ),
-    GroqProviderConfig(
-        name="groq",
-        api_base="https://api.groq.com/openai/v1",
-        api_key_env_var="GROQ_API_KEY",
-    ),
-    OllamaProviderConfig(
-        name="ollama", api_base="http://127.0.0.1:11434/v1", api_key_env_var=""
-    ),
-    LlamaCppProviderConfig(
-        name="llamacpp", api_base="http://127.0.0.1:8080/v1", api_key_env_var=""
-    ),
-    CerebrasProviderConfig(
-        name="cerebras",
-        api_base="https://api.cerebras.ai/v1",
-        api_key_env_var="CEREBRAS_API_KEY",
-    ),
-    QwenProviderConfig(
-        name="qwencode",
-        api_base="",  # Uses OAuth base URL from qwen backend
-        api_key_env_var="",
-    ),
-    OpenRouterProviderConfig(
+    ProviderConfig(
         name="openrouter",
+        display_name="OpenRouter",
         api_base="https://openrouter.ai/api/v1",
         api_key_env_var="OPENROUTER_API_KEY",
+        sdk_mode="openai",
     ),
-    GeminicliProviderConfig(
-        name="geminicli",
-        api_base="",  # Uses Gemini CLI endpoints
-        api_key_env_var="",
-    ),
-    OpenCodeProviderConfig(
+    ProviderConfig(
         name="opencode",
+        display_name="OpenCode",
         api_base="https://opencode.ai/zen/v1",
         api_key_env_var="OPENCODE_API_KEY",
+        sdk_mode="openai",
     ),
-    KiloCodeProviderConfig(
-        name="kilocode",
-        api_base="https://api.kilo.ai/api/openrouter",
-        api_key_env_var="KILOCODE_API_KEY",
-    ),
-    AntigravityProviderConfig(
-        name="antigravity",
-        api_base="",  # Uses Antigravity endpoints
-        api_key_env_var="",  # Uses OAuth authentication
-    ),
-    ChutesProviderConfig(
-        name="chutes",
-        api_base="https://llm.chutes.ai/v1",
-        api_key_env_var="CHUTES_API_KEY",
-    ),
-    VertexAIProviderConfig(
-        name="vertexai",
-        api_base="",  # Uses dynamic Vertex AI URL construction
-        api_key_env_var="",  # Uses ADC credentials
-    ),
-    VLLMProviderConfig(
-        name="vllm", api_base="http://localhost:8000/v1", api_key_env_var=""
+    ProviderConfig(
+        name="ollama",
+        display_name="Ollama",
+        api_base="http://127.0.0.1:11434/v1",
+        api_key_env_var="",
+        sdk_mode="openai",
     ),
 ]
 
@@ -478,7 +322,7 @@ class VibeConfig(BaseSettings):
     include_prompt_detail: bool = True
     enable_update_checks: bool = True
     api_timeout: float = 720.0
-    providers: list[ProviderConfigUnion] = Field(
+    providers: list[ProviderConfig] = Field(
         default_factory=lambda: list(DEFAULT_PROVIDERS)
     )
     models: list[ModelConfig] = Field(default_factory=get_available_models)
@@ -571,7 +415,7 @@ class VibeConfig(BaseSettings):
         """Get the active model configuration.
 
         Supports intelligent model selection:
-        - Explicit provider syntax: "provider<>alias" (e.g., "kilocode<>x-ai/grok-code-fast-1")
+        - Explicit provider<>alias syntax: "provider<>alias" (e.g., "kilocode<>x-ai/grok-code-fast-1")
         - Provider-aware selection: if active_provider is set, prefer models from that provider
         - Fallback: first matching alias if no provider context
 
@@ -640,7 +484,7 @@ class VibeConfig(BaseSettings):
             f"Active model '{self.active_model}' not found in configuration."
         )
 
-    def get_provider_for_model(self, model: ModelConfig) -> ProviderConfigUnion:
+    def get_provider_for_model(self, model: ModelConfig) -> ProviderConfig:
         # Merge DEFAULT_PROVIDERS with configured providers
         providers_map: dict[str, Any] = {}
         for p in DEFAULT_PROVIDERS:
@@ -668,6 +512,51 @@ class VibeConfig(BaseSettings):
             if not isinstance(provider, dict)
             else PROVIDER_CONFIG_ADAPTER.validate_python(provider)
         )
+
+    def get_provider_tuples(self) -> list[tuple[str, str | None]]:
+        """Get provider info as (name, api_key) tuples for dynamic model fetching.
+
+        Returns:
+            List of tuples suitable for fetch_all_provider_models.
+        """
+        import os
+
+        providers_map: dict[str, Any] = {}
+        for p in DEFAULT_PROVIDERS:
+            providers_map[p.name] = p
+        for p in self.providers:
+            p_name = p.name if not isinstance(p, dict) else p.get("name")
+            if p_name is not None:
+                providers_map[p_name] = p
+
+        result: list[tuple[str, str | None]] = []
+        for name, provider in providers_map.items():
+            api_key_env = getattr(provider, "api_key_env_var", None) or (
+                provider.get("api_key_env_var") if isinstance(provider, dict) else None
+            )
+            api_key = os.getenv(api_key_env) if api_key_env else None
+            result.append((name, api_key))
+        return result
+
+    async def refresh_dynamic_models(self) -> list[ModelConfig]:
+        """Refresh models by fetching from providers that support dynamic fetching.
+
+        Returns:
+            Updated list of models including dynamically fetched ones.
+        """
+        from revibe.core.model_sources import get_models_with_dynamic_fetch_async
+
+        provider_tuples = self.get_provider_tuples()
+        fetched_models = await get_models_with_dynamic_fetch_async(provider_tuples)
+
+        existing_keys = {(m.provider, m.alias) for m in self.models}
+        new_models = [
+            m for m in fetched_models if (m.provider, m.alias) not in existing_keys
+        ]
+        if new_models:
+            self.models.extend(new_models)
+
+        return self.models
 
     @classmethod
     def settings_customise_sources(
@@ -721,38 +610,6 @@ class VibeConfig(BaseSettings):
             # Re-raise MissingAPIKeyError, pass ValueError for missing models
             if isinstance(sys.exc_info()[1], MissingAPIKeyError):
                 raise
-        return self
-
-    @model_validator(mode="after")
-    def _check_api_backend_compatibility(self) -> VibeConfig:
-        try:
-            # If we have active_provider, use that instead of trying to get provider from model
-            if self.active_provider:
-                # Find the provider by name
-                provider = None
-                for p in self.providers:
-                    if p.name == self.active_provider:
-                        provider = p
-                        break
-            else:
-                # Fallback to model-based lookup for compatibility
-                active_model = self.get_active_model()
-                provider = self.get_provider_for_model(active_model)
-
-            if provider:
-                MISTRAL_API_BASES = [
-                    "https://codestral.mistral.ai",
-                    "https://api.mistral.ai",
-                ]
-                is_mistral_api = any(
-                    provider.api_base.startswith(api_base)
-                    for api_base in MISTRAL_API_BASES
-                )
-                if is_mistral_api and provider.backend != Backend.MISTRAL:
-                    raise WrongBackendError(provider.backend, is_mistral_api)
-
-        except ValueError:
-            pass
         return self
 
     @field_validator("tool_paths", mode="before")
