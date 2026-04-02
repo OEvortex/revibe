@@ -201,3 +201,7 @@ tests/playground/*
 .qodo
 .zencoder
 .zenflow
+
+# Snapshot reports (may contain secrets)
+snapshot_report.html
+**/snapshot_report.html
