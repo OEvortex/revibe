@@ -35,9 +35,6 @@ class AgentStats(BaseModel):
     last_turn_duration: float = 0.0
     tokens_per_second: float = 0.0
 
-    input_price_per_million: float = 0.0
-    output_price_per_million: float = 0.0
-
     @computed_field
     @property
     def session_total_llm_tokens(self) -> int:
@@ -47,34 +44,6 @@ class AgentStats(BaseModel):
     @property
     def last_turn_total_tokens(self) -> int:
         return self.last_turn_prompt_tokens + self.last_turn_completion_tokens
-
-    @computed_field
-    @property
-    def session_cost(self) -> float:
-        """Calculate the total session cost in dollars based on token usage and pricing.
-
-        NOTE: This is a rough estimate and is worst-case scenario.
-        The actual cost may be lower due to prompt caching.
-        If the model changes mid-session, this uses current pricing for all tokens.
-        """
-        input_cost = (
-            self.session_prompt_tokens / 1_000_000
-        ) * self.input_price_per_million
-        output_cost = (
-            self.session_completion_tokens / 1_000_000
-        ) * self.output_price_per_million
-        return input_cost + output_cost
-
-    def update_pricing(self, input_price: float, output_price: float) -> None:
-        """Update pricing info when model changes.
-
-        NOTE: session_cost will be recalculated using new pricing for all
-        accumulated tokens. This is a known approximation when models change.
-        This should not be a big issue, pricing is only used for max_price which is in
-        programmatic mode, so user should not update models there.
-        """
-        self.input_price_per_million = input_price
-        self.output_price_per_million = output_price
 
     def reset_context_state(self) -> None:
         """Reset context-related fields while preserving cumulative session stats.
@@ -307,6 +276,8 @@ class ToolResultEvent(BaseEvent):
     error: str | None = None
     skipped: bool = False
     skip_reason: str | None = None
+    pending: bool = False
+    pending_questions: Any | None = None
     duration: float | None = None
     tool_call_id: str
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING, ClassVar
 
+from pydantic import TypeAdapter
 from textual import events, on
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
@@ -11,10 +12,12 @@ from textual.message import Message
 from textual.widgets import Input, OptionList, Static
 from textual.widgets.option_list import Option
 
+from revibe.core.config import ProviderConfig, VibeConfig
+from revibe.core.llm.backend.known_providers import get_provider_configs_from_registry
 from revibe.setup.onboarding.provider_info import PROVIDER_DESCRIPTIONS
 
 if TYPE_CHECKING:
-    from revibe.core.config import ProviderConfig, VibeConfig
+    pass
 
 
 class ProviderSelector(Container):
@@ -39,12 +42,6 @@ class ProviderSelector(Container):
         super().__init__(id="provider-selector")
         self.config = config
         # Build provider list from registry + user config
-        from pydantic import TypeAdapter
-
-        from revibe.core.llm.backend.known_providers import (
-            get_provider_configs_from_registry,
-        )
-
         registry_configs = get_provider_configs_from_registry()
         adapter = TypeAdapter(list[ProviderConfig])
 

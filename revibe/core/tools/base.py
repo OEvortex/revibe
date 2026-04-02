@@ -18,6 +18,14 @@ class ToolError(Exception):
     """Raised when the tool encounters an unrecoverable problem."""
 
 
+class ToolPendingError(Exception):
+    """Raised when a tool needs to pause and wait for user interaction.
+    
+    Unlike ToolError (which signals a failure), ToolPendingError indicates
+    the tool is waiting for external input that will be provided via re-invocation.
+    """
+
+
 class ToolInfo(BaseModel):
     """Information about a tool.
 

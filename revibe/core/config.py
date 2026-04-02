@@ -165,7 +165,6 @@ class ProviderConfig(BaseModel):
     name: str
     api_base: str
     api_key_env_var: str = ""
-    api_style: str = "openai"
     sdk_mode: SdkMode = "openai"
     custom_header: dict[str, str] = Field(default_factory=dict)
     extra_body: dict[str, Any] = Field(default_factory=dict)

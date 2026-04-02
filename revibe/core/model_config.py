@@ -28,8 +28,6 @@ class ModelConfig(BaseModel):
     provider: str
     alias: str
     temperature: float = 0.2
-    input_price: float = 0.0
-    output_price: float = 0.0
     context: int = 128000
     max_output: int = 32000
     input_tokens: int | None = Field(

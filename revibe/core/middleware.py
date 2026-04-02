@@ -68,15 +68,12 @@ class TurnLimitMiddleware:
 
 
 class PriceLimitMiddleware:
+    """Price limiting middleware (no-op — pricing was removed)."""
+
     def __init__(self, max_price: float) -> None:
         self.max_price = max_price
 
     async def before_turn(self, context: ConversationContext) -> MiddlewareResult:
-        if context.stats.session_cost > self.max_price:
-            return MiddlewareResult(
-                action=MiddlewareAction.STOP,
-                reason=f"Price limit exceeded: ${context.stats.session_cost:.4f} > ${self.max_price:.2f}",
-            )
         return MiddlewareResult()
 
     async def after_turn(self, context: ConversationContext) -> MiddlewareResult:

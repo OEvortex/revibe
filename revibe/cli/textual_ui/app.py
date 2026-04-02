@@ -1021,7 +1021,6 @@ class VibeApp(App):
 - **Session Completion Tokens**: {stats.session_completion_tokens:,}
 - **Session Total LLM Tokens**: {stats.session_total_llm_tokens:,}
 - **Last Turn Tokens**: {stats.last_turn_total_tokens:,}
-- **Cost**: ${stats.session_cost:.4f}
 """
         await self._mount_and_scroll(UserCommandMessage(status_text))
 
@@ -1449,6 +1448,28 @@ class VibeApp(App):
                     return True
             except Exception:
                 pass
+        # Allow double-ESC to clear textarea when agent is not running, regardless of bottom app
+        elif (
+            not self._agent_running
+            and self._last_escape_time is not None
+            and (current_time - self._last_escape_time) < 0.2  # noqa: PLR2004
+        ):
+            return self._clear_input_widget()
+        return False
+
+    def _clear_input_widget(self) -> bool:
+        """Clear the input widget if it has content. Returns True if cleared."""
+        try:
+            input_widget = self.query_one(ChatInputContainer)
+            if input_widget.value:
+                input_widget.value = ""
+                self._last_escape_time = None
+                # Switch to input bottom app to restore focus
+                self._current_bottom_app = BottomApp.Input
+                self._focus_current_bottom_app()
+                return True
+        except Exception:
+            pass
         return False
 
     def _needs_interrupt(self) -> bool:

@@ -19,13 +19,6 @@ if TYPE_CHECKING:
     from revibe.core.config import VibeConfig
 
 
-def _format_price(input_price: float, output_price: float) -> str:
-    """Format model pricing info."""
-    if input_price == 0 and output_price == 0:
-        return "free"
-    return f"${input_price:.2f}/${output_price:.2f}"
-
-
 def _format_context(context: int) -> str:
     """Format context window size."""
     if context >= CONTEXT_MILLION:
@@ -103,12 +96,11 @@ class ModelSelector(Container):
     def _format_model_option(self, model: ModelConfig, is_active: bool) -> str:
         """Format a model option with metadata badges."""
         active_marker = "▸ " if is_active else "  "
-        price = _format_price(model.input_price, model.output_price)
         ctx = _format_context(model.context)
 
         # Truncate long aliases
         alias = model.alias[:24] + "…" if len(model.alias) > 25 else model.alias  # noqa: PLR2004
-        return f"{active_marker}{alias:<26} {price:<12} {ctx}"
+        return f"{active_marker}{alias:<26} {ctx}"
 
     def _update_list(self, filter_text: str = "") -> None:
         option_list = self.query_one("#model-selector-list", OptionList)

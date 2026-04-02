@@ -8,7 +8,7 @@ from revibe.core.tools.base import (
     BaseTool,
     BaseToolConfig,
     BaseToolState,
-    ToolError,
+    ToolPendingError,
     ToolPermission,
 )
 from revibe.core.tools.ui import ToolCallDisplay, ToolResultDisplay, ToolUIData
@@ -95,7 +95,7 @@ class AskUserQuestion(
     async def run(self, args: AskUserQuestionArgs) -> AskUserQuestionResult:
         self.state.pending_questions = args.questions
         self.state.resolved_answers = None
-        raise ToolError(
+        raise ToolPendingError(
             "USER_QUESTION_PENDINGING: The agent should pause and wait for the UI to resolve this question. "
             "The UI will re-invoke this tool with the user's answers."
         )

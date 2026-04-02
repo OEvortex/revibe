@@ -31,8 +31,6 @@ def make_config(
     *,
     system_prompt_id: str = "tests",
     active_model: str = "devstral-latest",
-    input_price: float = 0.4,
-    output_price: float = 2.0,
     disable_logging: bool = True,
     auto_compact_threshold: int = 0,
     include_project_context: bool = False,
@@ -42,26 +40,12 @@ def make_config(
 ) -> VibeConfig:
     models = [
         ModelConfig(
-            name="mistral-vibe-cli-latest",
-            provider="mistral",
-            alias="devstral-latest",
-            input_price=input_price,
-            output_price=output_price,
+            name="mistral-vibe-cli-latest", provider="mistral", alias="devstral-latest"
         ),
         ModelConfig(
-            name="devstral-small-latest",
-            provider="mistral",
-            alias="devstral-small",
-            input_price=0.1,
-            output_price=0.3,
+            name="devstral-small-latest", provider="mistral", alias="devstral-small"
         ),
-        ModelConfig(
-            name="strawberry",
-            provider="lechat",
-            alias="strawberry",
-            input_price=2.5,
-            output_price=10.0,
-        ),
+        ModelConfig(name="strawberry", provider="lechat", alias="strawberry"),
     ]
     providers = [
         ProviderConfig(
@@ -102,12 +86,6 @@ def observer_capture() -> tuple[list[LLMMessage], Callable[[LLMMessage], None]]:
 
 
 class TestAgentStatsHelpers:
-    def test_update_pricing(self) -> None:
-        stats = AgentStats()
-        stats.update_pricing(1.5, 3.0)
-        assert stats.input_price_per_million == 1.5
-        assert stats.output_price_per_million == 3.0
-
     def test_reset_context_state_preserves_cumulative(self) -> None:
         stats = AgentStats(
             steps=5,
@@ -120,8 +98,6 @@ class TestAgentStatsHelpers:
             last_turn_completion_tokens=50,
             last_turn_duration=1.5,
             tokens_per_second=33.3,
-            input_price_per_million=0.4,
-            output_price_per_million=2.0,
         )
 
         stats.reset_context_state()
@@ -131,28 +107,12 @@ class TestAgentStatsHelpers:
         assert stats.session_completion_tokens == 500
         assert stats.tool_calls_succeeded == 3
         assert stats.tool_calls_failed == 1
-        assert stats.input_price_per_million == 0.4
-        assert stats.output_price_per_million == 2.0
 
         assert stats.context_tokens == 0
         assert stats.last_turn_prompt_tokens == 0
         assert stats.last_turn_completion_tokens == 0
         assert stats.last_turn_duration == 0.0
         assert stats.tokens_per_second == 0.0
-
-    def test_session_cost_computed_from_current_pricing(self) -> None:
-        stats = AgentStats(
-            session_prompt_tokens=1_000_000,
-            session_completion_tokens=500_000,
-            input_price_per_million=1.0,
-            output_price_per_million=2.0,
-        )
-        # Cost = 1M * $1/M + 0.5M * $2/M = $1 + $1 = $2
-        assert stats.session_cost == 2.0
-
-        stats.update_pricing(2.0, 4.0)
-        # Cost = 1M * $2/M + 0.5M * $4/M = $2 + $2 = $4
-        assert stats.session_cost == 4.0
 
 
 class TestReloadPreservesStats:
@@ -270,26 +230,6 @@ class TestReloadPreservesStats:
 
         assert len(agent.messages) > 1
         assert agent.stats.context_tokens == original_context_tokens
-
-    @pytest.mark.asyncio
-    async def test_reload_updates_pricing_from_new_model(self, monkeypatch) -> None:
-        monkeypatch.setenv("LECHAT_API_KEY", "mock-key")
-
-        backend = FakeBackend(mock_llm_chunk(content="Response"))
-        config_mistral = make_config(active_model="devstral-latest")
-        agent = Agent(config_mistral, backend=backend)
-
-        async for _ in agent.act("Hello"):
-            pass
-
-        assert agent.stats.input_price_per_million == 0.4
-        assert agent.stats.output_price_per_million == 2.0
-
-        config_other = make_config(active_model="strawberry")
-        await agent.reload_with_initial_messages(config=config_other)
-
-        assert agent.stats.input_price_per_million == 2.5
-        assert agent.stats.output_price_per_million == 10.0
 
     @pytest.mark.asyncio
     async def test_reload_accumulates_tokens_across_configs(self, monkeypatch) -> None:
@@ -551,20 +491,6 @@ class TestClearHistoryFullReset:
         assert agent.stats.steps == 0
 
     @pytest.mark.asyncio
-    async def test_clear_history_preserves_pricing(self) -> None:
-        backend = FakeBackend(mock_llm_chunk(content="Response"))
-        config = make_config(input_price=0.4, output_price=2.0)
-        agent = Agent(config, backend=backend)
-
-        async for _ in agent.act("Hello"):
-            pass
-
-        await agent.clear_history()
-
-        assert agent.stats.input_price_per_million == 0.4
-        assert agent.stats.output_price_per_million == 2.0
-
-    @pytest.mark.asyncio
     async def test_clear_history_removes_messages(self) -> None:
         backend = FakeBackend(mock_llm_chunk(content="Response"))
         agent = Agent(make_config(), backend=backend)
@@ -599,28 +525,6 @@ class TestClearHistoryFullReset:
 
 
 class TestStatsEdgeCases:
-    @pytest.mark.asyncio
-    async def test_session_cost_approximation_on_model_change(
-        self, monkeypatch
-    ) -> None:
-        monkeypatch.setenv("LECHAT_API_KEY", "mock-key")
-
-        backend = FakeBackend(mock_llm_chunk(content="Response"))
-        config1 = make_config(active_model="devstral-latest")
-        agent = Agent(config1, backend=backend)
-
-        async for _ in agent.act("Hello"):
-            pass
-
-        cost_before = agent.stats.session_cost
-
-        config2 = make_config(active_model="strawberry")
-        await agent.reload_with_initial_messages(config=config2)
-
-        cost_after = agent.stats.session_cost
-
-        assert cost_after > cost_before
-
     @pytest.mark.asyncio
     async def test_multiple_reloads_accumulate_correctly(self) -> None:
         backend = FakeBackend([

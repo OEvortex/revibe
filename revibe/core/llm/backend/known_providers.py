@@ -561,7 +561,6 @@ def get_provider_configs_from_registry() -> list[dict[str, Any]]:
             "display_name": provider.get("display_name", name),
             "api_base": base_url,
             "api_key_env_var": provider.get("api_key_template", ""),
-            "api_style": "openai",
             "sdk_mode": provider.get("sdk_mode", "openai"),
             "family": provider.get("family", ""),
             "fetch_models": provider.get("fetch_models", False),

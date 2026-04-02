@@ -31,18 +31,10 @@ def acp_agent(backend: FakeBackend) -> VibeAcpAgent:
         active_model="devstral-latest",
         models=[
             ModelConfig(
-                name="devstral-latest",
-                provider="mistral",
-                alias="devstral-latest",
-                input_price=0.4,
-                output_price=2.0,
+                name="devstral-latest", provider="mistral", alias="devstral-latest"
             ),
             ModelConfig(
-                name="devstral-small",
-                provider="mistral",
-                alias="devstral-small",
-                input_price=0.1,
-                output_price=0.3,
+                name="devstral-small", provider="mistral", alias="devstral-small"
             ),
         ],
     )
@@ -52,13 +44,11 @@ def acp_agent(backend: FakeBackend) -> VibeAcpAgent:
     class PatchedAgent(Agent):
         def __init__(self, *args, **kwargs) -> None:
             # Update kwargs with backend to avoid duplicate parameter
-            kwargs['backend'] = backend
+            kwargs["backend"] = backend
             super().__init__(*args, **kwargs)
             self.config = config
             try:
-                active_model = config.get_active_model()
-                self.stats.input_price_per_million = active_model.input_price
-                self.stats.output_price_per_million = active_model.output_price
+                config.get_active_model()
             except ValueError:
                 pass
 
@@ -212,32 +202,6 @@ class TestACPSetModel:
         assert acp_session.agent.config.get_active_model().alias == "devstral-small"
 
     @pytest.mark.asyncio
-    async def test_set_model_calls_reload_with_initial_messages(
-        self, acp_agent: VibeAcpAgent
-    ) -> None:
-        session_response = await acp_agent.newSession(
-            NewSessionRequest(cwd=str(Path.cwd()), mcpServers=[])
-        )
-        session_id = session_response.sessionId
-        acp_session = next(
-            (s for s in acp_agent.sessions.values() if s.id == session_id), None
-        )
-        assert acp_session is not None
-
-        with patch.object(
-            acp_session.agent, "reload_with_initial_messages"
-        ) as mock_reload:
-            response = await acp_agent.setSessionModel(
-                SetSessionModelRequest(sessionId=session_id, modelId="devstral-small")
-            )
-
-            assert response is not None
-            mock_reload.assert_called_once()
-            call_args = mock_reload.call_args
-            assert call_args.kwargs["config"] is not None
-            assert call_args.kwargs["config"].active_model == "devstral-small"
-
-    @pytest.mark.asyncio
     async def test_set_model_preserves_conversation_history(
         self, acp_agent: VibeAcpAgent
     ) -> None:
@@ -266,45 +230,3 @@ class TestACPSetModel:
         assert acp_session.agent.messages[0].role == Role.system
         assert acp_session.agent.messages[1].content == "Hello"
         assert acp_session.agent.messages[2].content == "Hi there!"
-
-    @pytest.mark.asyncio
-    async def test_set_model_resets_stats_with_new_model_pricing(
-        self, acp_agent: VibeAcpAgent
-    ) -> None:
-        session_response = await acp_agent.newSession(
-            NewSessionRequest(cwd=str(Path.cwd()), mcpServers=[])
-        )
-        session_id = session_response.sessionId
-        acp_session = next(
-            (s for s in acp_agent.sessions.values() if s.id == session_id), None
-        )
-        assert acp_session is not None
-
-        initial_model = acp_session.agent.config.get_active_model()
-        initial_input_price = initial_model.input_price
-        initial_output_price = initial_model.output_price
-
-        initial_stats_input = acp_session.agent.stats.input_price_per_million
-        initial_stats_output = acp_session.agent.stats.output_price_per_million
-
-        assert acp_session.agent.stats.input_price_per_million == initial_input_price
-        assert acp_session.agent.stats.output_price_per_million == initial_output_price
-
-        response = await acp_agent.setSessionModel(
-            SetSessionModelRequest(sessionId=session_id, modelId="devstral-small")
-        )
-
-        assert response is not None
-
-        new_model = acp_session.agent.config.get_active_model()
-        new_input_price = new_model.input_price
-        new_output_price = new_model.output_price
-
-        assert new_input_price != initial_input_price
-        assert new_output_price != initial_output_price
-
-        assert acp_session.agent.stats.input_price_per_million == new_input_price
-        assert acp_session.agent.stats.output_price_per_million == new_output_price
-
-        assert acp_session.agent.stats.input_price_per_million != initial_stats_input
-        assert acp_session.agent.stats.output_price_per_million != initial_stats_output

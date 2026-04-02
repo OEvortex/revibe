@@ -39,6 +39,7 @@ from revibe.core.system_prompt import get_universal_system_prompt
 from revibe.core.tools.base import (
     BaseTool,
     ToolError,
+    ToolPendingError,
     ToolPermission,
     ToolPermissionError,
 )
@@ -138,14 +139,11 @@ class Agent:
             self._last_observed_message_index = 1
 
         self.stats = AgentStats()
-        try:
-            active_model = config.get_active_model()
-            self.stats.input_price_per_million = active_model.input_price
-            self.stats.output_price_per_million = active_model.output_price
-        except ValueError:
-            pass
 
         self.approval_callback: ApprovalCallback | None = None
+
+        # Pending questions from ask_user_question tool
+        self.pending_questions: list[Any] | None = None
 
         self.session_id = str(uuid4())
 
@@ -752,6 +750,14 @@ class Agent:
                     "type": "cancelled",
                 }
 
+            except ToolPendingError as exc:
+                self.pending_questions = tool_instance.state.pending_questions
+                return {
+                    "tool_call": tool_call,
+                    "error": str(exc),
+                    "type": "pending",
+                }
+
             except (ToolError, ToolPermissionError) as exc:
                 error_msg = f"<{TOOL_ERROR_TAG}>{tool_instance.get_name()} failed: {exc}</{TOOL_ERROR_TAG}>"
                 return {
@@ -836,6 +842,21 @@ class Agent:
                     )
                     raise result["exception"]
 
+                case "pending":
+                    yield ToolResultEvent(
+                        tool_name=tool_call.tool_name,
+                        tool_class=tool_call.tool_class,
+                        pending=True,
+                        pending_questions=self.pending_questions,
+                        error=result["error"],
+                        tool_call_id=tool_call_id,
+                    )
+                    # Don't add message to history or continue - agent should pause
+                    self.stats.tool_calls_pending = getattr(
+                        self.stats, "tool_calls_pending", 0
+                    ) + 1
+                    return  # Stop processing further tool calls
+
                 case "tool_error":
                     yield ToolResultEvent(
                         tool_name=tool_call.tool_name,
@@ -895,14 +916,6 @@ class Agent:
         self.messages = self.messages[:1]
 
         self.stats = AgentStats()
-
-        try:
-            active_model = self.config.get_active_model()
-            self.stats.update_pricing(
-                active_model.input_price, active_model.output_price
-            )
-        except ValueError:
-            pass
 
         self.middleware_pipeline.reset()
         self.tool_manager.reset_all()
@@ -1014,14 +1027,6 @@ class Agent:
 
         if len(self.messages) == 1:
             self.stats.reset_context_state()
-
-        try:
-            active_model = self.config.get_active_model()
-            self.stats.update_pricing(
-                active_model.input_price, active_model.output_price
-            )
-        except ValueError:
-            pass
 
         self._last_observed_message_index = 0
 
