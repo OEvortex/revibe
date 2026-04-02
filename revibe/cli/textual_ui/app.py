@@ -45,6 +45,7 @@ from revibe.cli.textual_ui.widgets.mode_indicator import ModeIndicator
 from revibe.cli.textual_ui.widgets.model_selector import ModelSelector
 from revibe.cli.textual_ui.widgets.path_display import PathDisplay
 from revibe.cli.textual_ui.widgets.provider_selector import ProviderSelector
+from revibe.cli.textual_ui.widgets.question_app import QuestionApp
 from revibe.cli.textual_ui.widgets.tools import ToolCallMessage, ToolResultMessage
 from revibe.cli.textual_ui.widgets.welcome import WelcomeBanner
 from revibe.cli.update_notifier import (
@@ -82,6 +83,7 @@ class BottomApp(StrEnum):
     Input = auto()
     Provider = auto()
     Model = auto()
+    Question = auto()
 
 
 # ruff: noqa: PLR0904
@@ -97,6 +99,7 @@ class VibeApp(App):
         "tcss/app/config.tcss",
         "tcss/app/bottom_bar.tcss",
         "tcss/app/approval.tcss",
+        "tcss/app/question.tcss",
         "tcss/app/mode_indicator.tcss",
         "tcss/welcome_banner/layout.tcss",
         "tcss/welcome_banner/theme.tcss",
@@ -161,6 +164,7 @@ class VibeApp(App):
 
         self._loading_widget: LoadingWidget | None = None
         self._pending_approval: asyncio.Future | None = None
+        self._pending_question: asyncio.Future | None = None
 
         self.event_handler: EventHandler | None = None
         self.commands = CommandRegistry()
@@ -314,6 +318,16 @@ class VibeApp(App):
         if self._pending_approval and not self._pending_approval.done():
             self._pending_approval.set_result((ApprovalResponse.YES, None))
 
+        await self._switch_to_input_app()
+
+    async def on_question_app_answered(self, message: QuestionApp.Answered) -> None:
+        if self._pending_question and not self._pending_question.done():
+            self._pending_question.set_result(message.answers)
+        await self._switch_to_input_app()
+
+    async def on_question_app_cancelled(self, message: QuestionApp.Cancelled) -> None:
+        if self._pending_question and not self._pending_question.done():
+            self._pending_question.set_result([])
         await self._switch_to_input_app()
 
     async def on_approval_app_approval_rejected(
@@ -788,6 +802,7 @@ class VibeApp(App):
 
             if not self._current_agent_mode.auto_approve:
                 agent.approval_callback = self._approval_callback
+            agent.question_callback = self._question_callback
 
             if self._loaded_messages:
                 non_system_messages = [
@@ -890,6 +905,13 @@ class VibeApp(App):
         await self._switch_to_approval_app(tool, args)
         result = await self._pending_approval
         self._pending_approval = None
+        return result
+
+    async def _question_callback(self, questions: Any) -> list[dict[str, list[str]]]:
+        self._pending_question = asyncio.Future()
+        await self._switch_to_question_app(questions)
+        result = await self._pending_question
+        self._pending_question = None
         return result
 
     async def _handle_agent_turn(self, prompt: str) -> None:
@@ -1272,6 +1294,7 @@ class VibeApp(App):
             ProviderSelector,
             ModelSelector,
             ApiKeyInput,
+            QuestionApp,
         ]:
             try:
                 widget = self.query_one(widget_type)
@@ -1350,6 +1373,19 @@ class VibeApp(App):
 
         self.call_after_refresh(model_selector.focus)
 
+    async def _switch_to_question_app(self, questions: Any) -> None:
+        bottom_container = self.query_one("#bottom-app-container")
+        await self._clear_bottom_app()
+
+        if self._mode_indicator:
+            self._mode_indicator.display = False
+
+        question_app = QuestionApp(questions)
+        await bottom_container.mount(question_app)
+        self._current_bottom_app = BottomApp.Question
+
+        self.call_after_refresh(question_app.focus)
+
     async def _switch_to_approval_app(
         self, tool_name: str, tool_args: BaseModel
     ) -> None:
@@ -1406,6 +1442,8 @@ class VibeApp(App):
                     self.query_one(ProviderSelector).focus()
                 case BottomApp.Model:
                     self.query_one(ModelSelector).focus()
+                case BottomApp.Question:
+                    self.query_one(QuestionApp).focus()
                 case BottomApp.ApiKeyInput:
                     self.query_one(ApiKeyInput).focus()
         except Exception:

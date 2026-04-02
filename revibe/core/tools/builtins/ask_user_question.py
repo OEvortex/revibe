@@ -24,7 +24,9 @@ class QuestionItem(BaseModel):
     question: str = Field(description="Complete question")
     header: str = Field(description="Very short label (max 30 chars)", max_length=30)
     options: list[QuestionOption] = Field(
-        description="Available choices", min_length=2, max_length=4
+        description="Available choices (max 6 - do NOT include 'Other', it's added automatically)",
+        min_length=2,
+        max_length=6,
     )
     multiple: bool = Field(
         default=False, description="Allow selecting multiple options"
@@ -62,10 +64,10 @@ class AskUserQuestion(
     description: ClassVar[str] = (
         "Ask the user one or more questions via a multi-tab UI. "
         "Use when you need clarification on requirements, technical decisions, or preferences. "
-        "Supports 1-4 questions per call, each with 2-4 options. "
+        "Supports 1-4 questions per call, each with 2-6 options. "
+        "IMPORTANT: Do NOT include 'Other' in options - it's added automatically for free-text input. "
         "Each question has: question (full text), header (short label, max 30 chars), "
-        "options (list of {label, description}), multiple (bool, default false). "
-        "An 'Other' option for free-text input is automatically added."
+        "options (list of {label, description}), multiple (bool, default false)."
     )
 
     @classmethod
@@ -93,6 +95,11 @@ class AskUserQuestion(
         return "Waiting for user response"
 
     async def run(self, args: AskUserQuestionArgs) -> AskUserQuestionResult:
+        if self.state.resolved_answers is not None:
+            answers = self.state.resolved_answers
+            self.state.resolved_answers = None
+            self.state.pending_questions = None
+            return AskUserQuestionResult(answers=answers)
         self.state.pending_questions = args.questions
         self.state.resolved_answers = None
         raise ToolPendingError("Waiting for user response")

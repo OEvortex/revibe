@@ -141,6 +141,7 @@ class Agent:
         self.stats = AgentStats()
 
         self.approval_callback: ApprovalCallback | None = None
+        self.question_callback: Callable[[Any], Any] | None = None
 
         # Pending questions from ask_user_question tool
         self.pending_questions: list[Any] | None = None
@@ -752,6 +753,31 @@ class Agent:
 
             except ToolPendingError as exc:
                 self.pending_questions = tool_instance.state.pending_questions
+                if (
+                    self.question_callback is not None
+                    and self.pending_questions is not None
+                ):
+                    try:
+                        answers = await self.question_callback(self.pending_questions)
+                        tool_instance.state.resolved_answers = answers
+
+                        start_time = time.perf_counter()
+                        result_model = await tool_instance.invoke(**tool_call.args_dict)
+                        duration = time.perf_counter() - start_time
+
+                        text = "\n".join(
+                            f"{k}: {v}" for k, v in result_model.model_dump().items()
+                        )
+
+                        return {
+                            "tool_call": tool_call,
+                            "result_model": result_model,
+                            "text": text,
+                            "duration": duration,
+                            "type": "result",
+                        }
+                    except Exception:
+                        pass
                 return {"tool_call": tool_call, "error": str(exc), "type": "pending"}
 
             except (ToolError, ToolPermissionError) as exc:
@@ -771,6 +797,26 @@ class Agent:
             tool_call_id = tool_call.call_id
 
             match result["type"]:
+                case "result":
+                    # Tool execution completed successfully after user answered a question
+                    self.messages.append(
+                        LLMMessage.model_validate(
+                            self.format_handler.create_tool_response_message(
+                                tool_call, result["text"]
+                            )
+                        )
+                    )
+
+                    yield ToolResultEvent(
+                        tool_name=tool_call.tool_name,
+                        tool_class=tool_call.tool_class,
+                        result=result["result_model"],
+                        duration=result.get("duration"),
+                        tool_call_id=tool_call_id,
+                    )
+
+                    self.stats.tool_calls_succeeded += 1
+
                 case "success":
                     self.messages.append(
                         LLMMessage.model_validate(

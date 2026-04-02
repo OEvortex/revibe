@@ -1,0 +1,80 @@
+#question-app {
+    width: 100%;
+    height: auto;
+    max-height: 24;
+    background: $background;
+    border: round $primary;
+    padding: 1 2;
+    margin: 0 0 1 0;
+}
+
+#question-content {
+    width: 100%;
+    height: auto;
+}
+
+.question-tabs {
+    height: auto;
+    color: $text-muted;
+    margin-bottom: 1;
+}
+
+.question-title {
+    height: auto;
+    text-style: bold;
+    color: $foreground;
+    margin-bottom: 1;
+}
+
+.question-option {
+    height: auto;
+    color: $foreground;
+    padding: 0 0 0 0;
+}
+
+.question-option-focused {
+    color: $primary;
+    text-style: bold;
+}
+
+.question-other-row {
+    width: 100%;
+    height: auto;
+}
+
+.question-other-prefix {
+    height: auto;
+    color: $foreground;
+    width: auto;
+    min-width: 6;
+}
+
+.question-other-input {
+    width: 1fr;
+    height: auto;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+.question-other-static {
+    height: auto;
+    color: $text-muted;
+    width: 1fr;
+}
+
+.question-submit {
+    height: auto;
+    color: $foreground;
+}
+
+.question-option-focused.question-submit {
+    color: $success;
+    text-style: bold;
+}
+
+.question-help {
+    height: auto;
+    color: $text-muted;
+    margin-top: 1;
+}
