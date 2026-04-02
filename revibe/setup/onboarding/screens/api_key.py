@@ -71,7 +71,7 @@ def _resolve_provider(config: VibeConfig) -> ProviderConfig | None:
         active_model_name = getattr(config, "active_model", "")
         if active_model_name:
             for model in config.models:
-                if model.alias == active_model_name or model.name == active_model_name:
+                if active_model_name in {model.alias, model.name}:
                     return config.get_provider_for_model(model)
 
         if config.models:
@@ -103,7 +103,7 @@ class ApiKeyScreen(OnboardingScreen):
         return super().app
 
     @app.setter
-    def app(self, value) -> None:
+    def app(self, value: object) -> None:
         self._test_app = value
 
     def _load_config(self) -> VibeConfig:

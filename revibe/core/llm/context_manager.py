@@ -1,3 +1,12 @@
+"""Token limit resolution and model capability detection.
+
+Model-specific token limits and capabilities are defined as data-driven
+profiles rather than hardcoded detection functions. When models are
+fetched from provider APIs, their limits and capabilities are stored
+directly in ModelConfig fields. The profiles here serve as fallbacks
+for models that don't have explicit configuration.
+"""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,63 +18,6 @@ TOKENS_PER_MEBI = TOKENS_PER_KIBI * TOKENS_PER_KIBI
 DEFAULT_CONTEXT_LENGTH = 128 * TOKENS_PER_KIBI
 DEFAULT_MAX_OUTPUT_TOKENS = 16 * TOKENS_PER_KIBI
 DEFAULT_MIN_RESERVED_INPUT_TOKENS = 1_024
-
-CLAUDE_TOTAL_TOKENS = 200 * TOKENS_PER_KIBI
-CLAUDE_MAX_INPUT_TOKENS = CLAUDE_TOTAL_TOKENS - 32 * TOKENS_PER_KIBI
-CLAUDE_MAX_OUTPUT_TOKENS = 32 * TOKENS_PER_KIBI
-
-DEVSTRAL_MAX_INPUT_TOKENS = 256 * TOKENS_PER_KIBI - 32 * TOKENS_PER_KIBI
-DEVSTRAL_MAX_OUTPUT_TOKENS = 32 * TOKENS_PER_KIBI
-
-DEEPSEEK_TOTAL_TOKENS = 160 * TOKENS_PER_KIBI
-DEEPSEEK_MAX_OUTPUT_TOKENS = 16 * TOKENS_PER_KIBI
-DEEPSEEK_MAX_INPUT_TOKENS = DEEPSEEK_TOTAL_TOKENS - DEEPSEEK_MAX_OUTPUT_TOKENS
-
-FIXED_128K_MAX_INPUT_TOKENS = 128 * TOKENS_PER_KIBI - 16 * TOKENS_PER_KIBI
-FIXED_128K_MAX_OUTPUT_TOKENS = 16 * TOKENS_PER_KIBI
-
-FIXED_256K_MAX_INPUT_TOKENS = 256 * TOKENS_PER_KIBI - 32 * TOKENS_PER_KIBI
-FIXED_256K_MAX_OUTPUT_TOKENS = 32 * TOKENS_PER_KIBI
-
-FIXED_64K_TOTAL_TOKENS = 64 * TOKENS_PER_KIBI
-FIXED_64K_MAX_OUTPUT_TOKENS = 8 * TOKENS_PER_KIBI
-FIXED_64K_MAX_INPUT_TOKENS = FIXED_64K_TOTAL_TOKENS - FIXED_64K_MAX_OUTPUT_TOKENS
-
-GEMINI_1M_TOTAL_TOKENS = TOKENS_PER_MEBI
-GEMINI25_MAX_OUTPUT_TOKENS = 32 * TOKENS_PER_KIBI
-GEMINI25_MAX_INPUT_TOKENS = GEMINI_1M_TOTAL_TOKENS - GEMINI25_MAX_OUTPUT_TOKENS
-GEMINI2_MAX_OUTPUT_TOKENS = 32 * TOKENS_PER_KIBI
-GEMINI2_MAX_INPUT_TOKENS = GEMINI_1M_TOTAL_TOKENS - GEMINI2_MAX_OUTPUT_TOKENS
-GEMINI3_MAX_OUTPUT_TOKENS = 64 * TOKENS_PER_KIBI
-GEMINI3_MAX_INPUT_TOKENS = GEMINI_1M_TOTAL_TOKENS - GEMINI3_MAX_OUTPUT_TOKENS
-
-GPT4_1_TOTAL_TOKENS = TOKENS_PER_MEBI
-GPT4_1_MAX_OUTPUT_TOKENS = 32 * TOKENS_PER_KIBI
-GPT4_1_MAX_INPUT_TOKENS = GPT4_1_TOTAL_TOKENS - GPT4_1_MAX_OUTPUT_TOKENS
-
-GPT5_MAX_INPUT_TOKENS = 400 * TOKENS_PER_KIBI - 64 * TOKENS_PER_KIBI
-GPT5_MAX_OUTPUT_TOKENS = 64 * TOKENS_PER_KIBI
-
-MIMOV2_PRO_TOTAL_TOKENS = TOKENS_PER_MEBI
-MIMOV2_PRO_MAX_OUTPUT_TOKENS = 64 * TOKENS_PER_KIBI
-MIMOV2_PRO_MAX_INPUT_TOKENS = MIMOV2_PRO_TOTAL_TOKENS - MIMOV2_PRO_MAX_OUTPUT_TOKENS
-
-MIMOV2_OMNI_MAX_INPUT_TOKENS = 256 * TOKENS_PER_KIBI - 32 * TOKENS_PER_KIBI
-MIMOV2_OMNI_MAX_OUTPUT_TOKENS = 32 * TOKENS_PER_KIBI
-
-QWEN35_TOTAL_TOKENS = 256 * TOKENS_PER_KIBI
-QWEN35_MAX_OUTPUT_TOKENS = 32 * TOKENS_PER_KIBI
-QWEN35_MAX_INPUT_TOKENS = QWEN35_TOTAL_TOKENS - QWEN35_MAX_OUTPUT_TOKENS
-
-QWEN35_1M_MAX_INPUT_TOKENS = TOKENS_PER_MEBI - 32 * TOKENS_PER_KIBI
-QWEN35_1M_MAX_OUTPUT_TOKENS = 32 * TOKENS_PER_KIBI
-
-QWEN36_1M_MAX_INPUT_TOKENS = TOKENS_PER_MEBI - 32 * TOKENS_PER_KIBI
-QWEN36_1M_MAX_OUTPUT_TOKENS = 32 * TOKENS_PER_KIBI
-
-MINIMAX_TOTAL_TOKENS = 205 * TOKENS_PER_KIBI
-MINIMAX_MAX_OUTPUT_TOKENS = 32 * TOKENS_PER_KIBI
-MINIMAX_MAX_INPUT_TOKENS = MINIMAX_TOTAL_TOKENS - MINIMAX_MAX_OUTPUT_TOKENS
 
 HIGH_CONTEXT_THRESHOLD = 200 * TOKENS_PER_KIBI
 HIGH_CONTEXT_MAX_OUTPUT_TOKENS = 32 * TOKENS_PER_KIBI
@@ -81,125 +33,144 @@ class TokenLimits:
         return self.max_input_tokens + self.max_output_tokens
 
 
-def is_devstral_model(model_id: str) -> bool:
-    return bool(re.search(r"devstral[-_]?2", model_id, flags=re.IGNORECASE))
+@dataclass(frozen=True, slots=True)
+class _ModelProfile:
+    """Data-driven model profile for token limits and capabilities."""
+
+    pattern: str
+    limits: TokenLimits
+    supports_vision: bool = False
+
+    def matches(self, model_id: str) -> bool:
+        return bool(re.search(self.pattern, model_id, flags=re.IGNORECASE))
 
 
-def is_deepseek_model(model_id: str) -> bool:
-    return bool(re.search(r"deepseek[-_]?", model_id, flags=re.IGNORECASE))
+# Data-driven model profiles. Each entry defines a regex pattern to match
+# model IDs, the token limits to use, and whether the model supports vision.
+# Order matters: first matching profile wins.
+MODEL_PROFILES: list[_ModelProfile] = [
+    _ModelProfile(
+        r"qwen[-_]?3(?:\.|[-_])?5[-_]?(?:flash|plus)",
+        TokenLimits(TOKENS_PER_MEBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+        supports_vision=True,
+    ),
+    _ModelProfile(
+        r"qwen[-_]?3(?:\.|[-_])?6",
+        TokenLimits(TOKENS_PER_MEBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+        supports_vision=True,
+    ),
+    _ModelProfile(
+        r"gpt-5",
+        TokenLimits(400 * TOKENS_PER_KIBI - 64 * TOKENS_PER_KIBI, 64 * TOKENS_PER_KIBI),
+        supports_vision=True,
+    ),
+    _ModelProfile(
+        r"gpt-4-1",
+        TokenLimits(TOKENS_PER_MEBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+        supports_vision=True,
+    ),
+    _ModelProfile(
+        r"gpt-4o",
+        TokenLimits(128 * TOKENS_PER_KIBI - 16 * TOKENS_PER_KIBI, 16 * TOKENS_PER_KIBI),
+        supports_vision=True,
+    ),
+    _ModelProfile(
+        r"nova[-_]?2",
+        TokenLimits(TOKENS_PER_MEBI - 64 * TOKENS_PER_KIBI, 64 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"claude[-_]?opus[-_]?4(?:\.|-)6",
+        TokenLimits(TOKENS_PER_MEBI - 64 * TOKENS_PER_KIBI, 64 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"claude[-_]?",
+        TokenLimits(200 * TOKENS_PER_KIBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+        supports_vision=True,
+    ),
+    _ModelProfile(
+        r"gemini[-_]?3(?:\.[-_]?1)?",
+        TokenLimits(TOKENS_PER_MEBI - 64 * TOKENS_PER_KIBI, 64 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"gemini[-_]?2(?:\.|-)5",
+        TokenLimits(TOKENS_PER_MEBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"gemini[-_]?2(?!\.|-?5)",
+        TokenLimits(TOKENS_PER_MEBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"gemini[-_]?\d",
+        TokenLimits(TOKENS_PER_MEBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+        supports_vision=True,
+    ),
+    _ModelProfile(
+        r"mimo[-_]?v2[-_]?pro",
+        TokenLimits(TOKENS_PER_MEBI - 64 * TOKENS_PER_KIBI, 64 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"mimo[-_]?v2[-_]?omni",
+        TokenLimits(256 * TOKENS_PER_KIBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+        supports_vision=True,
+    ),
+    _ModelProfile(
+        r"ming[-_]?flash[-_]?omni[-_]?2(?:\.|-)0",
+        TokenLimits(64 * TOKENS_PER_KIBI - 8 * TOKENS_PER_KIBI, 8 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"ming-flash-omni-2-0",
+        TokenLimits(64 * TOKENS_PER_KIBI - 8 * TOKENS_PER_KIBI, 8 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"minimax[-_]?m2",
+        TokenLimits(205 * TOKENS_PER_KIBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"deepseek[-_]?",
+        TokenLimits(160 * TOKENS_PER_KIBI - 16 * TOKENS_PER_KIBI, 16 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"devstral[-_]?2",
+        TokenLimits(256 * TOKENS_PER_KIBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"gemma[-_]?3",
+        TokenLimits(128 * TOKENS_PER_KIBI - 16 * TOKENS_PER_KIBI, 16 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"llama[-_]?3[-_]?2",
+        TokenLimits(128 * TOKENS_PER_KIBI - 16 * TOKENS_PER_KIBI, 16 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"kimi[-_/]?k2(?:\.|-)5",
+        TokenLimits(256 * TOKENS_PER_KIBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+        supports_vision=True,
+    ),
+    _ModelProfile(
+        r"kimi[-_]?k2",
+        TokenLimits(256 * TOKENS_PER_KIBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+    ),
+    _ModelProfile(
+        r"qwen3\.5",
+        TokenLimits(256 * TOKENS_PER_KIBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+        supports_vision=True,
+    ),
+    _ModelProfile(
+        r"nemotron[-_]?3",
+        TokenLimits(256 * TOKENS_PER_KIBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI),
+    ),
+]
+
+# Models matching these patterns support vision regardless of MODEL_PROFILES
+_VISION_PATTERNS: list[str] = [r"gpt(?!-oss)"]
 
 
-def is_gemma3_model(model_id: str) -> bool:
-    return bool(re.search(r"gemma[-_]?3", model_id, flags=re.IGNORECASE))
-
-
-def is_llama32_model(model_id: str) -> bool:
-    return bool(re.search(r"llama[-_]?3[-_]?2", model_id, flags=re.IGNORECASE))
-
-
-def is_gemini25_model(model_id: str) -> bool:
-    return bool(re.search(r"gemini[-_]?2(?:\.|-)5", model_id, flags=re.IGNORECASE))
-
-
-def is_gemini2_model(model_id: str) -> bool:
-    return bool(re.search(r"gemini[-_]?2(?!\.|-?5)", model_id, flags=re.IGNORECASE))
-
-
-def is_gemini3_model(model_id: str) -> bool:
-    return bool(re.search(r"gemini[-_]?3(?:\.[-_]?1)?", model_id, flags=re.IGNORECASE))
-
-
-def is_gemini_model(model_id: str) -> bool:
-    return bool(re.search(r"gemini[-_]?\d", model_id, flags=re.IGNORECASE))
-
-
-def is_glm45_model(model_id: str) -> bool:
-    return bool(re.search(r"glm-4\.5(?!\d)", model_id, flags=re.IGNORECASE))
-
-
-def is_glm_model(model_id: str) -> bool:
-    return bool(re.search(r"glm-(?:5|4\.(?:6|7))(?!\d)", model_id, flags=re.IGNORECASE))
-
-
-def is_gpt41_model(model_id: str) -> bool:
-    return bool(re.search(r"gpt-4-1", model_id, flags=re.IGNORECASE))
-
-
-def is_gpt4o_model(model_id: str) -> bool:
-    return bool(re.search(r"gpt-4o", model_id, flags=re.IGNORECASE))
-
-
-def is_gpt5_model(model_id: str) -> bool:
-    return bool(re.search(r"gpt-5", model_id, flags=re.IGNORECASE))
-
-
-def is_qwen35_model(model_id: str) -> bool:
-    return bool(re.search(r"qwen3\.5", model_id, flags=re.IGNORECASE))
-
-
-def is_nemotron3_model(model_id: str) -> bool:
-    return bool(re.search(r"nemotron[-_]?3", model_id, flags=re.IGNORECASE))
-
-
-def is_nova2_model(model_id: str) -> bool:
-    return bool(re.search(r"nova[-_]?2", model_id, flags=re.IGNORECASE))
-
-
-def is_qwen35_one_million_context_model(model_id: str) -> bool:
-    return bool(
-        re.search(
-            r"qwen[-_]?3(?:\.|[-_])?5[-_]?(?:flash|plus)", model_id, flags=re.IGNORECASE
-        )
-    )
-
-
-def is_qwen36_one_million_context_model(model_id: str) -> bool:
-    return bool(re.search(r"qwen[-_]?3(?:\.|[-_])?6", model_id, flags=re.IGNORECASE))
-
-
-def is_claude_model(model_id: str) -> bool:
-    return bool(re.search(r"claude[-_]?", model_id, flags=re.IGNORECASE))
-
-
-def is_kimi_k25_model(model_id: str) -> bool:
-    return bool(re.search(r"kimi[-_/]?k2(?:\.|-)5", model_id, flags=re.IGNORECASE))
-
-
-def is_kimi_model(model_id: str) -> bool:
-    return bool(re.search(r"kimi[-_]?k2", model_id, flags=re.IGNORECASE))
-
-
-def is_minimax_model(model_id: str) -> bool:
-    return bool(re.search(r"minimax[-_]?m2", model_id, flags=re.IGNORECASE))
-
-
-def is_claude_opus_46_model(model_id: str) -> bool:
-    return bool(
-        re.search(r"claude[-_]?opus[-_]?4(?:\.|-)6", model_id, flags=re.IGNORECASE)
-    )
-
-
-def is_vision_gpt_model(model_id: str) -> bool:
-    return bool(re.search(r"gpt", model_id, flags=re.IGNORECASE)) and not bool(
-        re.search(r"gpt-oss", model_id, flags=re.IGNORECASE)
-    )
-
-
-def is_ming_flash_omni_model(model_id: str) -> bool:
-    return bool(
-        re.search(
-            r"ming[-_]?flash[-_]?omni[-_]?2(?:\.|-)0", model_id, flags=re.IGNORECASE
-        )
-        or re.search(r"ming-flash-omni-2-0", model_id, flags=re.IGNORECASE)
-    )
-
-
-def is_mimo_v2_pro_model(model_id: str) -> bool:
-    return bool(re.search(r"mimo[-_]?v2[-_]?pro", model_id, flags=re.IGNORECASE))
-
-
-def is_mimo_v2_omni_model(model_id: str) -> bool:
-    return bool(re.search(r"mimo[-_]?v2[-_]?omni", model_id, flags=re.IGNORECASE))
+def _match_profile(model_id: str) -> _ModelProfile | None:
+    """Find the first matching model profile for a model ID."""
+    for profile in MODEL_PROFILES:
+        if profile.matches(model_id):
+            return profile
+    return None
 
 
 def resolve_global_token_limits(
@@ -210,70 +181,19 @@ def resolve_global_token_limits(
     default_max_output_tokens: int = DEFAULT_MAX_OUTPUT_TOKENS,
     min_reserved_input_tokens: int | None = None,
 ) -> TokenLimits:
+    """Resolve token limits for a model using data-driven profiles.
+
+    Falls back to computed defaults based on advertised context_length
+    when no profile matches.
+    """
     reserved_input_tokens = (
         min_reserved_input_tokens
         if min_reserved_input_tokens and min_reserved_input_tokens > 0
         else DEFAULT_MIN_RESERVED_INPUT_TOKENS
     )
 
-    if is_deepseek_model(model_id):
-        return TokenLimits(DEEPSEEK_MAX_INPUT_TOKENS, DEEPSEEK_MAX_OUTPUT_TOKENS)
-
-    if is_devstral_model(model_id):
-        return TokenLimits(DEVSTRAL_MAX_INPUT_TOKENS, DEVSTRAL_MAX_OUTPUT_TOKENS)
-
-    if is_gemma3_model(model_id):
-        return TokenLimits(FIXED_128K_MAX_INPUT_TOKENS, FIXED_128K_MAX_OUTPUT_TOKENS)
-
-    if is_llama32_model(model_id):
-        return TokenLimits(FIXED_128K_MAX_INPUT_TOKENS, FIXED_128K_MAX_OUTPUT_TOKENS)
-
-    if is_qwen35_one_million_context_model(model_id):
-        return TokenLimits(QWEN35_1M_MAX_INPUT_TOKENS, QWEN35_1M_MAX_OUTPUT_TOKENS)
-
-    if is_qwen36_one_million_context_model(model_id):
-        return TokenLimits(QWEN36_1M_MAX_INPUT_TOKENS, QWEN36_1M_MAX_OUTPUT_TOKENS)
-
-    if is_gpt41_model(model_id):
-        return TokenLimits(GPT4_1_MAX_INPUT_TOKENS, GPT4_1_MAX_OUTPUT_TOKENS)
-
-    if is_gpt4o_model(model_id):
-        return TokenLimits(FIXED_128K_MAX_INPUT_TOKENS, FIXED_128K_MAX_OUTPUT_TOKENS)
-
-    if is_gpt5_model(model_id):
-        return TokenLimits(GPT5_MAX_INPUT_TOKENS, GPT5_MAX_OUTPUT_TOKENS)
-
-    if is_ming_flash_omni_model(model_id):
-        return TokenLimits(FIXED_64K_MAX_INPUT_TOKENS, FIXED_64K_MAX_OUTPUT_TOKENS)
-
-    if is_mimo_v2_pro_model(model_id):
-        return TokenLimits(MIMOV2_PRO_MAX_INPUT_TOKENS, MIMOV2_PRO_MAX_OUTPUT_TOKENS)
-
-    if is_mimo_v2_omni_model(model_id):
-        return TokenLimits(MIMOV2_OMNI_MAX_INPUT_TOKENS, MIMOV2_OMNI_MAX_OUTPUT_TOKENS)
-
-    if is_minimax_model(model_id):
-        return TokenLimits(MINIMAX_MAX_INPUT_TOKENS, MINIMAX_MAX_OUTPUT_TOKENS)
-
-    if is_claude_model(model_id):
-        return TokenLimits(CLAUDE_MAX_INPUT_TOKENS, CLAUDE_MAX_OUTPUT_TOKENS)
-
-    if is_kimi_model(model_id):
-        return TokenLimits(FIXED_256K_MAX_INPUT_TOKENS, FIXED_256K_MAX_OUTPUT_TOKENS)
-
-    if is_qwen35_model(model_id):
-        return TokenLimits(QWEN35_MAX_INPUT_TOKENS, QWEN35_MAX_OUTPUT_TOKENS)
-
-    if is_nemotron3_model(model_id):
-        return TokenLimits(
-            256 * TOKENS_PER_KIBI - 32 * TOKENS_PER_KIBI, 32 * TOKENS_PER_KIBI
-        )
-
-    if is_nova2_model(model_id):
-        return TokenLimits(TOKENS_PER_MEBI - 64 * TOKENS_PER_KIBI, 64 * TOKENS_PER_KIBI)
-
-    if is_claude_opus_46_model(model_id):
-        return TokenLimits(TOKENS_PER_MEBI - 64 * TOKENS_PER_KIBI, 64 * TOKENS_PER_KIBI)
+    if profile := _match_profile(model_id):
+        return profile.limits
 
     safe_context_length = (
         context_length
@@ -297,6 +217,7 @@ def resolve_advertised_token_limits(
     advertised_max_output_tokens: int | None = None,
     min_reserved_input_tokens: int | None = None,
 ) -> TokenLimits:
+    """Resolve token limits considering both global profiles and advertised values."""
     resolved_limits = resolve_global_token_limits(
         model_id,
         advertised_context_length
@@ -330,16 +251,23 @@ def resolve_global_capabilities(
     detected_tool_calling: bool | None = None,
     detected_image_input: bool | None = None,
 ) -> dict[str, bool]:
-    image_input = bool(detected_image_input) or any((
-        is_claude_model(model_id),
-        is_kimi_k25_model(model_id),
-        is_vision_gpt_model(model_id),
-        is_gemini_model(model_id),
-        is_qwen35_model(model_id),
-        is_qwen35_one_million_context_model(model_id),
-        is_qwen36_one_million_context_model(model_id),
-        is_mimo_v2_omni_model(model_id),
-    ))
+    """Resolve model capabilities using data-driven profiles.
+
+    detected_* parameters allow the caller to override defaults based on
+    API-reported capabilities. The model profile's supports_vision flag
+    serves as a fallback.
+    """
+    image_input = bool(detected_image_input)
+
+    if not image_input:
+        if profile := _match_profile(model_id):
+            image_input = profile.supports_vision
+
+    if not image_input:
+        for pattern in _VISION_PATTERNS:
+            if re.search(pattern, model_id, flags=re.IGNORECASE):
+                image_input = True
+                break
 
     return {
         "toolCalling": True

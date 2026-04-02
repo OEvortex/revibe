@@ -264,47 +264,11 @@ MCPServer = Annotated[
 ]
 
 
-DEFAULT_PROVIDERS: list[ProviderConfig] = [
-    ProviderConfig(
-        name="openai",
-        display_name="OpenAI",
-        api_base="https://api.openai.com/v1",
-        api_key_env_var="OPENAI_API_KEY",
-        sdk_mode="openai",
-    ),
-    ProviderConfig(
-        name="deepseek",
-        display_name="DeepSeek",
-        api_base="https://api.deepseek.com/v1",
-        api_key_env_var="DEEPSEEK_API_KEY",
-        sdk_mode="openai",
-    ),
-    ProviderConfig(
-        name="openrouter",
-        display_name="OpenRouter",
-        api_base="https://openrouter.ai/api/v1",
-        api_key_env_var="OPENROUTER_API_KEY",
-        sdk_mode="openai",
-    ),
-    ProviderConfig(
-        name="opencode",
-        display_name="OpenCode",
-        api_base="https://opencode.ai/zen/v1",
-        api_key_env_var="OPENCODE_API_KEY",
-        sdk_mode="openai",
-    ),
-    ProviderConfig(
-        name="ollama",
-        display_name="Ollama",
-        api_base="http://127.0.0.1:11434/v1",
-        api_key_env_var="",
-        sdk_mode="openai",
-    ),
-]
+DEFAULT_PROVIDERS: list[ProviderConfig] = []
 
 
 class VibeConfig(BaseSettings):
-    active_model: str = "devstral-2"
+    active_model: str = ""
     active_provider: str | None = None
     agent_type: AgentType = AgentType.AGENT
     textual_theme: str = "terminal"
@@ -386,16 +350,17 @@ class VibeConfig(BaseSettings):
 
     @property
     def effective_tool_format(self) -> ToolFormat:
-        """Get the effective tool format, auto-switching to XML for antigravity models.
+        """Get the effective tool format based on the active model's supported formats.
 
-        Antigravity backend only supports XML format, so we auto-select it when
-        using an antigravity model to ensure compatibility.
+        If the active model doesn't support the configured format, falls back
+        to the first supported format from the model's configuration.
         """
         try:
             active_model = self.get_active_model()
-            if active_model.provider == "antigravity":
-                return ToolFormat.XML
-        except ValueError:
+            if self.tool_format.value not in active_model.supported_formats:
+                if active_model.supported_formats:
+                    return ToolFormat(active_model.supported_formats[0])
+        except (ValueError, KeyError):
             pass
         return self.tool_format
 

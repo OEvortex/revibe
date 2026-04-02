@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 from textual.app import ComposeResult
 from textual.binding import Binding, BindingType
@@ -12,9 +12,6 @@ from textual.widgets import Markdown, Static
 from revibe.cli.textual_ui.terminal_theme import TERMINAL_THEME_NAME
 from revibe.core.config import VibeConfig
 from revibe.setup.onboarding.base import OnboardingScreen
-
-if TYPE_CHECKING:
-    from revibe.setup.onboarding import OnboardingApp
 
 THEMES = [TERMINAL_THEME_NAME] + sorted(
     k for k in BUILTIN_THEMES if k != "textual-ansi"

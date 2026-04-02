@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator, Callable
 from enum import StrEnum, auto
 import inspect
 import time
-from typing import cast
+from typing import Any, cast
 from uuid import uuid4
 
 from pydantic import BaseModel
@@ -16,6 +16,7 @@ from revibe.core.llm.backend.factory import get_backend_for_provider
 from revibe.core.llm.format import (
     APIToolFormatHandler,
     ResolvedMessage,
+    ResolvedToolCall,
     XMLToolFormatHandler,
 )
 from revibe.core.llm.types import BackendLike
@@ -35,7 +36,12 @@ from revibe.core.modes import AgentMode
 from revibe.core.prompts import UtilityPrompt
 from revibe.core.skills.manager import SkillManager
 from revibe.core.system_prompt import get_universal_system_prompt
-from revibe.core.tools.base import ToolError, ToolPermission, ToolPermissionError
+from revibe.core.tools.base import (
+    BaseTool,
+    ToolError,
+    ToolPermission,
+    ToolPermissionError,
+)
 from revibe.core.tools.manager import ToolManager
 from revibe.core.types import (
     AgentStats,
@@ -206,7 +212,7 @@ class Agent:
         self.stats.last_turn_completion_tokens = usage.completion_tokens
 
     async def _should_execute_tool(
-        self, tool_instance, tool_args, tool_call_id: str
+        self, tool_instance: BaseTool, tool_args: BaseModel, tool_call_id: str
     ) -> ToolDecision:
         tool_name = tool_instance.get_name()
         allowlist_decision = tool_instance.check_allowlist_denylist(tool_args)
@@ -237,7 +243,7 @@ class Agent:
                     tool_name, tool_args, tool_call_id
                 )
                 if inspect.isawaitable(callback_result):
-                    approval, feedback = await callback_result
+                    approval, feedback = await callback_result  # ty:ignore[not-iterable]
                 else:
                     approval, feedback = callback_result
 
@@ -677,7 +683,7 @@ class Agent:
         for event in tool_call_events:
             yield event
 
-        async def _execute_single(tool_call):
+        async def _execute_single(tool_call: ResolvedToolCall) -> dict[str, Any]:
             tool_call_id = tool_call.call_id
             try:
                 tool_instance = self.tool_manager.get(tool_call.tool_name)

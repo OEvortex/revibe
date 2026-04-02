@@ -14,11 +14,9 @@ if TYPE_CHECKING:
     from revibe.core.config import ProviderConfig
 
 
-# Help links for providers requiring API keys
-PROVIDER_HELP: dict[str, tuple[str, str]] = {
-    "mistral": ("https://console.mistral.ai/api-keys", "Mistral AI Console"),
-    "openai": ("https://platform.openai.com/api-keys", "OpenAI Platform"),
-}
+# Help links for providers requiring API keys.
+# Populated dynamically from the provider registry when possible.
+PROVIDER_HELP: dict[str, tuple[str, str]] = {}
 
 PROVIDER_DESCRIPTIONS: dict[str, str] = {
     name: get_provider_description(name) or "" for name in KNOWN_PROVIDERS
@@ -84,9 +82,4 @@ def build_provider_description(
         if provider.name in PROVIDER_HELP:
             url, name = PROVIDER_HELP[provider.name]
             lines.append(f"Docs: {name} ({url})")
-        elif provider.name == "qwencode":
-            lines.append("Docs: Use /auth in `qwen` CLI for OAuth setup")
-        elif provider.name == "geminicli":
-            lines.append("Docs: Use /auth in `gemini` CLI for OAuth setup")
-
     return "\n".join(lines)

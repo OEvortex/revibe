@@ -32,6 +32,20 @@ class ModelConfig(BaseModel):
     output_price: float = 0.0
     context: int = 128000
     max_output: int = 32000
+    input_tokens: int | None = Field(
+        default=None,
+        description=(
+            "Explicit max input token override. When set, used directly instead of "
+            "computing from context - max_output."
+        ),
+    )
+    output_tokens: int | None = Field(
+        default=None,
+        description=(
+            "Explicit max output token override. When set, takes precedence over "
+            "the computed max_output value."
+        ),
+    )
     supported_formats: list[str] = Field(default_factory=lambda: ["native", "xml"])
     auto_compact_threshold: int | None = Field(
         default=None,
@@ -58,8 +72,18 @@ class ModelConfig(BaseModel):
         if not isinstance(model_name, str) or not model_name:
             return data
 
+        # Prefer explicit input_tokens/output_tokens when provided
+        explicit_input = data.get("input_tokens")
+        explicit_output = data.get("output_tokens")
         context_value = data.get("context")
         max_output_value = data.get("max_output")
+
+        if explicit_input is not None and explicit_output is not None:
+            data["context"] = int(explicit_input) + int(explicit_output)
+            data["max_output"] = int(explicit_output)
+            if "capabilities" not in data or data.get("capabilities") is None:
+                data["capabilities"] = resolve_global_capabilities(model_name)
+            return data
 
         if context_value is None and max_output_value is None:
             limits = resolve_global_token_limits(
