@@ -267,6 +267,7 @@ class OpenAIBackend:
                                 role=Role.assistant,
                                 tool_calls=[
                                     ToolCall(
+                                        index=tc.index,
                                         id=tc.id or "",
                                         type="function",
                                         function=FunctionCall(
