@@ -1,127 +1,199 @@
-# Todo Tool – Task Tracker for Multi-Step Work
+Use the `todo` tool to manage a simple task list. This tool helps you track tasks and their progress.
 
-Create and manage structured task lists for complex coding sessions. Use this to track progress on multi-step tasks.
+## How it works
 
-## Required Parameter
+- **Reading:** Use `action: "read"` to view the current todo list
+- **Writing:** Use `action: "write"` with the complete `todos` list to update. You must provide the ENTIRE list - this replaces everything.
 
-- **`action`** (string) - Action to perform: `"read"` (view current todos) or `"write"` (update todos)
+## Todo Structure
+Each todo item has:
+- `id`: A unique string identifier (e.g., "1", "2", "task-a")
+- `content`: The task description
+- `status`: One of: "pending", "in_progress", "completed", "cancelled"
+- `priority`: One of: "high", "medium", "low"
 
-## Optional Parameter
+## When to Use This Tool
 
-- **`todos`** (array of TodoItem objects) - Complete list of todos when `action="write"`. Required for write operations.
+**Use proactively for:**
+- Complex multi-step tasks (3+ distinct steps)
+- Non-trivial tasks requiring careful planning
+- Multiple tasks provided by the user (numbered or comma-separated)
+- Tracking progress on ongoing work
+- After receiving new instructions - immediately capture requirements
+- When starting work - mark task as in_progress BEFORE beginning
+- After completing work - mark as completed and add any follow-up tasks discovered
 
-## When to Use
+**Skip this tool for:**
+- Single, straightforward tasks
+- Trivial operations (< 3 simple steps)
+- Purely conversational or informational requests
+- Tasks that provide no organizational benefit
 
-✅ **Use todo tool when:**
-- Task has 3+ steps or multiple components
-- User requests a todo list explicitly
-- Breaking down user requirements into actionable items
-- Tracking progress on multi-step implementations
-- Managing complex refactoring or feature development
+## Task Management Best Practices
 
-❌ **Don't use for:**
-- Single, trivial tasks
-- Purely informational queries
-- Tasks completable in <3 steps
+1. **Status Management:**
+   - Only ONE task should be `in_progress` at a time
+   - Mark tasks `in_progress` BEFORE starting work on them
+   - Mark tasks `completed` IMMEDIATELY after finishing
+   - Keep tasks `in_progress` if blocked or encountering errors
 
-## TodoItem Structure
+2. **Task Completion Rules:**
+   - ONLY mark as `completed` when FULLY accomplished
+   - Never mark complete if tests are failing, implementation is partial, or errors are unresolved
+   - When blocked, create a new task describing what needs resolution
 
-Each todo item requires these fields:
+3. **Task Organization:**
+   - Create specific, actionable items
+   - Break complex tasks into manageable steps
+   - Use clear, descriptive task names
+   - Remove irrelevant tasks entirely (don't just mark cancelled)
 
-| Field | Type | Required | Description |
-| ----- | ---- | -------- | ----------- |
-| `id` | string | Yes | Unique identifier (e.g., "1", "task-1", "setup") |
-| `content` | string | Yes | Clear, actionable description of the task |
-| `status` | string | No | One of: `"pending"`, `"in_progress"`, `"completed"`, `"cancelled"`. Default: `"pending"` |
-| `priority` | string | No | One of: `"low"`, `"medium"`, `"high"`. Default: `"medium"` |
+## Examples
 
-## Important Rules
-
-1. **Complete list required** - When `action="write"`, you must provide the COMPLETE list of todos (not incremental updates)
-2. **Unique IDs** - Each todo `id` must be unique within the list
-3. **One in_progress** - Only one task should be `in_progress` at a time
-4. **Max limit** - Maximum 100 todos allowed
-5. **Read before write** - Use `action="read"` first to see current state, then update
-
-## Example Usage
-
-### Read current todos
-```python
-todo(action="read")
-# Returns: message, todos list, total_count
+**Example 1: Reading todos**
+```json
+{
+  "action": "read"
+}
 ```
 
-### Create initial plan
-```python
-todo(
-    action="write",
-    todos=[
-        {"id": "1", "content": "Review existing codebase structure", "status": "pending", "priority": "high"},
-        {"id": "2", "content": "Implement new feature X in src/feature.py", "status": "in_progress", "priority": "high"},
-        {"id": "3", "content": "Write unit tests in tests/test_feature.py", "status": "pending", "priority": "medium"},
-        {"id": "4", "content": "Update documentation", "status": "pending", "priority": "low"}
-    ]
-)
+**Example 2: Initial task creation (user requests multiple features)**
+```json
+{
+  "action": "write",
+  "todos": [
+    {
+      "id": "1",
+      "content": "Add dark mode toggle to settings",
+      "status": "pending",
+      "priority": "high"
+    },
+    {
+      "id": "2",
+      "content": "Implement theme context/state management",
+      "status": "pending",
+      "priority": "high"
+    },
+    {
+      "id": "3",
+      "content": "Update components for theme switching",
+      "status": "pending",
+      "priority": "medium"
+    },
+    {
+      "id": "4",
+      "content": "Run tests and verify build",
+      "status": "pending",
+      "priority": "medium"
+    }
+  ]
+}
 ```
 
-### Update progress (provide complete list)
-```python
-# First read current state
-current = todo(action="read")
-
-# Then write complete updated list
-todo(
-    action="write",
-    todos=[
-        {"id": "1", "content": "Review existing codebase structure", "status": "completed", "priority": "high"},
-        {"id": "2", "content": "Implement new feature X in src/feature.py", "status": "completed", "priority": "high"},
-        {"id": "3", "content": "Write unit tests in tests/test_feature.py", "status": "in_progress", "priority": "medium"},
-        {"id": "4", "content": "Update documentation", "status": "pending", "priority": "low"},
-        {"id": "5", "content": "Add integration tests", "status": "pending", "priority": "medium"}  # New task added
-    ]
-)
+**Example 3: Starting work (marking one task in_progress)**
+```json
+{
+  "action": "write",
+  "todos": [
+    {
+      "id": "1",
+      "content": "Add dark mode toggle to settings",
+      "status": "in_progress",
+      "priority": "high"
+    },
+    {
+      "id": "2",
+      "content": "Implement theme context/state management",
+      "status": "pending",
+      "priority": "high"
+    },
+    {
+      "id": "3",
+      "content": "Update components for theme switching",
+      "status": "pending",
+      "priority": "medium"
+    },
+    {
+      "id": "4",
+      "content": "Run tests and verify build",
+      "status": "pending",
+      "priority": "medium"
+    }
+  ]
+}
 ```
 
-## Best Practices
-
-1. **Initialize early** - Create todos right after understanding requirements
-2. **Clear descriptions** - Include file names, modules, or specific actions in `content`
-3. **One in_progress** - Keep only one task `in_progress` at a time
-4. **Update frequently** - Update todos as you complete tasks or discover new subtasks
-5. **Complete updates** - Always provide the full list when writing (merge with existing)
-6. **Mark completed** - Only mark tasks `completed` when fully done (not just started)
-7. **Use priorities** - Set `priority` appropriately to guide work order
-
-## Output Format
-
-Returns a result object with:
-- **`message`** (string) - Status message (e.g., "Retrieved 5 todos" or "Updated 5 todos")
-- **`todos`** (array) - Complete list of TodoItem objects
-- **`total_count`** (integer) - Total number of todos
-
-## Common Workflow
-
-```python
-# Step 1: Read current todos (if any)
-current_todos = todo(action="read")
-
-# Step 2: Create or update plan
-todo(
-    action="write",
-    todos=[
-        {"id": "1", "content": "Task 1", "status": "completed", "priority": "high"},
-        {"id": "2", "content": "Task 2", "status": "in_progress", "priority": "high"},
-        {"id": "3", "content": "Task 3", "status": "pending", "priority": "medium"}
-    ]
-)
-
-# Step 3: As you work, update status
-todo(
-    action="write",
-    todos=[
-        {"id": "1", "content": "Task 1", "status": "completed", "priority": "high"},
-        {"id": "2", "content": "Task 2", "status": "completed", "priority": "high"},
-        {"id": "3", "content": "Task 3", "status": "in_progress", "priority": "medium"}
-    ]
-)
+**Example 4: Completing task and adding discovered subtask**
+```json
+{
+  "action": "write",
+  "todos": [
+    {
+      "id": "1",
+      "content": "Add dark mode toggle to settings",
+      "status": "completed",
+      "priority": "high"
+    },
+    {
+      "id": "2",
+      "content": "Implement theme context/state management",
+      "status": "in_progress",
+      "priority": "high"
+    },
+    {
+      "id": "3",
+      "content": "Update components for theme switching",
+      "status": "pending",
+      "priority": "medium"
+    },
+    {
+      "id": "4",
+      "content": "Fix TypeScript errors in theme types",
+      "status": "pending",
+      "priority": "high"
+    },
+    {
+      "id": "5",
+      "content": "Run tests and verify build",
+      "status": "pending",
+      "priority": "medium"
+    }
+  ]
+}
 ```
+
+**Example 5: Handling blockers (keeping task in_progress)**
+```json
+{
+  "action": "write",
+  "todos": [
+    {
+      "id": "1",
+      "content": "Deploy to production",
+      "status": "in_progress",
+      "priority": "high"
+    },
+    {
+      "id": "2",
+      "content": "BLOCKER: Fix failing deployment pipeline",
+      "status": "pending",
+      "priority": "high"
+    },
+    {
+      "id": "3",
+      "content": "Update documentation",
+      "status": "pending",
+      "priority": "low"
+    }
+  ]
+}
+```
+
+## Common Scenarios
+
+**Multi-file refactoring:** Create todos for each file that needs updating
+**Performance optimization:** List specific bottlenecks as individual tasks
+**Bug fixing:** Track reproduction, diagnosis, fix, and verification as separate tasks
+**Feature implementation:** Break down into UI, logic, tests, and documentation tasks
+
+Remember: When writing, you must include ALL todos you want to keep. Any todo not in the list will be removed. Be proactive with task management to demonstrate thoroughness and ensure all requirements are completed successfully.

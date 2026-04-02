@@ -1,75 +1,18 @@
-# Read File Tool
+Use `read_file` to read the content of a file. It's designed to handle large files safely.
 
-Read the contents of a text file as UTF-8 text. **Always read files before editing them** to see the exact content.
+- By default, it reads from the beginning of the file.
+- Use `offset` (line number) and `limit` (number of lines) to read specific parts or chunks of a file. This is efficient for exploring large files.
+- The result includes `was_truncated: true` if the file content was cut short due to size limits.
+- This is more efficient than using `bash` with `cat` or `wc`.
 
-## Required Parameter
+**Strategy for large files:**
 
-**`path`** (string) - **REQUIRED**. The file path to read.
-- Can be relative to project root: `"src/main.py"`, `"README.md"`
-- Or absolute path: `"/home/user/project/config.json"`
-- Must point to an existing file (not a directory)
+1. Call `read_file` with a `limit` (e.g., 1000 lines) to get the start of the file.
+2. If `was_truncated` is true, the file is large. STOP and assess: do you already have enough information to answer the user's question? If yes, respond immediately — do not keep reading.
+3. If you need more, prefer targeted reads (e.g., jump to a specific offset, read the last 100 lines, search for a relevant section) over reading sequentially chunk by chunk.
+4. Do not call `read_file` more than 3 times on the same file without responding to the user first.
 
-## Optional Parameters
-
-- **`offset`** (integer, default: 0) - Starting line number (0-indexed, inclusive). Use to skip header lines or start from a specific position.
-- **`limit`** (integer or null, default: None) - Maximum number of lines to return. Use with `offset` for pagination or reading specific sections.
-
-## When to Use
-
-✅ **Use read_file when:**
-- You need to see file contents before editing
-- Reading configuration files, source code, documentation
-- Inspecting file structure or content
-- Preparing for search_replace operations
-
-❌ **Don't use bash commands like `cat`, `type`, or `Get-Content`** - use this tool instead
-
-## Example Usage
-
-```python
-# Basic file read - path is REQUIRED
-read_file(path="pyproject.toml")
-
-# Read specific line range (lines 51-150)
-read_file(path="src/main.py", offset=50, limit=100)
-
-# Read from line 200 to end
-read_file(path="logs/app.log", offset=200)
-
-# Read first 50 lines
-read_file(path="README.md", offset=0, limit=50)
-```
-
-## Output Format
-
-Returns a result object with:
-- **`content`** (string) - The file contents as UTF-8 text
-- **`lines_read`** (integer) - Number of lines returned
-- **`was_truncated`** (boolean) - True if file was cut off due to size limits (~64KB)
-- **`path`** (string) - The resolved absolute file path
-
-## Important Rules
-
-1. **`path` is REQUIRED** - Always include it. If you get a validation error, you forgot the path parameter.
-2. **Read before editing** - Always use `read_file` first before `search_replace` to see exact content.
-3. **Use relative paths** - Prefer project-relative paths for portability.
-4. **Large files** - Files larger than ~64KB are truncated. Use `offset` and `limit` to read in chunks.
-5. **Exact matching** - When copying text for search_replace, copy exactly as shown (whitespace matters).
-
-## Common Workflow
-
-```python
-# Step 1: Read the file
-result = read_file(path="config.py")
-
-# Step 2: Use the content to create search_replace blocks
-# Copy text EXACTLY from result.content
-search_replace(
-    file_path="config.py",
-    content="""<<<<<<< SEARCH
-[exact text from result.content]
-=======
-[new text]
->>>>>>> REPLACE"""
-)
-```
+**Do not read or explore:**
+- Model checkpoint directories or weight files (.bin, .safetensors, .pt, .gguf, optimizer states, etc.)
+- Binary files of any kind
+- Entire directory trees of training runs or large codebases. If the user provides paths to such files, treat them as references. Do not open them unless the user explicitly asks you to inspect a specific file.

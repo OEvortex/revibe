@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import cast
-
+from pathlib import Path
 from typing import cast
 
 import pytest
@@ -13,7 +12,7 @@ from revibe.core.tools.manager import ToolManager
 
 
 @pytest.fixture
-def config():
+def config() -> VibeConfig:
     return VibeConfig(
         session_logging=SessionLoggingConfig(enabled=False),
         system_prompt_id="tests",
@@ -22,22 +21,22 @@ def config():
 
 
 @pytest.fixture
-def tool_manager(config):
+def tool_manager(config: VibeConfig) -> ToolManager:
     return ToolManager(config)
 
 
-def test_returns_default_config_when_no_overrides(tool_manager):
+def test_returns_default_config_when_no_overrides(tool_manager: ToolManager) -> None:
     config = cast(BashToolConfig, tool_manager.get_tool_config("bash"))
 
     assert (
         type(config).__name__ == "BashToolConfig"
     )  # due to vibe's discover system isinstance would fail
-    assert cast(BaseToolConfig, config).default_timeout == 30  # type: ignore[attr-defined]
+    assert config.default_timeout == 30
     assert config.max_output_bytes == 16000
     assert config.permission == ToolPermission.ASK
 
 
-def test_merges_user_overrides_with_defaults():
+def test_merges_user_overrides_with_defaults() -> None:
     vibe_config = VibeConfig(
         session_logging=SessionLoggingConfig(enabled=False),
         system_prompt_id="tests",
@@ -52,10 +51,10 @@ def test_merges_user_overrides_with_defaults():
         type(config).__name__ == "BashToolConfig"
     )  # due to vibe's discover system isinstance would fail
     assert config.permission == ToolPermission.ALWAYS
-    assert cast(BaseToolConfig, config).default_timeout == 30  # type: ignore[attr-defined]
+    assert config.default_timeout == 30
 
 
-def test_preserves_tool_specific_fields_from_overrides():
+def test_preserves_tool_specific_fields_from_overrides() -> None:
     vibe_config = VibeConfig(
         session_logging=SessionLoggingConfig(enabled=False),
         system_prompt_id="tests",
@@ -68,17 +67,19 @@ def test_preserves_tool_specific_fields_from_overrides():
     config = cast(BashToolConfig, manager.get_tool_config("bash"))
 
     assert type(config).__name__ == "BashToolConfig"
-    assert cast(BaseToolConfig, config).default_timeout == 600  # type: ignore[attr-defined]
+    assert config.default_timeout == 600
 
 
-def test_falls_back_to_base_config_for_unknown_tool(tool_manager):
+def test_falls_back_to_base_config_for_unknown_tool(
+    tool_manager: ToolManager,
+) -> None:
     config = tool_manager.get_tool_config("nonexistent_tool")
 
     assert type(config) is BaseToolConfig
     assert config.permission == ToolPermission.ASK
 
 
-def test_applies_workdir_from_vibe_config(tmp_path):
+def test_applies_workdir_from_vibe_config(tmp_path: Path) -> None:
     vibe_config = VibeConfig(
         session_logging=SessionLoggingConfig(enabled=False),
         system_prompt_id="tests",

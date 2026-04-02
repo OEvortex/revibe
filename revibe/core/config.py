@@ -29,6 +29,7 @@ from revibe.core.paths.config_paths import (
 )
 from revibe.core.paths.global_paths import GLOBAL_ENV_FILE, SESSION_LOG_DIR
 from revibe.core.prompts import SystemPrompt
+from revibe.core.subagents import AgentType
 from revibe.core.tools.base import BaseToolConfig
 
 PROJECT_DOC_FILENAMES = ["AGENTS.md", "REVIBE.md", ".revibe.md"]
@@ -405,6 +406,7 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
 class VibeConfig(BaseSettings):
     active_model: str = "devstral-2"
     active_provider: str | None = None
+    agent_type: AgentType = AgentType.AGENT
     textual_theme: str = "terminal"
     vim_keybindings: bool = False
     disable_welcome_banner_animation: bool = False

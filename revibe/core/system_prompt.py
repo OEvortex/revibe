@@ -14,6 +14,7 @@ from revibe.core.config import PROJECT_DOC_FILENAMES
 from revibe.core.llm.format import get_active_tool_classes
 from revibe.core.paths.config_paths import INSTRUCTIONS_FILE
 from revibe.core.prompts import UtilityPrompt
+from revibe.core.subagents import get_available_subagents_section
 from revibe.core.utils import is_dangerous_directory, is_windows
 
 if TYPE_CHECKING:
@@ -471,6 +472,10 @@ def get_universal_system_prompt(
 
     if config.include_model_info:
         sections.append(f"Your model name is: `{config.active_model}`")
+
+    subagents_section = get_available_subagents_section()
+    if subagents_section:
+        sections.append(subagents_section)
 
     if config.include_prompt_detail:
         sections.append(_get_os_system_prompt())

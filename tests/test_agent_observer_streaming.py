@@ -18,9 +18,10 @@ from revibe.core.middleware import (
 from revibe.core.modes import AgentMode
 from revibe.core.tools.base import BaseToolConfig, ToolPermission
 from revibe.core.tools.builtins.todo import TodoArgs
+from revibe.core.tools.manager import ToolManager
 from revibe.core.types import (
-    ApprovalResponse,
     AgentStats,
+    ApprovalResponse,
     AssistantEvent,
     FunctionCall,
     LLMMessage,
@@ -31,7 +32,6 @@ from revibe.core.types import (
     ToolResultEvent,
 )
 from revibe.core.utils import CancellationReason, get_user_cancellation_message
-from revibe.core.tools.manager import ToolManager
 from tests.mock.utils import mock_llm_chunk
 from tests.stubs.fake_backend import FakeBackend
 
@@ -380,9 +380,9 @@ async def test_act_handles_user_cancellation_during_streaming() -> None:
     assert middleware.before_calls == 1
     assert middleware.after_calls == 0
     assert isinstance(events[-1], ToolResultEvent)
-    assert events[-1].skipped is True
-    assert events[-1].skip_reason is not None
-    assert "<user_cancellation>" in events[-1].skip_reason
+    assert events[-1].skipped is True  # ty:ignore[possibly-missing-attribute]
+    assert events[-1].skip_reason is not None  # ty:ignore[possibly-missing-attribute]
+    assert "<user_cancellation>" in events[-1].skip_reason  # ty:ignore[possibly-missing-attribute]
     assert agent.interaction_logger.calls == 1
 
 

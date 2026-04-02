@@ -3,7 +3,6 @@ from __future__ import annotations
 from contextlib import contextmanager
 from pathlib import Path
 import tomllib
-from typing import cast
 
 import tomli_w
 
@@ -27,7 +26,7 @@ def _restore_dump_config(config_file: Path):
                 encoding="utf-8",
             )
 
-    VibeConfig.dump_config = cast(classmethod, classmethod(real_dump_config))  # type: ignore[assignment]
+    VibeConfig.dump_config = classmethod(real_dump_config)  # ty:ignore[invalid-assignment]
     return original_dump_config
 
 

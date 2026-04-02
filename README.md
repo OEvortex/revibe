@@ -133,6 +133,28 @@ permission = "always"
 Launch with `revibe --agent my_agent`.
 </details>
 
+<details>
+<summary><b>Subagents</b></summary>
+
+ReVibe supports delegated subagents through the `task` tool.
+
+The built-in `explore` subagent is read-only and optimized for codebase analysis:
+
+```python
+task(agent="explore", prompt="Find where agent profiles are loaded and explain the flow.")
+```
+
+You can also define custom subagents in `~/.revibe/agents/*.toml` by setting:
+
+```toml
+agent_type = "subagent"
+description = "Focused analysis agent"
+system_prompt_id = "cli"
+```
+
+Any TOML agent profile marked with `agent_type = "subagent"` is exposed to the main agent and can be invoked with `task(agent="name", prompt="...")`.
+</details>
+
 ## 🖥️ Editor Integration
 ReVibe supports the **Agent Client Protocol (ACP)**, allowing it to act as a backend for compatible editors like Zed. See [ACP Setup](docs/acp-setup.md) for instructions.
 

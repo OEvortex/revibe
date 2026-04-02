@@ -564,6 +564,30 @@ async def start_session_with_request_permission(
     return last_response
 
 
+def _matches_tool_call_update(
+    message: JsonRpcMessage,
+    *,
+    tool_call_id: str | None = None,
+    status: str | None = None,
+    require_raw_output: bool = False,
+) -> bool:
+    if not isinstance(message, UpdateJsonRpcNotification):
+        return False
+    if message.params is None:
+        return False
+    update = message.params.update
+    if update.sessionUpdate != "tool_call_update":
+        return False
+    progress = cast(ToolCallProgress, update)
+    if tool_call_id is not None and progress.toolCallId != tool_call_id:
+        return False
+    if status is not None and progress.status != status:
+        return False
+    if require_raw_output and progress.rawOutput is None:
+        return False
+    return True
+
+
 class TestToolCallStructure:
     @pytest.mark.asyncio
     async def test_tool_call_request_permission_structure(
@@ -651,6 +675,7 @@ class TestToolCallStructure:
                 process, "Search for files containing the pattern 'auth'"
             )
             assert permission_request.params is not None
+            assert permission_request.params.toolCall is not None
             selected_option_id = ToolOption.ALLOW_ONCE
             await send_json_rpc(
                 process,
@@ -666,18 +691,17 @@ class TestToolCallStructure:
             text_responses = await read_multiple_responses(process, max_count=7)
             responses = parse_conversation(text_responses)
 
+            tool_call_id = permission_request.params.toolCall.toolCallId
             approved_tool_call = next(
                 (
                     r
                     for r in responses
-                    if isinstance(r, UpdateJsonRpcNotification)
-                    and r.method == "session/update"
-                    and r.params is not None
-                    and r.params.update is not None
-                    and r.params.update.sessionUpdate == "tool_call_update"
-                    and r.params.update.toolCallId
-                    == (permission_request.params.toolCall.toolCallId)
-                    and r.params.update.status == "completed"
+                    if r.method == "session/update"
+                    and _matches_tool_call_update(
+                        r,
+                        tool_call_id=tool_call_id,
+                        status="completed",
+                    )
                 ),
                 None,
             )
@@ -719,6 +743,7 @@ class TestToolCallStructure:
                 process, "Search for files containing the pattern 'auth'"
             )
             assert permission_request.params is not None
+            assert permission_request.params.toolCall is not None
             selected_option_id = ToolOption.REJECT_ONCE
 
             await send_json_rpc(
@@ -735,17 +760,17 @@ class TestToolCallStructure:
             text_responses = await read_multiple_responses(process, max_count=5)
             responses = parse_conversation(text_responses)
 
+            tool_call_id = permission_request.params.toolCall.toolCallId
             rejected_tool_call = next(
                 (
                     r
                     for r in responses
-                    if isinstance(r, UpdateJsonRpcNotification)
-                    and r.method == "session/update"
-                    and r.params is not None
-                    and r.params.update.sessionUpdate == "tool_call_update"
-                    and r.params.update.toolCallId
-                    == (permission_request.params.toolCall.toolCallId)
-                    and r.params.update.status == "failed"
+                    if r.method == "session/update"
+                    and _matches_tool_call_update(
+                        r,
+                        tool_call_id=tool_call_id,
+                        status="failed",
+                    )
                 ),
                 None,
             )
@@ -805,10 +830,7 @@ class TestToolCallStructure:
             in_progress_calls = [
                 r
                 for r in responses
-                if isinstance(r, UpdateJsonRpcNotification)
-                and r.params is not None
-                and r.params.update.sessionUpdate == "tool_call_update"
-                and r.params.update.status == "in_progress"
+                if _matches_tool_call_update(r, status="in_progress")
             ]
 
             assert len(in_progress_calls) > 0, (
@@ -866,12 +888,11 @@ class TestToolCallStructure:
                 (
                     r
                     for r in responses
-                    if isinstance(r, UpdateJsonRpcNotification)
-                    and r.params is not None
-                    and r.params.update.sessionUpdate == "tool_call_update"
-                    and r.params.update.status == "failed"
-                    and r.params.update.rawOutput is not None
-                    and r.params.update.toolCallId is not None
+                    if _matches_tool_call_update(
+                        r,
+                        status="failed",
+                        require_raw_output=True,
+                    )
                 ),
                 None,
             )
