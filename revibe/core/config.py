@@ -20,7 +20,8 @@ from pydantic_settings import (
 )
 import tomli_w
 
-from revibe.core.model_config import DEFAULT_MODELS, ModelConfig
+from revibe.core.model_config import ModelConfig
+from revibe.core.model_sources import get_available_models
 from revibe.core.paths.config_paths import (
     AGENT_DIR,
     CONFIG_DIR,
@@ -35,11 +36,40 @@ from revibe.core.tools.base import BaseToolConfig
 PROJECT_DOC_FILENAMES = ["AGENTS.md", "REVIBE.md", ".revibe.md"]
 
 
+def _read_fifo_path(path_str: str) -> str | None:
+    """Read credential from a FIFO (named pipe) path for secure credential management.
+
+    FIFO paths allow credentials to be provided on-demand by a credential manager,
+    avoiding persistent storage of secrets on disk.
+    """
+    from pathlib import Path
+    import stat
+
+    path = Path(path_str).expanduser()
+    if not path.exists():
+        return None
+    try:
+        mode = path.stat().st_mode
+        if stat.S_ISFIFO(mode):
+            with path.open("r") as f:
+                return f.read().strip()
+    except OSError:
+        pass
+    return None
+
+
 def load_api_keys_from_env() -> None:
+    """Load API keys from .env file, with FIFO path support for secure credentials."""
     if GLOBAL_ENV_FILE.path.is_file():
         env_vars = dotenv_values(GLOBAL_ENV_FILE.path)
         for key, value in env_vars.items():
-            if value:
+            if not value:
+                continue
+            if value.startswith("fifo:"):
+                fifo_content = _read_fifo_path(value[5:])
+                if fifo_content:
+                    os.environ.setdefault(key, fifo_content)
+            else:
                 os.environ.setdefault(key, value)
 
 
@@ -143,6 +173,8 @@ class Backend(StrEnum):
     KILOCODE = auto()
     ANTIGRAVITY = auto()
     CHUTES = auto()
+    VERTEXAI = auto()
+    VLLM = auto()
 
 
 class ToolFormat(StrEnum):
@@ -161,6 +193,9 @@ class _ProviderBase(BaseModel):
     api_base: str
     api_key_env_var: str = ""
     api_style: str = "openai"
+    sdk_mode: Literal["anthropic", "openai", "oai-response"] = "openai"
+    custom_header: dict[str, str] = Field(default_factory=dict)
+    extra_body: dict[str, Any] = Field(default_factory=dict)
 
 
 class MistralProviderConfig(_ProviderBase):
@@ -226,6 +261,16 @@ class ChutesProviderConfig(_ProviderBase):
     backend: Literal[Backend.CHUTES] = Backend.CHUTES
 
 
+class VertexAIProviderConfig(_ProviderBase):
+    backend: Literal[Backend.VERTEXAI] = Backend.VERTEXAI
+    api_style: str = "openai"
+
+
+class VLLMProviderConfig(_ProviderBase):
+    backend: Literal[Backend.VLLM] = Backend.VLLM
+    api_style: str = "openai"
+
+
 ProviderConfigUnion = Annotated[
     MistralProviderConfig
     | OpenAIProviderConfig
@@ -241,7 +286,9 @@ ProviderConfigUnion = Annotated[
     | OpenCodeProviderConfig
     | KiloCodeProviderConfig
     | AntigravityProviderConfig
-    | ChutesProviderConfig,
+    | ChutesProviderConfig
+    | VertexAIProviderConfig
+    | VLLMProviderConfig,
     Field(discriminator="backend"),
 ]
 
@@ -337,6 +384,7 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
         name="mistral",
         api_base="https://api.mistral.ai/v1",
         api_key_env_var="MISTRAL_API_KEY",
+        extra_body={"stream_options": {"stream_tool_calls": True}},
     ),
     OpenAIProviderConfig(
         name="openai",
@@ -400,6 +448,14 @@ DEFAULT_PROVIDERS: list[ProviderConfigUnion] = [
         api_base="https://llm.chutes.ai/v1",
         api_key_env_var="CHUTES_API_KEY",
     ),
+    VertexAIProviderConfig(
+        name="vertexai",
+        api_base="",  # Uses dynamic Vertex AI URL construction
+        api_key_env_var="",  # Uses ADC credentials
+    ),
+    VLLMProviderConfig(
+        name="vllm", api_base="http://localhost:8000/v1", api_key_env_var=""
+    ),
 ]
 
 
@@ -425,7 +481,7 @@ class VibeConfig(BaseSettings):
     providers: list[ProviderConfigUnion] = Field(
         default_factory=lambda: list(DEFAULT_PROVIDERS)
     )
-    models: list[ModelConfig] = Field(default_factory=lambda: list(DEFAULT_MODELS))
+    models: list[ModelConfig] = Field(default_factory=get_available_models)
 
     project_context: ProjectContextConfig = Field(default_factory=ProjectContextConfig)
     session_logging: SessionLoggingConfig = Field(default_factory=SessionLoggingConfig)
@@ -717,7 +773,7 @@ class VibeConfig(BaseSettings):
     @classmethod
     def _validate_models(cls, v: Any) -> list[ModelConfig]:
         if not isinstance(v, list):
-            return list(DEFAULT_MODELS)
+            return get_available_models()
         return [ModelConfig.model_validate(item) for item in v]
 
     @field_validator("tools", mode="before")
@@ -752,10 +808,10 @@ class VibeConfig(BaseSettings):
 
     @model_validator(mode="after")
     def _merge_default_models(self) -> VibeConfig:
-        from revibe.core.model_config import DEFAULT_MODELS
+        available_models = get_available_models()
 
         existing_keys = {(m.provider, m.name) for m in self.models}
-        for m in DEFAULT_MODELS:
+        for m in available_models:
             if (m.provider, m.name) not in existing_keys:
                 self.models.append(m)
         return self

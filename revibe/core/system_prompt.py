@@ -464,6 +464,7 @@ def get_universal_system_prompt(
     tool_manager: ToolManager,
     config: VibeConfig,
     skill_manager: SkillManager | None = None,
+    include_subagents: bool = True,
 ) -> str:
     sections = [config.system_prompt]
 
@@ -473,9 +474,10 @@ def get_universal_system_prompt(
     if config.include_model_info:
         sections.append(f"Your model name is: `{config.active_model}`")
 
-    subagents_section = get_available_subagents_section()
-    if subagents_section:
-        sections.append(subagents_section)
+    if include_subagents:
+        subagents_section = get_available_subagents_section()
+        if subagents_section:
+            sections.append(subagents_section)
 
     if config.include_prompt_detail:
         sections.append(_get_os_system_prompt())

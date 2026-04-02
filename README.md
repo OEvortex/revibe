@@ -155,6 +155,25 @@ system_prompt_id = "cli"
 Any TOML agent profile marked with `agent_type = "subagent"` is exposed to the main agent and can be invoked with `task(agent="name", prompt="...")`.
 </details>
 
+<details>
+<summary><b>Custom Models</b></summary>
+
+You can add custom model definitions without editing the source code by creating TOML files in `~/.revibe/models/` (or `.revibe/models/` inside a trusted project).
+
+Example `analysis.toml`:
+
+```toml
+name = "analysis-model"
+provider = "mistral"
+alias = "analysis"
+context = 123456
+max_output = 32768
+supported_formats = ["native", "xml"]
+```
+
+ReVibe loads these files at startup and merges them into the available model list.
+</details>
+
 ## 🖥️ Editor Integration
 ReVibe supports the **Agent Client Protocol (ACP)**, allowing it to act as a backend for compatible editors like Zed. See [ACP Setup](docs/acp-setup.md) for instructions.
 

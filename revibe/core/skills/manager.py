@@ -79,6 +79,13 @@ class SkillManager:
                 continue
             if (skill_info := self._try_load_skill(skill_file)) is not None:
                 skills[skill_info.name] = skill_info
+
+        for subdir in base.iterdir():
+            if subdir.is_dir() and not subdir.name.startswith("."):
+                nested_skills = self._discover_skills_in_dir(subdir)
+                for name, info in nested_skills.items():
+                    if name not in skills:
+                        skills[name] = info
         return skills
 
     def _try_load_skill(self, skill_file: Path) -> SkillInfo | None:

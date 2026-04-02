@@ -113,8 +113,9 @@ def build_subagent_config(config: VibeConfig, agent_name: str) -> VibeConfig:
     match agent_name.strip().lower():
         case "explore":
             from revibe.core.modes import AgentMode
+            from revibe.core.config import VibeConfig as _VibeConfig
 
-            subagent_config = VibeConfig.model_validate({
+            subagent_config = _VibeConfig.model_validate({
                 **config.model_dump(mode="python"),
                 **AgentMode.PLAN.config_overrides,
                 "agent_type": AgentType.SUBAGENT,

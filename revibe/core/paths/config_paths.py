@@ -39,6 +39,14 @@ def resolve_local_tools_dir(dir: Path) -> Path | None:
     return None
 
 
+def resolve_local_models_dir(dir: Path) -> Path | None:
+    if not trusted_folders_manager.is_trusted(dir):
+        return None
+    if (candidate := dir / ".revibe" / "models").is_dir():
+        return candidate
+    return None
+
+
 def resolve_local_skills_dir(dir: Path) -> Path | None:
     if not trusted_folders_manager.is_trusted(dir):
         return None
@@ -55,6 +63,7 @@ def unlock_config_paths() -> None:
 CONFIG_FILE = ConfigPath(lambda: _resolve_config_path("config.toml", "file"))
 CONFIG_DIR = ConfigPath(lambda: CONFIG_FILE.path.parent)
 AGENT_DIR = ConfigPath(lambda: _resolve_config_path("agents", "dir"))
+MODEL_DIR = ConfigPath(lambda: _resolve_config_path("models", "dir"))
 PROMPT_DIR = ConfigPath(lambda: _resolve_config_path("prompts", "dir"))
 INSTRUCTIONS_FILE = ConfigPath(lambda: _resolve_config_path("instructions.md", "file"))
 HISTORY_FILE = ConfigPath(lambda: _resolve_config_path("revibehistory", "file"))

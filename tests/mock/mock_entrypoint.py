@@ -44,19 +44,27 @@ if __name__ == "__main__":
         yield next(chunk_iterable)
 
     patch(
-        "revibe.core.llm.backend.mistral.MistralBackend.complete",
-        side_effect=mock_complete,
-    ).start()
-    patch(
         "revibe.core.llm.backend.openai.OpenAIBackend.complete",
         side_effect=mock_complete,
     ).start()
     patch(
-        "revibe.core.llm.backend.mistral.MistralBackend.complete_streaming",
-        side_effect=mock_complete_streaming,
+        "revibe.core.llm.backend.anthropic.backend.AnthropicBackend.complete",
+        side_effect=mock_complete,
+    ).start()
+    patch(
+        "revibe.core.llm.backend.oai.OAIBackend.complete",
+        side_effect=mock_complete,
     ).start()
     patch(
         "revibe.core.llm.backend.openai.OpenAIBackend.complete_streaming",
+        side_effect=mock_complete_streaming,
+    ).start()
+    patch(
+        "revibe.core.llm.backend.anthropic.backend.AnthropicBackend.complete_streaming",
+        side_effect=mock_complete_streaming,
+    ).start()
+    patch(
+        "revibe.core.llm.backend.oai.OAIBackend.complete_streaming",
         side_effect=mock_complete_streaming,
     ).start()
 

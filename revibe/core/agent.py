@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncGenerator, Callable
 from enum import StrEnum, auto
+import inspect
 import time
 from typing import cast
 from uuid import uuid4
@@ -34,12 +35,7 @@ from revibe.core.modes import AgentMode
 from revibe.core.prompts import UtilityPrompt
 from revibe.core.skills.manager import SkillManager
 from revibe.core.system_prompt import get_universal_system_prompt
-from revibe.core.tools.base import (
-    BaseTool,
-    ToolError,
-    ToolPermission,
-    ToolPermissionError,
-)
+from revibe.core.tools.base import ToolError, ToolPermission, ToolPermissionError
 from revibe.core.tools.manager import ToolManager
 from revibe.core.types import (
     AgentStats,
@@ -129,7 +125,7 @@ class Agent:
         self._setup_middleware()
 
         system_prompt = get_universal_system_prompt(
-            self.tool_manager, config, self.skill_manager
+            self.tool_manager, config, self.skill_manager, include_subagents=False
         )
         self.messages = [LLMMessage(role=Role.system, content=system_prompt)]
 
@@ -187,10 +183,251 @@ class Agent:
             self.message_observer(msg)
         self._last_observed_message_index = len(self.messages)
 
+    def _is_xml_mode(self) -> bool:
+        return self.format_handler.name == "xml"
+
+    def _has_xml_tool_calls(self, content: str) -> bool:
+        if not content.strip():
+            return False
+
+        import re
+
+        return bool(
+            re.search(r"<tool_call>.*?</tool_call>", content, re.DOTALL | re.IGNORECASE)
+        )
+
+    def _build_completion_headers(self) -> dict[str, str]:
+        active_model = self.config.get_active_model()
+        provider = self.config.get_provider_for_model(active_model)
+        return {
+            "user-agent": get_user_agent(provider.backend),
+            "x-affinity": self.session_id,
+        }
+
+    def _update_usage_stats(self, usage: LLMUsage | None) -> None:
+        if usage is None:
+            return
+
+        self.stats.context_tokens = usage.prompt_tokens + usage.completion_tokens
+        self.stats.session_prompt_tokens += usage.prompt_tokens
+        self.stats.session_completion_tokens += usage.completion_tokens
+        self.stats.last_turn_prompt_tokens = usage.prompt_tokens
+        self.stats.last_turn_completion_tokens = usage.completion_tokens
+
+    async def _should_execute_tool(
+        self,
+        tool_instance,
+        tool_args,
+        tool_call_id: str,
+    ) -> ToolDecision:
+        tool_name = tool_instance.get_name()
+        allowlist_decision = tool_instance.check_allowlist_denylist(tool_args)
+        if allowlist_decision is not None:
+            permission = allowlist_decision
+        else:
+            permission = self.tool_manager.get_tool_config(tool_name).permission
+
+        match permission:
+            case ToolPermission.ALWAYS:
+                return ToolDecision(verdict=ToolExecutionResponse.EXECUTE)
+            case ToolPermission.NEVER:
+                return ToolDecision(
+                    verdict=ToolExecutionResponse.SKIP,
+                    feedback=f"Tool '{tool_name}' is permanently disabled.",
+                )
+            case ToolPermission.ASK:
+                if self.auto_approve:
+                    return ToolDecision(verdict=ToolExecutionResponse.EXECUTE)
+
+                if self.approval_callback is None:
+                    return ToolDecision(
+                        verdict=ToolExecutionResponse.SKIP,
+                        feedback=f"Tool '{tool_name}' is not permitted without approval.",
+                    )
+
+                callback_result = self.approval_callback(tool_name, tool_args, tool_call_id)
+                if inspect.isawaitable(callback_result):
+                    approval, feedback = await callback_result
+                else:
+                    approval, feedback = callback_result
+
+                match approval:
+                    case ApprovalResponse.YES:
+                        return ToolDecision(
+                            verdict=ToolExecutionResponse.EXECUTE,
+                            feedback=feedback,
+                        )
+                    case ApprovalResponse.NO:
+                        return ToolDecision(
+                            verdict=ToolExecutionResponse.SKIP,
+                            feedback=feedback
+                            or f"Tool '{tool_name}' was not permitted.",
+                        )
+
+        raise AgentStateError(
+            f"Unsupported tool permission for {tool_name!r}: {permission!r}"
+        )
+
+    def _clean_message_history(self) -> None:
+        if not self.messages:
+            return
+
+        if self._is_xml_mode():
+            import re
+            from uuid import uuid4
+
+            tool_call_pattern = re.compile(
+                r"<tool_call>.*?</tool_call>", re.DOTALL | re.IGNORECASE
+            )
+            i = 0
+            while i < len(self.messages):
+                msg = self.messages[i]
+                if msg.role == Role.assistant:
+                    content = msg.content or ""
+                    if self._has_xml_tool_calls(content):
+                        expected_calls = len(tool_call_pattern.findall(content))
+                        if expected_calls > 0:
+                            actual_responses = 0
+                            j = i + 1
+                            while j < len(self.messages):
+                                result_msg = self.messages[j]
+                                result_content = result_msg.content or ""
+                                if (
+                                    result_msg.role == Role.user
+                                    and result_content.strip().startswith("<tool_result")
+                                ):
+                                    actual_responses += 1
+                                    j += 1
+                                else:
+                                    break
+
+                            if actual_responses < expected_calls:
+                                insertion_point = i + 1 + actual_responses
+                                for _call_idx in range(
+                                    actual_responses, expected_calls
+                                ):
+                                    call_id = f"xml_{uuid4().hex[:12]}"
+                                    empty_response = LLMMessage(
+                                        role=Role.user,
+                                        content=(
+                                            f'<tool_result name="unknown" call_id="{call_id}">\n'
+                                            f"<status>error</status>\n"
+                                            f"<error>No response received</error>\n"
+                                            f"</tool_result>"
+                                        ),
+                                    )
+                                    self.messages.insert(insertion_point, empty_response)
+                                    insertion_point += 1
+
+                i += 1
+        else:
+            i = 0
+            while i < len(self.messages):
+                msg = self.messages[i]
+                if msg.role == Role.assistant and msg.tool_calls:
+                    expected_calls = msg.tool_calls
+                    actual_responses = 0
+                    j = i + 1
+                    while j < len(self.messages):
+                        result_msg = self.messages[j]
+                        if result_msg.role != Role.tool:
+                            break
+
+                        if actual_responses >= len(expected_calls):
+                            break
+
+                        expected_call = expected_calls[actual_responses]
+                        if (
+                            result_msg.tool_call_id is not None
+                            and expected_call.id is not None
+                            and result_msg.tool_call_id != expected_call.id
+                        ):
+                            break
+
+                        actual_responses += 1
+                        j += 1
+
+                    if actual_responses < len(expected_calls):
+                        insertion_point = i + 1 + actual_responses
+                        for expected_call in expected_calls[actual_responses:]:
+                            placeholder = LLMMessage(
+                                role=Role.tool,
+                                tool_call_id=expected_call.id,
+                                name=expected_call.function.name,
+                                content=str(
+                                    get_user_cancellation_message(
+                                        CancellationReason.TOOL_NO_RESPONSE
+                                    )
+                                ),
+                            )
+                            self.messages.insert(insertion_point, placeholder)
+                            insertion_point += 1
+
+                i += 1
+
+        self._ensure_assistant_after_tools()
+
+    async def _chat(self) -> LLMChunk:
+        active_model = self.config.get_active_model()
+        tools = self.format_handler.get_available_tools(self.tool_manager, self.config)
+        tool_choice = self.format_handler.get_tool_choice()
+
+        async with self.backend as backend:
+            result = await backend.complete(
+                model=active_model,
+                messages=self.messages,
+                temperature=0.2,
+                tools=tools,
+                max_tokens=None,
+                tool_choice=tool_choice,
+                extra_headers=self._build_completion_headers(),
+            )
+
+        self._update_usage_stats(result.usage)
+        self.messages.append(result.message)
+        return result
+
+    async def _chat_streaming(self) -> AsyncGenerator[LLMChunk, None]:
+        active_model = self.config.get_active_model()
+        tools = self.format_handler.get_available_tools(self.tool_manager, self.config)
+        tool_choice = self.format_handler.get_tool_choice()
+        aggregated_chunk: LLMChunk | None = None
+
+        async with self.backend as backend:
+            async for chunk in backend.complete_streaming(
+                model=active_model,
+                messages=self.messages,
+                temperature=0.2,
+                tools=tools,
+                max_tokens=None,
+                tool_choice=tool_choice,
+                extra_headers=self._build_completion_headers(),
+            ):
+                aggregated_chunk = chunk if aggregated_chunk is None else aggregated_chunk + chunk
+                yield chunk
+
+        if aggregated_chunk is None:
+            aggregated_chunk = LLMChunk(
+                message=LLMMessage(role=Role.assistant, content=""),
+            )
+
+        self._update_usage_stats(aggregated_chunk.usage)
+        self.messages.append(aggregated_chunk.message)
+
     async def act(self, msg: str) -> AsyncGenerator[BaseEvent]:
         self._clean_message_history()
         async for event in self._conversation_loop(msg):
             yield event
+
+    def _get_effective_compact_threshold(self) -> int:
+        """Get effective auto-compact threshold, preferring per-model setting."""
+        try:
+            active_model = self.config.get_active_model()
+            if active_model.auto_compact_threshold is not None:
+                return active_model.auto_compact_threshold
+        except ValueError:
+            pass
+        return self.config.auto_compact_threshold
 
     def _setup_middleware(self) -> None:
         """Configure middleware pipeline for this conversation."""
@@ -202,14 +439,11 @@ class Agent:
         if self._max_price is not None:
             self.middleware_pipeline.add(PriceLimitMiddleware(self._max_price))
 
-        if self.config.auto_compact_threshold > 0:
-            self.middleware_pipeline.add(
-                AutoCompactMiddleware(self.config.auto_compact_threshold)
-            )
+        threshold = self._get_effective_compact_threshold()
+        if threshold > 0:
+            self.middleware_pipeline.add(AutoCompactMiddleware(threshold))
             if self.config.context_warnings:
-                self.middleware_pipeline.add(
-                    ContextWarningMiddleware(0.5, self.config.auto_compact_threshold)
-                )
+                self.middleware_pipeline.add(ContextWarningMiddleware(0.5, threshold))
 
         self.middleware_pipeline.add(PlanModeMiddleware(lambda: self._mode))
 
@@ -338,8 +572,7 @@ class Agent:
         chunks_with_reasoning = 0
         thinking_start_time: float | None = None
         is_thinking = False
-        # Batch size of 1 = real-time streaming (like print with flush=True)
-        BATCH_SIZE = 1
+        BATCH_SIZE = 5
 
         async for chunk in self._chat_streaming():
             if chunk.message.reasoning_content:
@@ -422,34 +655,43 @@ class Agent:
                 )
             )
 
-        for tool_call in resolved.tool_calls:
-            tool_call_id = tool_call.call_id
+        if resolved.tool_calls:
+            async for event in self._execute_tools_in_parallel(resolved.tool_calls):
+                yield event
 
-            yield ToolCallEvent(
-                tool_name=tool_call.tool_name,
-                tool_class=tool_call.tool_class,
-                args=tool_call.validated_args,
-                tool_call_id=tool_call_id,
+    async def _execute_tools_in_parallel(
+        self, tool_calls: list
+    ) -> AsyncGenerator[ToolCallEvent | ToolResultEvent]:
+        """Execute multiple tool calls in parallel using asyncio.gather.
+
+        Tools are executed concurrently when they don't depend on each other,
+        significantly improving performance for independent operations.
+        """
+        tool_call_events: list[ToolCallEvent] = []
+        for tool_call in tool_calls:
+            tool_call_id = tool_call.call_id
+            tool_call_events.append(
+                ToolCallEvent(
+                    tool_name=tool_call.tool_name,
+                    tool_class=tool_call.tool_class,
+                    args=tool_call.validated_args,
+                    tool_call_id=tool_call_id,
+                )
             )
 
+        for event in tool_call_events:
+            yield event
+
+        async def _execute_single(tool_call):
+            tool_call_id = tool_call.call_id
             try:
                 tool_instance = self.tool_manager.get(tool_call.tool_name)
             except Exception as exc:
-                error_msg = f"Error getting tool '{tool_call.tool_name}': {exc}"
-                yield ToolResultEvent(
-                    tool_name=tool_call.tool_name,
-                    tool_class=tool_call.tool_class,
-                    error=error_msg,
-                    tool_call_id=tool_call_id,
-                )
-                self.messages.append(
-                    LLMMessage.model_validate(
-                        self.format_handler.create_tool_response_message(
-                            tool_call, error_msg
-                        )
-                    )
-                )
-                continue
+                return {
+                    "tool_call": tool_call,
+                    "error": f"Error getting tool '{tool_call.tool_name}': {exc}",
+                    "type": "get_error",
+                }
 
             decision = await self._should_execute_tool(
                 tool_instance, tool_call.validated_args, tool_call_id
@@ -462,23 +704,11 @@ class Agent:
                         CancellationReason.TOOL_SKIPPED, tool_call.tool_name
                     )
                 )
-
-                yield ToolResultEvent(
-                    tool_name=tool_call.tool_name,
-                    tool_class=tool_call.tool_class,
-                    skipped=True,
-                    skip_reason=skip_reason,
-                    tool_call_id=tool_call_id,
-                )
-
-                self.messages.append(
-                    LLMMessage.model_validate(
-                        self.format_handler.create_tool_response_message(
-                            tool_call, skip_reason
-                        )
-                    )
-                )
-                continue
+                return {
+                    "tool_call": tool_call,
+                    "skip_reason": skip_reason,
+                    "type": "skip",
+                }
 
             self.stats.tool_calls_agreed += 1
 
@@ -491,352 +721,140 @@ class Agent:
                     f"{k}: {v}" for k, v in result_model.model_dump().items()
                 )
 
-                self.messages.append(
-                    LLMMessage.model_validate(
-                        self.format_handler.create_tool_response_message(
-                            tool_call, text
-                        )
-                    )
-                )
-
-                yield ToolResultEvent(
-                    tool_name=tool_call.tool_name,
-                    tool_class=tool_call.tool_class,
-                    result=result_model,
-                    duration=duration,
-                    tool_call_id=tool_call_id,
-                )
-
-                self.stats.tool_calls_succeeded += 1
+                return {
+                    "tool_call": tool_call,
+                    "result_model": result_model,
+                    "text": text,
+                    "duration": duration,
+                    "type": "success",
+                }
 
             except asyncio.CancelledError:
                 cancel = str(
                     get_user_cancellation_message(CancellationReason.TOOL_INTERRUPTED)
                 )
-                yield ToolResultEvent(
-                    tool_name=tool_call.tool_name,
-                    tool_class=tool_call.tool_class,
-                    error=cancel,
-                    tool_call_id=tool_call_id,
-                )
-                self.messages.append(
-                    LLMMessage.model_validate(
-                        self.format_handler.create_tool_response_message(
-                            tool_call, cancel
-                        )
-                    )
-                )
-                raise
+                return {
+                    "tool_call": tool_call,
+                    "error": cancel,
+                    "exception": asyncio.CancelledError(),
+                    "type": "cancelled",
+                }
 
             except KeyboardInterrupt:
                 cancel = str(
                     get_user_cancellation_message(CancellationReason.TOOL_INTERRUPTED)
                 )
-                yield ToolResultEvent(
-                    tool_name=tool_call.tool_name,
-                    tool_class=tool_call.tool_class,
-                    error=cancel,
-                    tool_call_id=tool_call_id,
-                )
-                self.messages.append(
-                    LLMMessage.model_validate(
-                        self.format_handler.create_tool_response_message(
-                            tool_call, cancel
-                        )
-                    )
-                )
-                raise
+                return {
+                    "tool_call": tool_call,
+                    "error": cancel,
+                    "exception": KeyboardInterrupt(),
+                    "type": "cancelled",
+                }
 
             except (ToolError, ToolPermissionError) as exc:
                 error_msg = f"<{TOOL_ERROR_TAG}>{tool_instance.get_name()} failed: {exc}</{TOOL_ERROR_TAG}>"
+                return {
+                    "tool_call": tool_call,
+                    "error": error_msg,
+                    "is_permission": isinstance(exc, ToolPermissionError),
+                    "type": "tool_error",
+                }
 
-                yield ToolResultEvent(
-                    tool_name=tool_call.tool_name,
-                    tool_class=tool_call.tool_class,
-                    error=error_msg,
-                    tool_call_id=tool_call_id,
-                )
+        tasks = [_execute_single(tc) for tc in tool_calls]
+        results = await asyncio.gather(*tasks)
 
-                if isinstance(exc, ToolPermissionError):
-                    self.stats.tool_calls_agreed -= 1
-                    self.stats.tool_calls_rejected += 1
-                else:
-                    self.stats.tool_calls_failed += 1
-                self.messages.append(
-                    LLMMessage.model_validate(
-                        self.format_handler.create_tool_response_message(
-                            tool_call, error_msg
+        for result in results:
+            tool_call = result["tool_call"]
+            tool_call_id = tool_call.call_id
+
+            match result["type"]:
+                case "success":
+                    self.messages.append(
+                        LLMMessage.model_validate(
+                            self.format_handler.create_tool_response_message(
+                                tool_call, result["text"]
+                            )
                         )
                     )
-                )
-                continue
 
-    async def _chat(self, max_tokens: int | None = None) -> LLMChunk:
-        active_model = self.config.get_active_model()
-        provider = self.config.get_provider_for_model(active_model)
-
-        available_tools = self.format_handler.get_available_tools(
-            self.tool_manager, self.config
-        )
-        tool_choice = self.format_handler.get_tool_choice()
-
-        try:
-            start_time = time.perf_counter()
-            async with self.backend as backend:
-                result = await backend.complete(
-                    model=active_model,
-                    messages=self.messages,
-                    temperature=active_model.temperature,
-                    tools=available_tools,
-                    tool_choice=tool_choice,
-                    extra_headers={
-                        "user-agent": get_user_agent(provider.backend),
-                        "x-affinity": self.session_id,
-                    },
-                    max_tokens=max_tokens,
-                )
-            end_time = time.perf_counter()
-
-            if result.usage is None:
-                raise LLMResponseError(
-                    "Usage data missing in non-streaming completion response"
-                )
-            self._update_stats(usage=result.usage, time_seconds=end_time - start_time)
-
-            processed_message = self.format_handler.process_api_response_message(
-                result.message
-            )
-            self.messages.append(processed_message)
-            return LLMChunk(message=processed_message, usage=result.usage)
-
-        except Exception as e:
-            raise RuntimeError(
-                f"API error from {provider.name} (model: {active_model.name}): {e}"
-            ) from e
-
-    async def _chat_streaming(
-        self, max_tokens: int | None = None
-    ) -> AsyncGenerator[LLMChunk]:
-        active_model = self.config.get_active_model()
-        provider = self.config.get_provider_for_model(active_model)
-
-        available_tools = self.format_handler.get_available_tools(
-            self.tool_manager, self.config
-        )
-        tool_choice = self.format_handler.get_tool_choice()
-        try:
-            start_time = time.perf_counter()
-            usage = LLMUsage()
-            chunk_agg = LLMChunk(message=LLMMessage(role=Role.assistant))
-            async with self.backend as backend:
-                async for chunk in backend.complete_streaming(
-                    model=active_model,
-                    messages=self.messages,
-                    temperature=active_model.temperature,
-                    tools=available_tools,
-                    tool_choice=tool_choice,
-                    extra_headers={
-                        "user-agent": get_user_agent(provider.backend),
-                        "x-affinity": self.session_id,
-                    },
-                    max_tokens=max_tokens,
-                ):
-                    processed_message = (
-                        self.format_handler.process_api_response_message(chunk.message)
+                    yield ToolResultEvent(
+                        tool_name=tool_call.tool_name,
+                        tool_class=tool_call.tool_class,
+                        result=result["result_model"],
+                        duration=result["duration"],
+                        tool_call_id=tool_call_id,
                     )
-                    processed_chunk = LLMChunk(
-                        message=processed_message, usage=chunk.usage
+
+                    self.stats.tool_calls_succeeded += 1
+
+                case "skip":
+                    yield ToolResultEvent(
+                        tool_name=tool_call.tool_name,
+                        tool_class=tool_call.tool_class,
+                        skipped=True,
+                        skip_reason=result["skip_reason"],
+                        tool_call_id=tool_call_id,
                     )
-                    chunk_agg += processed_chunk
-                    usage += chunk.usage or LLMUsage()
-                    yield processed_chunk
-            end_time = time.perf_counter()
 
-            if chunk_agg.usage is None:
-                raise LLMResponseError(
-                    "Usage data missing in final chunk of streamed completion"
-                )
-            self._update_stats(usage=usage, time_seconds=end_time - start_time)
-
-            self.messages.append(chunk_agg.message)
-
-        except Exception as e:
-            raise RuntimeError(
-                f"API error from {provider.name} (model: {active_model.name}): {e}"
-            ) from e
-
-    def _update_stats(self, usage: LLMUsage, time_seconds: float) -> None:
-        self.stats.last_turn_duration = time_seconds
-        self.stats.last_turn_prompt_tokens = usage.prompt_tokens
-        self.stats.last_turn_completion_tokens = usage.completion_tokens
-        self.stats.session_prompt_tokens += usage.prompt_tokens
-        self.stats.session_completion_tokens += usage.completion_tokens
-        self.stats.context_tokens = usage.prompt_tokens + usage.completion_tokens
-        if time_seconds > 0 and usage.completion_tokens > 0:
-            self.stats.tokens_per_second = usage.completion_tokens / time_seconds
-
-    async def _should_execute_tool(
-        self, tool: BaseTool, args: BaseModel, tool_call_id: str
-    ) -> ToolDecision:
-        if self.auto_approve:
-            return ToolDecision(verdict=ToolExecutionResponse.EXECUTE)
-
-        allowlist_denylist_result = tool.check_allowlist_denylist(args)
-        if allowlist_denylist_result == ToolPermission.ALWAYS:
-            return ToolDecision(verdict=ToolExecutionResponse.EXECUTE)
-        elif allowlist_denylist_result == ToolPermission.NEVER:
-            denylist_patterns = tool.config.denylist
-            denylist_str = ", ".join(repr(pattern) for pattern in denylist_patterns)
-            return ToolDecision(
-                verdict=ToolExecutionResponse.SKIP,
-                feedback=f"Tool '{tool.get_name()}' blocked by denylist: [{denylist_str}]",
-            )
-
-        tool_name = tool.get_name()
-        perm = self.tool_manager.get_tool_config(tool_name).permission
-
-        if perm is ToolPermission.ALWAYS:
-            return ToolDecision(verdict=ToolExecutionResponse.EXECUTE)
-        if perm is ToolPermission.NEVER:
-            return ToolDecision(
-                verdict=ToolExecutionResponse.SKIP,
-                feedback=f"Tool '{tool_name}' is permanently disabled",
-            )
-
-        return await self._ask_approval(tool_name, args, tool_call_id)
-
-    async def _ask_approval(
-        self, tool_name: str, args: BaseModel, tool_call_id: str
-    ) -> ToolDecision:
-        if not self.approval_callback:
-            return ToolDecision(
-                verdict=ToolExecutionResponse.SKIP,
-                feedback="Tool execution not permitted.",
-            )
-        if asyncio.iscoroutinefunction(self.approval_callback):
-            async_callback = cast(AsyncApprovalCallback, self.approval_callback)
-            response, feedback = await async_callback(tool_name, args, tool_call_id)
-        else:
-            sync_callback = cast(SyncApprovalCallback, self.approval_callback)
-            response, feedback = sync_callback(tool_name, args, tool_call_id)
-
-        match response:
-            case ApprovalResponse.YES:
-                return ToolDecision(
-                    verdict=ToolExecutionResponse.EXECUTE, feedback=feedback
-                )
-            case ApprovalResponse.NO:
-                return ToolDecision(
-                    verdict=ToolExecutionResponse.SKIP, feedback=feedback
-                )
-
-    def _clean_message_history(self) -> None:
-        ACCEPTABLE_HISTORY_SIZE = 2
-        if len(self.messages) < ACCEPTABLE_HISTORY_SIZE:
-            return
-        self._fill_missing_tool_responses()
-        self._ensure_assistant_after_tools()
-
-    def _is_xml_mode(self) -> bool:
-        """Check if we're using XML tool format."""
-        return isinstance(self.format_handler, XMLToolFormatHandler)
-
-    def _has_xml_tool_calls(self, content: str) -> bool:
-        """Check if content contains XML tool calls."""
-        return "<tool_call>" in content and "</tool_call>" in content
-
-    def _fill_missing_tool_responses(self) -> None:
-        i = 1
-        while i < len(self.messages):  # noqa: PLR1702
-            msg = self.messages[i]
-
-            # Handle native tool_calls
-            if msg.role == "assistant" and msg.tool_calls:
-                expected_responses = len(msg.tool_calls)
-
-                if expected_responses > 0:
-                    actual_responses = 0
-                    j = i + 1
-                    while j < len(self.messages) and self.messages[j].role == "tool":
-                        actual_responses += 1
-                        j += 1
-
-                    if actual_responses < expected_responses:
-                        insertion_point = i + 1 + actual_responses
-
-                        for call_idx in range(actual_responses, expected_responses):
-                            tool_call_data = msg.tool_calls[call_idx]
-
-                            empty_response = LLMMessage(
-                                role=Role.tool,
-                                tool_call_id=tool_call_data.id or "",
-                                name=(tool_call_data.function.name or "")
-                                if tool_call_data.function
-                                else "",
-                                content=str(
-                                    get_user_cancellation_message(
-                                        CancellationReason.TOOL_NO_RESPONSE
-                                    )
-                                ),
+                    self.messages.append(
+                        LLMMessage.model_validate(
+                            self.format_handler.create_tool_response_message(
+                                tool_call, result["skip_reason"]
                             )
-
-                            self.messages.insert(insertion_point, empty_response)
-                            insertion_point += 1
-
-                    i = i + 1 + expected_responses
-                    continue
-
-            # Handle XML tool calls in message content
-            if msg.role == "assistant" and self._is_xml_mode():
-                content = msg.content or ""
-                if self._has_xml_tool_calls(content):
-                    # Count expected XML tool calls
-                    import re
-
-                    tool_call_pattern = re.compile(
-                        r"<tool_call>.*?</tool_call>", re.DOTALL | re.IGNORECASE
+                        )
                     )
-                    expected_calls = len(tool_call_pattern.findall(content))
 
-                    if expected_calls > 0:
-                        # Count actual XML tool results
-                        actual_responses = 0
-                        j = i + 1
-                        while j < len(self.messages):
-                            result_msg = self.messages[j]
-                            result_content = result_msg.content or ""
-                            if (
-                                result_msg.role == Role.user
-                                and result_content.strip().startswith("<tool_result")
-                            ):
-                                actual_responses += 1
-                                j += 1
-                            else:
-                                break
+                case "get_error":
+                    yield ToolResultEvent(
+                        tool_name=tool_call.tool_name,
+                        tool_class=tool_call.tool_class,
+                        error=result["error"],
+                        tool_call_id=tool_call_id,
+                    )
+                    self.messages.append(
+                        LLMMessage.model_validate(
+                            self.format_handler.create_tool_response_message(
+                                tool_call, result["error"]
+                            )
+                        )
+                    )
 
-                        if actual_responses < expected_calls:
-                            insertion_point = i + 1 + actual_responses
-                            for _call_idx in range(actual_responses, expected_calls):
-                                # Generate a call_id for the empty response
-                                from uuid import uuid4
+                case "cancelled":
+                    yield ToolResultEvent(
+                        tool_name=tool_call.tool_name,
+                        tool_class=tool_call.tool_class,
+                        error=result["error"],
+                        tool_call_id=tool_call_id,
+                    )
+                    self.messages.append(
+                        LLMMessage.model_validate(
+                            self.format_handler.create_tool_response_message(
+                                tool_call, result["error"]
+                            )
+                        )
+                    )
+                    raise result["exception"]
 
-                                call_id = f"xml_{uuid4().hex[:12]}"
-                                empty_response = LLMMessage(
-                                    role=Role.user,
-                                    content=(
-                                        f'<tool_result name="unknown" call_id="{call_id}">\n'
-                                        f"<status>error</status>\n"
-                                        f"<error>No response received</error>\n"
-                                        f"</tool_result>"
-                                    ),
-                                )
-                                self.messages.insert(insertion_point, empty_response)
-                                insertion_point += 1
+                case "tool_error":
+                    yield ToolResultEvent(
+                        tool_name=tool_call.tool_name,
+                        tool_class=tool_call.tool_class,
+                        error=result["error"],
+                        tool_call_id=tool_call_id,
+                    )
 
-                    i = i + 1 + expected_calls
-                    continue
-
-            i += 1
+                    if result.get("is_permission"):
+                        self.stats.tool_calls_agreed -= 1
+                        self.stats.tool_calls_rejected += 1
+                    else:
+                        self.stats.tool_calls_failed += 1
+                    self.messages.append(
+                        LLMMessage.model_validate(
+                            self.format_handler.create_tool_response_message(
+                                tool_call, result["error"]
+                            )
+                        )
+                    )
 
     def _ensure_assistant_after_tools(self) -> None:
         MIN_MESSAGE_SIZE = 2
@@ -988,7 +1006,7 @@ class Agent:
         self.skill_manager = SkillManager(self.config)
 
         new_system_prompt = get_universal_system_prompt(
-            self.tool_manager, self.config, self.skill_manager
+            self.tool_manager, self.config, self.skill_manager, include_subagents=False
         )
         self.messages = [LLMMessage(role=Role.system, content=new_system_prompt)]
 

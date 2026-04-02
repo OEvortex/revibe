@@ -3,29 +3,16 @@ from __future__ import annotations
 import os
 from typing import TYPE_CHECKING
 
-from revibe.core.config import DEFAULT_MODELS
+from revibe.core.llm.backend.known_providers import (
+    KNOWN_PROVIDERS,
+    get_example_model as get_registry_example_model,
+    get_provider_description,
+)
+from revibe.core.model_sources import get_available_models
 
 if TYPE_CHECKING:
     from revibe.core.config import ProviderConfigUnion
 
-
-# Centralized provider descriptions
-PROVIDER_DESCRIPTIONS: dict[str, str] = {
-    "mistral": "Mistral AI - Devstral models",
-    "openai": "OpenAI - GPT-5, o1 models",
-    "huggingface": "Hugging Face - Inference API and local models",
-    "groq": "Groq - Fast inference",
-    "ollama": "Ollama - Local models",
-    "llamacpp": "llama.cpp - Local server",
-    "cerebras": "Cerebras - Fast inference",
-    "qwencode": "Qwen Code - QwenCli models via OAuth",
-    "openrouter": "OpenRouter - Access to 100+ models from various providers",
-    "geminicli": "Gemini CLI - Google Gemini models via CLI",
-    "opencode": "OpenCode - Multi-provider access (Claude, GPT, Gemini, GLM, Kimi, Qwen, Grok)",
-    "kilocode": "Kilo Code - Free coding models (Grok Code Fast, Devstral, KAT-Coder-Pro, MiniMax M2)",
-    "antigravity": "Antigravity - Free Claude & Gemini models via Google OAuth",
-    "chutes": "Chutes AI - Chutes AI provider",
-}
 
 # Help links for providers requiring API keys
 PROVIDER_HELP: dict[str, tuple[str, str]] = {
@@ -41,6 +28,11 @@ PROVIDER_HELP: dict[str, tuple[str, str]] = {
     "opencode": ("https://opencode.ai", "OpenCode Platform"),
     "kilocode": ("https://app.kilo.ai/profile", "Kilo Code Profile"),
     "chutes": ("https://chutes.ai/app/api", "Chutes AI Platform"),
+}
+
+PROVIDER_DESCRIPTIONS: dict[str, str] = {
+    name: get_provider_description(name) or ""
+    for name in KNOWN_PROVIDERS
 }
 
 
@@ -63,7 +55,10 @@ def check_key_status(provider: ProviderConfigUnion) -> str:
 
 def get_example_model(provider_name: str) -> str | None:
     """Get the first available model alias for the provider."""
-    for model in DEFAULT_MODELS:
+    if alias := get_registry_example_model(provider_name):
+        return alias
+
+    for model in get_available_models():
         if model.provider == provider_name:
             return model.alias
     return None
@@ -76,7 +71,7 @@ def build_provider_description(
     lines = []
 
     # Short summary
-    desc = PROVIDER_DESCRIPTIONS.get(provider.name, provider.api_base)
+    desc = get_provider_description(provider.name) or provider.api_base
     lines.append(f"[bold]{desc}[/]")
 
     # Auth status

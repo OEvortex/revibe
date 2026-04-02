@@ -24,7 +24,6 @@ from revibe.core.config import (
     ModelConfig,
 )
 from revibe.core.llm.backend.factory import BACKEND_FACTORY
-from revibe.core.llm.backend.mistral import MistralBackend
 from revibe.core.llm.backend.openai import OpenAIBackend as GenericBackend
 from revibe.core.llm.exceptions import BackendError
 from revibe.core.llm.types import BackendLike
@@ -69,50 +68,41 @@ class TestBackend:
                 api_key_env_var="API_KEY",
             )
 
-            BackendClasses = [
-                GenericBackend,
-                *([MistralBackend] if base_url == "https://api.mistral.ai" else []),
-            ]
-            for BackendClass in BackendClasses:
-                backend: BackendLike = BackendClass(provider=provider)
-                model = ModelConfig(
-                    name="model_name", provider="provider_name", alias="model_alias"
-                )
-                messages = [LLMMessage(role=Role.user, content="Just say hi")]
+            backend: BackendLike = GenericBackend(provider=provider)
+            model = ModelConfig(
+                name="model_name", provider="provider_name", alias="model_alias"
+            )
+            messages = [LLMMessage(role=Role.user, content="Just say hi")]
 
-                result = await backend.complete(
-                    model=model,
-                    messages=messages,
-                    temperature=0.2,
-                    tools=None,
-                    max_tokens=None,
-                    tool_choice=None,
-                    extra_headers=None,
-                )
+            result = await backend.complete(
+                model=model,
+                messages=messages,
+                temperature=0.2,
+                tools=None,
+                max_tokens=None,
+                tool_choice=None,
+                extra_headers=None,
+            )
 
-                assert result.message.content == result_data["message"]
-                assert result.usage is not None
+            assert result.message.content == result_data["message"]
+            assert result.usage is not None
+            assert result.usage.prompt_tokens == result_data["usage"]["prompt_tokens"]
+            assert (
+                result.usage.completion_tokens
+                == result_data["usage"]["completion_tokens"]
+            )
+
+            if result.message.tool_calls is None:
+                return
+
+            assert len(result.message.tool_calls) == len(result_data["tool_calls"])
+            for i, tool_call in enumerate[ToolCall](result.message.tool_calls):
+                assert tool_call.function.name == result_data["tool_calls"][i]["name"]
                 assert (
-                    result.usage.prompt_tokens == result_data["usage"]["prompt_tokens"]
+                    tool_call.function.arguments
+                    == result_data["tool_calls"][i]["arguments"]
                 )
-                assert (
-                    result.usage.completion_tokens
-                    == result_data["usage"]["completion_tokens"]
-                )
-
-                if result.message.tool_calls is None:
-                    return
-
-                assert len(result.message.tool_calls) == len(result_data["tool_calls"])
-                for i, tool_call in enumerate[ToolCall](result.message.tool_calls):
-                    assert (
-                        tool_call.function.name == result_data["tool_calls"][i]["name"]
-                    )
-                    assert (
-                        tool_call.function.arguments
-                        == result_data["tool_calls"][i]["arguments"]
-                    )
-                    assert tool_call.index == result_data["tool_calls"][i]["index"]
+                assert tool_call.index == result_data["tool_calls"][i]["index"]
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -140,59 +130,48 @@ class TestBackend:
                 api_base=f"{base_url}/v1",
                 api_key_env_var="API_KEY",
             )
-            BackendClasses = [
-                GenericBackend,
-                *([MistralBackend] if base_url == "https://api.mistral.ai" else []),
-            ]
-            for BackendClass in BackendClasses:
-                backend: BackendLike = BackendClass(provider=provider)
-                model = ModelConfig(
-                    name="model_name", provider="provider_name", alias="model_alias"
+            backend: BackendLike = GenericBackend(provider=provider)
+            model = ModelConfig(
+                name="model_name", provider="provider_name", alias="model_alias"
+            )
+
+            messages = [LLMMessage(role=Role.user, content="List files in current dir")]
+
+            results: list[LLMChunk] = []
+            async for result in backend.complete_streaming(
+                model=model,
+                messages=messages,
+                temperature=0.2,
+                tools=None,
+                max_tokens=None,
+                tool_choice=None,
+                extra_headers=None,
+            ):
+                results.append(result)
+
+            for result, expected_result in zip(results, result_data, strict=True):
+                assert result.message.content == expected_result["message"]
+                assert result.usage is not None
+                assert (
+                    result.usage.prompt_tokens == expected_result["usage"]["prompt_tokens"]
+                )
+                assert (
+                    result.usage.completion_tokens
+                    == expected_result["usage"]["completion_tokens"]
                 )
 
-                messages = [
-                    LLMMessage(role=Role.user, content="List files in current dir")
-                ]
+                if result.message.tool_calls is None:
+                    continue
 
-                results: list[LLMChunk] = []
-                async for result in backend.complete_streaming(
-                    model=model,
-                    messages=messages,
-                    temperature=0.2,
-                    tools=None,
-                    max_tokens=None,
-                    tool_choice=None,
-                    extra_headers=None,
-                ):
-                    results.append(result)
-
-                for result, expected_result in zip(results, result_data, strict=True):
-                    assert result.message.content == expected_result["message"]
-                    assert result.usage is not None
+                for i, tool_call in enumerate(result.message.tool_calls):
                     assert (
-                        result.usage.prompt_tokens
-                        == expected_result["usage"]["prompt_tokens"]
+                        tool_call.function.name == expected_result["tool_calls"][i]["name"]
                     )
                     assert (
-                        result.usage.completion_tokens
-                        == expected_result["usage"]["completion_tokens"]
+                        tool_call.function.arguments
+                        == expected_result["tool_calls"][i]["arguments"]
                     )
-
-                    if result.message.tool_calls is None:
-                        continue
-
-                    for i, tool_call in enumerate(result.message.tool_calls):
-                        assert (
-                            tool_call.function.name
-                            == expected_result["tool_calls"][i]["name"]
-                        )
-                        assert (
-                            tool_call.function.arguments
-                            == expected_result["tool_calls"][i]["arguments"]
-                        )
-                        assert (
-                            tool_call.index == expected_result["tool_calls"][i]["index"]
-                        )
+                    assert tool_call.index == expected_result["tool_calls"][i]["index"]
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
@@ -210,12 +189,12 @@ class TestBackend:
             ),
             (
                 "https://api.mistral.ai",
-                MistralBackend,
+                GenericBackend,
                 httpx.Response(status_code=500, text="Internal Server Error"),
             ),
             (
                 "https://api.mistral.ai",
-                MistralBackend,
+                GenericBackend,
                 httpx.Response(status_code=429, text="Rate Limit Exceeded"),
             ),
         ],
@@ -223,7 +202,7 @@ class TestBackend:
     async def test_backend_complete_streaming_error(
         self,
         base_url: Url,
-        backend_class: type[MistralBackend | GenericBackend],
+        backend_class: type[GenericBackend],
         response: httpx.Response,
     ):
         with respx.mock(base_url=base_url) as mock_api:
@@ -279,7 +258,14 @@ class TestBackend:
                 )
             )
             provider = GenericProviderConfig(
-                name=provider_name, api_base=f"{base_url}/v1", api_key_env_var="API_KEY"
+                name=provider_name,
+                api_base=f"{base_url}/v1",
+                api_key_env_var="API_KEY",
+                extra_body=(
+                    {"stream_options": {"stream_tool_calls": True}}
+                    if provider_name == "mistral"
+                    else {}
+                ),
             )
             backend = GenericBackend(provider=provider)
             model = ModelConfig(

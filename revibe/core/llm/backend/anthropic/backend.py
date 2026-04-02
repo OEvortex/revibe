@@ -1,19 +1,22 @@
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import AsyncGenerator
 import json
 import os
 import types
-from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple, Protocol, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 
 import httpx
 
+from revibe.core.llm.backend.anthropic import (
+    ANTHROPIC_ADAPTERS,
+    AnthropicAdapterProtocol,
+)
 from revibe.core.llm.exceptions import BackendErrorBuilder
 from revibe.core.types import (
     AvailableTool,
     LLMChunk,
     LLMMessage,
-    LLMUsage,
     Role,
     StrToolChoice,
 )
@@ -23,147 +26,17 @@ if TYPE_CHECKING:
     from revibe.core.config import ModelConfig, ProviderConfigUnion
 
 
-class PreparedRequest(NamedTuple):
-    endpoint: str
-    headers: dict[str, str]
-    body: bytes
+class AnthropicBackend:
+    """Anthropic SDK-compatible backend for LLM interactions.
 
+    This backend implements the Anthropic API format, supporting:
+    - Streaming responses
+    - Tool/function calling
+    - Thinking content (for supported models)
+    - Cache control markers
+    - Image content
+    """
 
-class APIAdapter(Protocol):
-    endpoint: ClassVar[str]
-
-    def prepare_request(
-        self,
-        *,
-        model_name: str,
-        messages: list[LLMMessage],
-        temperature: float,
-        tools: list[AvailableTool] | None,
-        max_tokens: int | None,
-        tool_choice: StrToolChoice | AvailableTool | None,
-        enable_streaming: bool,
-        provider: ProviderConfigUnion,
-        api_key: str | None = None,
-    ) -> PreparedRequest: ...
-
-    def parse_response(self, data: dict[str, Any]) -> LLMChunk: ...
-
-    def build_headers(self, api_key: str | None = None) -> dict[str, str]: ...
-
-
-BACKEND_ADAPTERS: dict[str, APIAdapter] = {}
-
-T = TypeVar("T", bound=APIAdapter)
-
-
-def register_adapter(
-    adapters: dict[str, APIAdapter], name: str
-) -> Callable[[type[T]], type[T]]:
-
-    def decorator(cls: type[T]) -> type[T]:
-        adapters[name] = cls()
-        return cls
-
-    return decorator
-
-
-@register_adapter(BACKEND_ADAPTERS, "openai")
-class OpenAIAdapter(APIAdapter):
-    endpoint: ClassVar[str] = "/chat/completions"
-
-    def build_payload(
-        self,
-        model_name: str,
-        converted_messages: list[dict[str, Any]],
-        temperature: float,
-        tools: list[AvailableTool] | None,
-        max_tokens: int | None,
-        tool_choice: StrToolChoice | AvailableTool | None,
-    ) -> dict[str, Any]:
-        payload = {
-            "model": model_name,
-            "messages": converted_messages,
-            "temperature": temperature,
-        }
-
-        if tools:
-            payload["tools"] = [tool.model_dump(exclude_none=True) for tool in tools]
-        if tool_choice:
-            payload["tool_choice"] = (
-                tool_choice
-                if isinstance(tool_choice, str)
-                else tool_choice.model_dump()
-            )
-        if max_tokens is not None:
-            payload["max_tokens"] = max_tokens
-
-        return payload
-
-    def build_headers(self, api_key: str | None = None) -> dict[str, str]:
-        headers = {"Content-Type": "application/json"}
-        if api_key:
-            headers["Authorization"] = f"Bearer {api_key}"
-        return headers
-
-    def prepare_request(
-        self,
-        *,
-        model_name: str,
-        messages: list[LLMMessage],
-        temperature: float,
-        tools: list[AvailableTool] | None,
-        max_tokens: int | None,
-        tool_choice: StrToolChoice | AvailableTool | None,
-        enable_streaming: bool,
-        provider: ProviderConfigUnion,
-        api_key: str | None = None,
-    ) -> PreparedRequest:
-        converted_messages = [msg.model_dump(exclude_none=True) for msg in messages]
-
-        payload = self.build_payload(
-            model_name, converted_messages, temperature, tools, max_tokens, tool_choice
-        )
-
-        if enable_streaming:
-            payload["stream"] = True
-            stream_options = {"include_usage": True}
-            if provider.name == "mistral":
-                # This is specifically for when mistral is used via the openai adapter
-                stream_options["stream_tool_calls"] = True
-            payload["stream_options"] = stream_options
-
-        headers = self.build_headers(api_key)
-
-        body = json.dumps(payload).encode("utf-8")
-
-        return PreparedRequest(self.endpoint, headers, body)
-
-    def parse_response(self, data: dict[str, Any]) -> LLMChunk:
-        if data.get("choices"):
-            if "message" in data["choices"][0]:
-                message = LLMMessage.model_validate(data["choices"][0]["message"])
-            elif "delta" in data["choices"][0]:
-                message = LLMMessage.model_validate(data["choices"][0]["delta"])
-            else:
-                raise ValueError("Invalid response data")
-
-        elif "message" in data:
-            message = LLMMessage.model_validate(data["message"])
-        elif "delta" in data:
-            message = LLMMessage.model_validate(data["delta"])
-        else:
-            message = LLMMessage(role=Role.assistant, content="")
-
-        usage_data = data.get("usage") or {}
-        usage = LLMUsage(
-            prompt_tokens=usage_data.get("prompt_tokens", 0),
-            completion_tokens=usage_data.get("completion_tokens", 0),
-        )
-
-        return LLMChunk(message=message, usage=usage)
-
-
-class OpenAIBackend:
     supported_formats: ClassVar[list[str]] = ["native", "xml"]
 
     def __init__(
@@ -173,17 +46,27 @@ class OpenAIBackend:
         client: httpx.AsyncClient | None = None,
         timeout: float = 720.0,
     ) -> None:
-        """Initialize the backend.
+        """Initialize the Anthropic backend.
 
         Args:
+            provider: Provider configuration with API base and credentials.
             client: Optional httpx client to use. If not provided, one will be created.
+            timeout: Request timeout in seconds.
         """
         self._client = client
         self._owns_client = client is None
         self._provider = provider
         self._timeout = timeout
 
-    async def __aenter__(self) -> OpenAIBackend:
+    def _provider_headers(self) -> dict[str, str]:
+        custom_headers = getattr(self._provider, "custom_header", {}) or {}
+        return dict(custom_headers)
+
+    def _provider_extra_body(self) -> dict[str, Any]:
+        extra_body = getattr(self._provider, "extra_body", {}) or {}
+        return dict(extra_body)
+
+    async def __aenter__(self) -> AnthropicBackend:
         if self._client is None:
             self._client = httpx.AsyncClient(
                 timeout=httpx.Timeout(self._timeout),
@@ -210,6 +93,23 @@ class OpenAIBackend:
             self._owns_client = True
         return self._client
 
+    def _get_adapter(self) -> AnthropicAdapterProtocol:
+        """Get the Anthropic adapter based on provider configuration."""
+        api_style = getattr(self._provider, "api_style", "anthropic")
+        return ANTHROPIC_ADAPTERS.get(api_style, ANTHROPIC_ADAPTERS["anthropic"])
+
+    def _get_api_key(self) -> str | None:
+        """Get API key from environment variable."""
+        if self._provider.api_key_env_var:
+            return os.getenv(self._provider.api_key_env_var)
+        return None
+
+    def _build_url(self, endpoint: str) -> str:
+        """Build full URL from endpoint."""
+        base_url = self._provider.api_base.rstrip("/")
+        endpoint = endpoint.lstrip("/")
+        return f"{base_url}/{endpoint}"
+
     async def complete(
         self,
         *,
@@ -221,14 +121,29 @@ class OpenAIBackend:
         tool_choice: StrToolChoice | AvailableTool | None = None,
         extra_headers: dict[str, str] | None = None,
     ) -> LLMChunk:
-        api_key = (
-            os.getenv(self._provider.api_key_env_var)
-            if self._provider.api_key_env_var
-            else None
-        )
+        """Complete a chat conversation using Anthropic API.
 
-        api_style = getattr(self._provider, "api_style", "openai")
-        adapter = BACKEND_ADAPTERS[api_style]
+        Args:
+            model: Model configuration.
+            messages: List of conversation messages.
+            temperature: Sampling temperature (0.0 to 1.0).
+            tools: Optional list of available tools.
+            max_tokens: Maximum tokens to generate.
+            tool_choice: How to choose tools (auto, none, or specific tool).
+            extra_headers: Additional HTTP headers to include.
+
+        Returns:
+            LLMChunk containing the response message and usage information.
+
+        Raises:
+            BackendError: If the API request fails.
+        """
+        api_key = self._get_api_key()
+        adapter = self._get_adapter()
+
+        # Default max_tokens for non-streaming
+        if max_tokens is None:
+            max_tokens = 4096
 
         endpoint, headers, body = adapter.prepare_request(
             model_name=model.name,
@@ -242,12 +157,13 @@ class OpenAIBackend:
             api_key=api_key,
         )
 
+        headers.update(self._provider_headers())
+        if extra_body := self._provider_extra_body():
+            body = self._merge_request_body(body, extra_body)
         if extra_headers:
             headers.update(extra_headers)
 
-        base_url = self._provider.api_base.rstrip("/")
-        endpoint = endpoint.lstrip("/")
-        url = f"{base_url}/{endpoint}"
+        url = self._build_url(endpoint)
 
         try:
             res_data, _ = await self._make_request(url, body, headers)
@@ -262,7 +178,6 @@ class OpenAIBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-
                 tool_choice=tool_choice,
             ) from e
         except httpx.RequestError as e:
@@ -273,7 +188,6 @@ class OpenAIBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-
                 tool_choice=tool_choice,
             ) from e
 
@@ -288,14 +202,29 @@ class OpenAIBackend:
         tool_choice: StrToolChoice | AvailableTool | None = None,
         extra_headers: dict[str, str] | None = None,
     ) -> AsyncGenerator[LLMChunk, None]:
-        api_key = (
-            os.getenv(self._provider.api_key_env_var)
-            if self._provider.api_key_env_var
-            else None
-        )
+        """Streaming version of complete method.
 
-        api_style = getattr(self._provider, "api_style", "openai")
-        adapter = BACKEND_ADAPTERS[api_style]
+        Args:
+            model: Model configuration.
+            messages: List of conversation messages.
+            temperature: Sampling temperature (0.0 to 1.0).
+            tools: Optional list of available tools.
+            max_tokens: Maximum tokens to generate.
+            tool_choice: How to choose tools (auto, none, or specific tool).
+            extra_headers: Additional HTTP headers to include.
+
+        Yields:
+            LLMChunk containing response chunks and usage information.
+
+        Raises:
+            BackendError: If the API request fails.
+        """
+        api_key = self._get_api_key()
+        adapter = self._get_adapter()
+
+        # Default max_tokens for streaming (Anthropic requires this)
+        if max_tokens is None:
+            max_tokens = 4096
 
         endpoint, headers, body = adapter.prepare_request(
             model_name=model.name,
@@ -309,16 +238,19 @@ class OpenAIBackend:
             api_key=api_key,
         )
 
+        headers.update(self._provider_headers())
+        if extra_body := self._provider_extra_body():
+            body = self._merge_request_body(body, extra_body)
         if extra_headers:
             headers.update(extra_headers)
 
-        base_url = self._provider.api_base.rstrip("/")
-        endpoint = endpoint.lstrip("/")
-        url = f"{base_url}/{endpoint}"
+        url = self._build_url(endpoint)
 
         try:
             async for res_data in self._make_streaming_request(url, body, headers):
-                yield adapter.parse_response(res_data)
+                chunk = adapter.parse_stream_chunk(res_data)
+                if chunk is not None:
+                    yield chunk
 
         except httpx.HTTPStatusError as e:
             raise BackendErrorBuilder.build_http_error(
@@ -329,7 +261,6 @@ class OpenAIBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-
                 tool_choice=tool_choice,
             ) from e
         except httpx.RequestError as e:
@@ -340,7 +271,6 @@ class OpenAIBackend:
                 model=model.name,
                 messages=messages,
                 temperature=temperature,
-
                 tool_choice=tool_choice,
             ) from e
 
@@ -352,18 +282,20 @@ class OpenAIBackend:
     async def _make_request(
         self, url: str, data: bytes, headers: dict[str, str]
     ) -> HTTPResponse:
+        """Make a non-streaming HTTP request."""
         client = self._get_client()
         response = await client.post(url, content=data, headers=headers)
         response.raise_for_status()
 
         response_headers = dict(response.headers.items())
-        response_body = response.json()
-        return self.HTTPResponse(response_body, response_headers)
+        response_json = response.json()
+        return self.HTTPResponse(response_json, response_headers)
 
     @async_generator_retry(tries=3)
     async def _make_streaming_request(
         self, url: str, data: bytes, headers: dict[str, str]
     ) -> AsyncGenerator[dict[str, Any]]:
+        """Make a streaming HTTP request and yield parsed chunks."""
         client = self._get_client()
         async with client.stream(
             method="POST", url=url, content=data, headers=headers
@@ -375,20 +307,36 @@ class OpenAIBackend:
 
                 DELIM_CHAR = ":"
                 if f"{DELIM_CHAR} " not in line:
-                    raise ValueError(
-                        f"Stream chunk improperly formatted. "
-                        f"Expected `key{DELIM_CHAR} value`, received `{line}`"
-                    )
+                    continue
+
                 delim_index = line.find(DELIM_CHAR)
                 key = line[0:delim_index]
                 value = line[delim_index + 2 :]
 
                 if key != "data":
-                    # This might be the case with openrouter, so we just ignore it
                     continue
                 if value == "[DONE]":
                     return
+
                 yield json.loads(value.strip())
+
+    @staticmethod
+    def _merge_request_body(body: bytes, extra_body: dict[str, Any]) -> bytes:
+        payload = json.loads(body.decode("utf-8"))
+        AnthropicBackend._merge_dicts(payload, extra_body)
+        return json.dumps(payload).encode("utf-8")
+
+    @staticmethod
+    def _merge_dicts(target: dict[str, Any], source: dict[str, Any]) -> None:
+        for key, value in source.items():
+            if (
+                key in target
+                and isinstance(target[key], dict)
+                and isinstance(value, dict)
+            ):
+                AnthropicBackend._merge_dicts(target[key], value)
+            else:
+                target[key] = value
 
     async def count_tokens(
         self,
@@ -400,6 +348,7 @@ class OpenAIBackend:
         tool_choice: StrToolChoice | AvailableTool | None = None,
         extra_headers: dict[str, str] | None = None,
     ) -> int:
+        """Count tokens in the messages (approximation)."""
         probe_messages = list(messages)
         if not probe_messages or probe_messages[-1].role != Role.user:
             probe_messages.append(LLMMessage(role=Role.user, content=""))
@@ -409,26 +358,25 @@ class OpenAIBackend:
             messages=probe_messages,
             temperature=temperature,
             tools=tools,
-            max_tokens=16,  # Minimal amount for openrouter with openai models
+            max_tokens=16,  # Minimal amount
             tool_choice=tool_choice,
             extra_headers=extra_headers,
         )
         if result.usage is None:
-            raise ValueError("Missing usage in non streaming completion")
+            msg = "Missing usage in non streaming completion"
+            raise ValueError(msg)
 
         return result.usage.prompt_tokens
 
     async def list_models(self) -> list[str]:
-        api_key = (
-            os.getenv(self._provider.api_key_env_var)
-            if self._provider.api_key_env_var
-            else None
-        )
+        """List available models from the provider."""
+        api_key = self._get_api_key()
+        headers: dict[str, str] = {"anthropic-version": "2023-06-01"}
 
-        api_style = getattr(self._provider, "api_style", "openai")
-        adapter = BACKEND_ADAPTERS[api_style]
+        if api_key:
+            headers["x-api-key"] = api_key
+            headers["Authorization"] = f"Bearer {api_key}"
 
-        headers = adapter.build_headers(api_key)
         base_url = self._provider.api_base.rstrip("/")
         url = f"{base_url}/models"
 
@@ -439,15 +387,16 @@ class OpenAIBackend:
             data = response.json()
 
             if isinstance(data, list):
-                return [m["id"] for m in data if "id" in m]
+                return [m.get("id", "") for m in data if m.get("id")]
             if isinstance(data, dict) and "data" in data:
-                return [m["id"] for m in data["data"] if "id" in m]
+                return [m.get("id", "") for m in data["data"] if m.get("id")]
             return []
 
         except Exception:
             return []
 
     async def close(self) -> None:
+        """Close the HTTP client if owned by this backend."""
         if self._owns_client and self._client:
             await self._client.aclose()
             self._client = None

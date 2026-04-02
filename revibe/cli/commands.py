@@ -72,6 +72,11 @@ class CommandRegistry:
                 description="Display agent statistics",
                 handler="_show_status",
             ),
+            "resume": Command(
+                aliases=frozenset(["/resume"]),
+                description="Resume a previous session from session picker",
+                handler="_resume_session",
+            ),
         }
 
         for command in excluded_commands:

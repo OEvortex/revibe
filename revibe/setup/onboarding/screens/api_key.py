@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import ClassVar, Protocol
+from typing import ClassVar
 
 from dotenv import set_key
 from pydantic import TypeAdapter
@@ -13,7 +13,8 @@ from textual.validation import Length
 from textual.widgets import Button, Input, Link, Static
 
 from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfigUnion, VibeConfig
-from revibe.core.model_config import DEFAULT_MODELS, ModelConfig
+from revibe.core.model_config import ModelConfig
+from revibe.core.model_sources import get_available_models
 from revibe.core.paths.global_paths import GLOBAL_ENV_FILE
 from revibe.setup.onboarding.base import OnboardingScreen
 from revibe.setup.onboarding.provider_info import PROVIDER_HELP, mask_key
@@ -23,10 +24,6 @@ CONFIG_DOCS_URL = "https://github.com/OEvortex/revibe?tab=readme-ov-file#configu
 
 MODEL_CONFIG_ADAPTER = TypeAdapter(list[ModelConfig])
 PROVIDER_ADAPTER = TypeAdapter(list[ProviderConfigUnion])
-
-
-class _CredentialLike(Protocol):
-    email: str | None
 
 
 def _save_api_key_to_env_file(env_key: str, api_key: str) -> None:
@@ -72,11 +69,13 @@ def _resolve_provider(config: VibeConfig) -> ProviderConfigUnion | None:
         return config.get_provider_for_model(active_model)
     except (ValueError, KeyError):
         active_model_name = getattr(config, "active_model", "")
-        if "-" in active_model_name:
-            provider_name = active_model_name.split("-")[0]
-            for provider in config.providers:
-                if provider.name == provider_name:
-                    return provider
+        if active_model_name:
+            for model in config.models:
+                if model.alias == active_model_name or model.name == active_model_name:
+                    return config.get_provider_for_model(model)
+
+        if config.models:
+            return config.get_provider_for_model(config.models[0])
     return None
 
 
@@ -95,6 +94,17 @@ class ApiKeyScreen(OnboardingScreen):
         self.provider = None
         self._gradient_offset = 0
         self._gradient_timer: Timer | None = None
+        self._test_app = None
+
+    @property
+    def app(self) -> object:
+        if self._test_app is not None:
+            return self._test_app
+        return super().app
+
+    @app.setter
+    def app(self, value) -> None:
+        self._test_app = value
 
     def _load_config(self) -> VibeConfig:
         """Load config, handling missing API key since we're in setup.
@@ -109,11 +119,11 @@ class ApiKeyScreen(OnboardingScreen):
         if "models" in toml_data:
             toml_data["models"] = [ModelConfig(**item) for item in toml_data["models"]]
         else:
-            toml_data["models"] = list(DEFAULT_MODELS)
+            toml_data["models"] = get_available_models()
 
         # Merge default models if not present
         existing_keys = {(m.name, m.provider) for m in toml_data["models"]}
-        for m in DEFAULT_MODELS:
+        for m in get_available_models():
             if (m.name, m.provider) not in existing_keys:
                 toml_data["models"].append(m)
 
@@ -130,6 +140,8 @@ class ApiKeyScreen(OnboardingScreen):
         """Reload config when screen becomes visible to pick up saved provider selection."""
         config = self._load_config()
         self.provider = _resolve_provider(config)
+        if self.provider and not getattr(self.provider, "api_key_env_var", ""):
+            self._exit_app("completed")
 
     def _ensure_provider_loaded(self) -> None:
         if self.provider is not None:
@@ -164,74 +176,11 @@ class ApiKeyScreen(OnboardingScreen):
             return
         provider_name = getattr(self.provider, "name", "")
 
-        if provider_name == "antigravity":
-            # Check if already authenticated
-            from revibe.core.llm.backend.antigravity.types import (
-                get_antigravity_credential_path,
-            )
-            cred_path = get_antigravity_credential_path()
-            if cred_path.exists():
-                yield Static(
-                    "[green]✓[/] Antigravity is already authenticated!",
-                    id="no-api-key-message",
-                )
-                yield Static(
-                    f"Credentials saved at: {cred_path}",
-                    id="antigravity-cred-path",
-                    classes="subtle",
-                )
-                yield Center(
-                    Button(
-                        "Re-authenticate with Google",
-                        id="antigravity-auth-button",
-                        variant="default",
-                    )
-                )
-            else:
-                yield Static(
-                    "Antigravity uses Google OAuth for authentication.",
-                    id="no-api-key-message",
-                )
-                yield Static(
-                    "Click the button below to open your browser and sign in with Google.",
-                    id="antigravity-instructions",
-                    classes="subtle",
-                )
-                yield Center(
-                    Button(
-                        "🔐 Sign in with Google",
-                        id="antigravity-auth-button",
-                        variant="success",
-                        classes="primary-action",
-                    )
-                )
-        elif provider_name == "qwencode":
-            yield Static(
-                f"{provider_name.capitalize()} does not require an API key.",
-                id="no-api-key-message",
-            )
-            yield Static(
-                "Please install qwen-code if not installed: `npm install -g @qwen-code/qwen-code@latest`\n"
-                "then use `/auth` in qwen to authenticate, then you can close qwen and use qwencode provider in ReVibe",
-                id="qwen-instructions",
-            )
-        elif provider_name == "geminicli":
-            yield Static(
-                f"{provider_name.capitalize()} does not require an API key.",
-                id="no-api-key-message",
-            )
-            yield Static(
-                "Please install gemini CLI: `npm install -g @anthropic-ai/gemini@latest`\n"
-                "then use `gemini auth login` to authenticate.",
-                id="geminicli-instructions",
-            )
-        else:
-            yield Static(
-                f"{provider_name.capitalize()} does not require an API key.",
-                id="no-api-key-message",
-            )
+        yield Static(
+            f"{provider_name.capitalize()} does not require an API key.",
+            id="no-api-key-message",
+        )
         yield Static("", id="feedback")
-
 
     def _compose_no_api_key_screen(self) -> ComposeResult:
         with Vertical(id="api-key-outer"):
@@ -256,7 +205,9 @@ class ApiKeyScreen(OnboardingScreen):
         with Vertical(id="api-key-outer"):
             yield Static("Credentials", classes="eyebrow")
             yield Center(Static("API Key Detected", id="api-key-title"))
-            yield Center(Static(f"{provider_name} is already connected", classes="lede"))
+            yield Center(
+                Static(f"{provider_name} is already connected", classes="lede")
+            )
             with Center():
                 with Vertical(id="api-key-content", classes="card"):
                     yield Static(
@@ -383,6 +334,16 @@ class ApiKeyScreen(OnboardingScreen):
             except Exception:
                 pass
 
+    def _exit_app(self, value: str) -> None:
+        exit_callable = self.app.exit
+        try:
+            exit_callable(value)
+        except TypeError:
+            raw_exit = getattr(exit_callable, "__func__", None)
+            if raw_exit is None:
+                raise
+            raw_exit(value)
+
     def on_input_changed(self, event: Input.Changed) -> None:
         feedback = self.query_one("#feedback", Static)
         input_box = self.query_one("#input-box", Container)
@@ -416,89 +377,13 @@ class ApiKeyScreen(OnboardingScreen):
         try:
             _save_api_key_to_env_file(env_key, api_key)
         except OSError as err:
-            self.app.exit(f"save_error:{err}")
+            self._exit_app(f"save_error:{err}")
             return
-        self.app.exit("completed")
+        self._exit_app("completed")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "continue-button":
-            self.app.exit("completed")
-        elif event.button.id == "antigravity-auth-button":
-            self._run_antigravity_auth()
-
-    def _run_antigravity_auth(self) -> None:
-        """Run Antigravity OAuth authentication in a background thread."""
-        import asyncio
-        import threading
-
-        feedback = self.query_one("#feedback", Static)
-        button = self.query_one("#antigravity-auth-button", Button)
-
-        # Disable button and show loading state
-        button.disabled = True
-        button.label = "Opening browser..."
-        feedback.update("[dim]Please complete the authentication in your browser...[/]")
-
-        def run_auth() -> None:
-            """Run the async OAuth flow."""
-            try:
-                from revibe.core.llm.backend.antigravity.oauth import (
-                    AntigravityOAuthManager,
-                )
-
-                oauth_manager = AntigravityOAuthManager()
-
-                # Run the async authenticate method
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    credentials = loop.run_until_complete(oauth_manager.authenticate())
-                    # Post success to main thread
-                    self.app.call_from_thread(self._on_auth_success, credentials)
-                except Exception as e:
-                    # Post error to main thread
-                    self.app.call_from_thread(self._on_auth_error, str(e))
-                finally:
-                    loop.close()
-            except Exception as e:
-                self.app.call_from_thread(self._on_auth_error, str(e))
-
-        # Run in background thread
-        thread = threading.Thread(target=run_auth, daemon=True)
-        thread.start()
-
-    def _on_auth_success(self, credentials: _CredentialLike) -> None:
-        """Called when OAuth authentication succeeds."""
-        feedback = self.query_one("#feedback", Static)
-        feedback.update(f"[green]✓ Authenticated as: {credentials.email or 'Unknown'}[/]")
-        feedback.add_class("success")
-
-        # Update button to show success
-        try:
-            button = self.query_one("#antigravity-auth-button", Button)
-            button.label = "✓ Authenticated"
-            button.variant = "success"
-            button.disabled = False
-        except Exception:
-            pass
-
-        # Auto-complete after a brief delay
-        self.set_timer(1.5, lambda: self.app.exit("completed"))
-
-    def _on_auth_error(self, error: str) -> None:
-        """Called when OAuth authentication fails."""
-        feedback = self.query_one("#feedback", Static)
-        feedback.update(f"[red]Authentication failed: {error}[/]")
-        feedback.add_class("error")
-
-        # Re-enable button
-        try:
-            button = self.query_one("#antigravity-auth-button", Button)
-            button.disabled = False
-            button.label = "🔐 Try Again"
-        except Exception:
-            pass
+            self._exit_app("completed")
 
     def action_finish(self) -> None:
-        self.app.exit("completed")
-
+        self._exit_app("completed")
