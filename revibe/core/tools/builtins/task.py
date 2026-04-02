@@ -39,7 +39,7 @@ class TaskResult(BaseModel):
 class TaskConfig(BaseToolConfig):
     permission: ToolPermission = ToolPermission.ALWAYS
     default_agent: str = "explore"
-    max_turns: int = 8
+    max_turns: int = 50
 
 
 class Task(

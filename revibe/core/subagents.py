@@ -136,7 +136,7 @@ async def execute_subagent(
     agent_name: str,
     prompt: str,
     *,
-    max_turns: int = 8,
+    max_turns: int = 50,
     base_config: VibeConfig | None = None,
 ) -> str:
     from revibe.core.agent import Agent
