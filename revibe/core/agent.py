@@ -752,11 +752,7 @@ class Agent:
 
             except ToolPendingError as exc:
                 self.pending_questions = tool_instance.state.pending_questions
-                return {
-                    "tool_call": tool_call,
-                    "error": str(exc),
-                    "type": "pending",
-                }
+                return {"tool_call": tool_call, "error": str(exc), "type": "pending"}
 
             except (ToolError, ToolPermissionError) as exc:
                 error_msg = f"<{TOOL_ERROR_TAG}>{tool_instance.get_name()} failed: {exc}</{TOOL_ERROR_TAG}>"
@@ -848,13 +844,13 @@ class Agent:
                         tool_class=tool_call.tool_class,
                         pending=True,
                         pending_questions=self.pending_questions,
-                        error=result["error"],
+                        error=None,
                         tool_call_id=tool_call_id,
                     )
                     # Don't add message to history or continue - agent should pause
-                    self.stats.tool_calls_pending = getattr(
-                        self.stats, "tool_calls_pending", 0
-                    ) + 1
+                    self.stats.tool_calls_pending = (
+                        getattr(self.stats, "tool_calls_pending", 0) + 1
+                    )
                     return  # Stop processing further tool calls
 
                 case "tool_error":

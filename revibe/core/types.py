@@ -27,6 +27,7 @@ class AgentStats(BaseModel):
     tool_calls_rejected: int = 0
     tool_calls_failed: int = 0
     tool_calls_succeeded: int = 0
+    tool_calls_pending: int = 0
 
     context_tokens: int = 0
 

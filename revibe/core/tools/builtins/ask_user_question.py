@@ -95,7 +95,4 @@ class AskUserQuestion(
     async def run(self, args: AskUserQuestionArgs) -> AskUserQuestionResult:
         self.state.pending_questions = args.questions
         self.state.resolved_answers = None
-        raise ToolPendingError(
-            "USER_QUESTION_PENDINGING: The agent should pause and wait for the UI to resolve this question. "
-            "The UI will re-invoke this tool with the user's answers."
-        )
+        raise ToolPendingError("Waiting for user response")
