@@ -18,6 +18,7 @@ from revibe.core.tools.builtins.search_replace import (
     SearchReplaceArgs,
     SearchReplaceResult,
 )
+from revibe.core.tools.builtins.task import TaskResult
 from revibe.core.tools.builtins.todo import TodoArgs, TodoResult
 from revibe.core.tools.builtins.write_file import WriteFileArgs, WriteFileResult
 
@@ -348,6 +349,29 @@ class GrepResultWidget(ToolResultWidget[GrepResult]):
             yield Markdown(f"```\n{_truncate_lines(self.result.matches, 30)}\n```")
 
 
+class TaskResultWidget(ToolResultWidget[TaskResult]):
+    def compose(self) -> ComposeResult:
+        yield from self._header()
+        if self.collapsed or not self.result:
+            return
+        if self.result.agent:
+            yield Static(
+                f"Agent: {self.result.agent}",
+                markup=False,
+                classes="tool-result-detail",
+            )
+        yield Static("")
+        # Show output with markdown rendering
+        if self.result.output:
+            output_lines = self.result.output.split("\n")
+            if len(output_lines) > 20:
+                output_text = "\n".join(output_lines[:20])
+                output_text += f"\n… ({len(output_lines) - 20} more lines)"
+            else:
+                output_text = self.result.output
+            yield Static(output_text, markup=False, classes="tool-result-output")
+
+
 APPROVAL_WIDGETS: dict[str, type[ToolApprovalWidget]] = {
     "bash": BashApprovalWidget,
     "read_file": ReadFileApprovalWidget,
@@ -364,6 +388,7 @@ RESULT_WIDGETS: dict[str, type[ToolResultWidget]] = {
     "search_replace": SearchReplaceResultWidget,
     "grep": GrepResultWidget,
     "todo": TodoResultWidget,
+    "task": TaskResultWidget,
 }
 
 

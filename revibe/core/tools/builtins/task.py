@@ -54,25 +54,37 @@ class Task(
     @classmethod
     def get_call_display(cls, event: ToolCallEvent) -> ToolCallDisplay:
         if not isinstance(event.args, TaskArgs):
-            return ToolCallDisplay(summary="Task")
+            return ToolCallDisplay(summary="🧩 Task")
 
-        return ToolCallDisplay(summary=f"Task ({event.args.agent or 'explore'})")
+        agent = event.args.agent or "explore"
+        # Truncate prompt for display
+        prompt_preview = event.args.prompt[:50].replace("\n", " ")
+        if len(event.args.prompt) > 50:
+            prompt_preview += "…"
+        return ToolCallDisplay(
+            summary=f"🧩 Task → {agent}", details=[f"Prompt: {prompt_preview}"]
+        )
 
     @classmethod
     def get_result_display(cls, event: ToolResultEvent) -> ToolResultDisplay:
         if isinstance(event.result, TaskResult):
+            output_preview = event.result.output[:100].replace("\n", " ")
+            if len(event.result.output) > 100:
+                output_preview += "…"
             return ToolResultDisplay(
-                success=True, message=f"Subagent {event.result.agent} completed"
+                success=True,
+                message=f"✅ {event.result.agent} completed",
+                details=[f"Output: {output_preview}"],
             )
 
         if event.error:
-            return ToolResultDisplay(success=False, message=event.error)
+            return ToolResultDisplay(success=False, message=f"❌ {event.error}")
 
-        return ToolResultDisplay(success=True, message="Completed")
+        return ToolResultDisplay(success=True, message="✅ Completed")
 
     @classmethod
     def get_status_text(cls) -> str:
-        return "Delegating task"
+        return "🤖 Running subagent..."
 
     @final
     async def run(self, args: TaskArgs) -> TaskResult:
