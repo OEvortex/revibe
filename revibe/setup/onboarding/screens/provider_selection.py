@@ -7,7 +7,7 @@ from textual.binding import Binding, BindingType
 from textual.containers import Center, Vertical
 from textual.widgets import Static
 
-from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfig, VibeConfig
+from revibe.core.config import ProviderConfig, VibeConfig
 from revibe.setup.onboarding.base import OnboardingScreen
 from revibe.setup.onboarding.provider_info import build_provider_description
 
@@ -32,7 +32,17 @@ class ProviderSelectionScreen(OnboardingScreen):
         super().__init__()
         self._provider_index = 0
         self._provider_widgets: list[Static] = []
-        self._providers: list[ProviderConfig] = list(DEFAULT_PROVIDERS)
+        from pydantic import TypeAdapter
+
+        from revibe.core.llm.backend.known_providers import (
+            get_provider_configs_from_registry,
+        )
+
+        registry_configs = get_provider_configs_from_registry()
+        adapter = TypeAdapter(list[ProviderConfig])
+        self._providers: list[ProviderConfig] = adapter.validate_python(
+            registry_configs
+        )
         self._show_details = False
 
     def _compose_provider_list(self) -> ComposeResult:

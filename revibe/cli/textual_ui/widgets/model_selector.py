@@ -92,7 +92,7 @@ class ModelSelector(Container):
 
     async def on_mount(self) -> None:
         self._update_list()
-        # Fetch dynamic models (for ollama/llamacpp)
+        # Fetch dynamic models from all configured providers
         await self._fetch_dynamic_models()
         self.query_one("#model-selector-filter", Input).focus()
 
@@ -197,11 +197,18 @@ class ModelSelector(Container):
         self._update_detail_panel()
 
     def _build_provider_map(self) -> dict[str, ProviderConfig]:
-        """Build a merged provider map from defaults and user config."""
-        from revibe.core.config import DEFAULT_PROVIDERS
+        """Build a merged provider map from registry and user config."""
+        from pydantic import TypeAdapter
+
+        from revibe.core.llm.backend.known_providers import (
+            get_provider_configs_from_registry,
+        )
+
+        registry_configs = get_provider_configs_from_registry()
+        adapter = TypeAdapter(list[ProviderConfig])
 
         providers_map: dict[str, ProviderConfig] = {}
-        for p in DEFAULT_PROVIDERS:
+        for p in adapter.validate_python(registry_configs):
             providers_map[p.name] = p
         for p in self.config.providers:
             providers_map[p.name] = p
@@ -283,7 +290,7 @@ class ModelSelector(Container):
         return added_any
 
     async def _fetch_dynamic_models(self) -> None:
-        """Fetch models from provider backends (ollama/llamacpp only)."""
+        """Fetch models dynamically from configured provider backends."""
         self._missing_api_key_message = None
         self.loading = True
         self._update_list(self.query_one("#model-selector-filter", Input).value)

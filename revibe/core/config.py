@@ -450,9 +450,18 @@ class VibeConfig(BaseSettings):
         )
 
     def get_provider_for_model(self, model: ModelConfig) -> ProviderConfig:
-        # Merge DEFAULT_PROVIDERS with configured providers
+        # Merge registry providers with configured providers
+        from pydantic import TypeAdapter
+
+        from revibe.core.llm.backend.known_providers import (
+            get_provider_configs_from_registry,
+        )
+
+        registry_adapter = TypeAdapter(list[ProviderConfig])
+        registry_configs = get_provider_configs_from_registry()
+
         providers_map: dict[str, Any] = {}
-        for p in DEFAULT_PROVIDERS:
+        for p in registry_adapter.validate_python(registry_configs):
             providers_map[p.name] = p
         for p in self.providers:
             p_name = p.name if not isinstance(p, dict) else p.get("name")
@@ -486,8 +495,17 @@ class VibeConfig(BaseSettings):
         """
         import os
 
+        from pydantic import TypeAdapter
+
+        from revibe.core.llm.backend.known_providers import (
+            get_provider_configs_from_registry,
+        )
+
+        registry_adapter = TypeAdapter(list[ProviderConfig])
+        registry_configs = get_provider_configs_from_registry()
+
         providers_map: dict[str, Any] = {}
-        for p in DEFAULT_PROVIDERS:
+        for p in registry_adapter.validate_python(registry_configs):
             providers_map[p.name] = p
         for p in self.providers:
             p_name = p.name if not isinstance(p, dict) else p.get("name")

@@ -38,11 +38,18 @@ class ProviderSelector(Container):
     def __init__(self, config: VibeConfig) -> None:
         super().__init__(id="provider-selector")
         self.config = config
-        # Merge DEFAULT_PROVIDERS with the loaded configuration
-        from revibe.core.config import DEFAULT_PROVIDERS
+        # Build provider list from registry + user config
+        from pydantic import TypeAdapter
+
+        from revibe.core.llm.backend.known_providers import (
+            get_provider_configs_from_registry,
+        )
+
+        registry_configs = get_provider_configs_from_registry()
+        adapter = TypeAdapter(list[ProviderConfig])
 
         providers_map: dict[str, ProviderConfig] = {}
-        for p in DEFAULT_PROVIDERS:
+        for p in adapter.validate_python(registry_configs):
             providers_map[p.name] = p
         for p in config.providers:
             providers_map[p.name] = p

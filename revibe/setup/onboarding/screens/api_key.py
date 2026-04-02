@@ -12,7 +12,7 @@ from textual.timer import Timer
 from textual.validation import Length
 from textual.widgets import Button, Input, Link, Static
 
-from revibe.core.config import DEFAULT_PROVIDERS, ProviderConfig, VibeConfig
+from revibe.core.config import ProviderConfig, VibeConfig
 from revibe.core.model_config import ModelConfig
 from revibe.core.model_sources import get_available_models
 from revibe.core.paths.global_paths import GLOBAL_ENV_FILE
@@ -57,9 +57,6 @@ def _resolve_provider(config: VibeConfig) -> ProviderConfig | None:
     active_provider = getattr(config, "active_provider", None)
     if active_provider:
         for provider in config.providers:
-            if provider.name == active_provider:
-                return provider
-        for provider in DEFAULT_PROVIDERS:
             if provider.name == active_provider:
                 return provider
         return None
@@ -132,7 +129,13 @@ class ApiKeyScreen(OnboardingScreen):
                 toml_data["providers"]
             )
         else:
-            toml_data["providers"] = list(DEFAULT_PROVIDERS)
+            from revibe.core.llm.backend.known_providers import (
+                get_provider_configs_from_registry,
+            )
+
+            toml_data["providers"] = PROVIDER_ADAPTER.validate_python(
+                get_provider_configs_from_registry()
+            )
 
         return VibeConfig.model_construct(**toml_data)
 

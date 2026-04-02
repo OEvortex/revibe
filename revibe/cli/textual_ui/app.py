@@ -375,11 +375,18 @@ class VibeApp(App):
         self, message: ProviderSelector.ProviderSelected
     ) -> None:
         provider_name = message.provider_name
-        # Find the provider config - merge defaults with config like the selector does
-        from revibe.core.config import DEFAULT_PROVIDERS
+        # Build provider map from registry + user config
+        from pydantic import TypeAdapter
+
+        from revibe.core.llm.backend.known_providers import (
+            get_provider_configs_from_registry,
+        )
+
+        registry_configs = get_provider_configs_from_registry()
+        adapter = TypeAdapter(list[ProviderConfig])
 
         providers_map: dict[str, ProviderConfig] = {}
-        for p in DEFAULT_PROVIDERS:
+        for p in adapter.validate_python(registry_configs):
             providers_map[p.name] = p
         for p in self.config.providers:
             providers_map[p.name] = p
@@ -429,13 +436,20 @@ class VibeApp(App):
         model_name = message.model_name
         provider_name = message.provider
 
-        # Find the provider config to check for API key requirement
+        # Build provider map from registry + user config
         import os
 
-        from revibe.core.config import DEFAULT_PROVIDERS
+        from pydantic import TypeAdapter
+
+        from revibe.core.llm.backend.known_providers import (
+            get_provider_configs_from_registry,
+        )
+
+        registry_configs = get_provider_configs_from_registry()
+        adapter = TypeAdapter(list[ProviderConfig])
 
         providers_map: dict[str, ProviderConfig] = {}
-        for p in DEFAULT_PROVIDERS:
+        for p in adapter.validate_python(registry_configs):
             providers_map[p.name] = p
         for p in self.config.providers:
             providers_map[p.name] = p
@@ -544,11 +558,18 @@ class VibeApp(App):
         provider_name = message.provider_name
         api_key = message.api_key
 
-        # Find the provider to get the env var name - merge defaults with config like the selector does
-        from revibe.core.config import DEFAULT_PROVIDERS
+        # Build provider map from registry + user config
+        from pydantic import TypeAdapter
+
+        from revibe.core.llm.backend.known_providers import (
+            get_provider_configs_from_registry,
+        )
+
+        registry_configs = get_provider_configs_from_registry()
+        adapter = TypeAdapter(list[ProviderConfig])
 
         providers_map: dict[str, ProviderConfig] = {}
-        for p in DEFAULT_PROVIDERS:
+        for p in adapter.validate_python(registry_configs):
             providers_map[p.name] = p
         for p in self.config.providers:
             providers_map[p.name] = p
